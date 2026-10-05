@@ -35,6 +35,10 @@ export interface CodeSheetBlock extends BlockBase {
   qrOtherChars?: number;
   /** text that is "can" for a Can package (e.g. {{PKG}}) → qrCanChars per line, anything else → qrOtherChars */
   qrCanText?: string;
+  /** QR size (mm). Empty = as large as the cell allows. A larger size makes the code rows taller / the QR column wider to fit it */
+  qrSizeMm?: number | null;
+  /** white space kept around the QR inside its cell (mm, default 0.8) */
+  qrPadMm?: number;
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Math.random().toString(36).slice(2));
@@ -67,8 +71,11 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
   const texts = b.lines.map((l) => fillTokens(l.text, c.vars, c.rowVars));
   const used = Math.max(1, ...texts.map((t) => [...t.replace(/\s+$/, '')].length));
   const n = b.autoCells === false ? nMax : Math.max(Math.min(nMax, b.minCells ?? 12), Math.min(nMax, used));
+  const qrPad = Math.max(0, b.qrPadMm ?? 0.8);
+  const qrWant = b.qrSizeMm && b.qrSizeMm > 0 ? b.qrSizeMm : 0;
+  const widthMm = (x: SheetSideCol) => (x.qr && qrWant ? Math.max(x.widthMm, qrWant + 2 * qrPad) : x.widthMm);
   const side = [...b.left, ...b.right];
-  const sideTotal = side.reduce((s, x) => s + pt(x.widthMm), 0);
+  const sideTotal = side.reduce((s, x) => s + pt(widthMm(x)), 0);
   const room = c.contentWidth - pt(b.marginLeft ?? 0) - pt(b.marginRight ?? 0);
   // box width is what a full row of boxes would get; hidden boxes free their width for the other columns
   const minCell = pt(2.8);
@@ -76,9 +83,10 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
   if (room - sideTotal < minCell * nMax) k = Math.max(0.4, (room - minCell * nMax) / sideTotal);
   const cw = (room - sideTotal * k) / nMax;
   const k2 = Math.min(2.2, (room - cw * n) / sideTotal);
-  const w = (x: SheetSideCol) => pt(x.widthMm) * k2;
+  const w = (x: SheetSideCol) => pt(widthMm(x)) * k2;
   const fs = Math.min(b.fontSize, cw * 0.95 / 0.6);
-  const cellH = pt(b.cellHeightMm);
+  // a wanted QR size also sets the minimum height of the code rows
+  const cellH = Math.max(pt(b.cellHeightMm), qrWant ? pt(qrWant + 2 * qrPad) / rows : 0);
   const head = (text: string, extra: object = {}) => ({ text, bold: true, fontSize: Math.min(9, b.fontSize), alignment: 'center', fillColor: b.headerBg, margin: [0, 2, 0, 2], ...extra });
   const span = (_col: SheetSideCol, rowSpan: number) => ({ text: '', rowSpan });
   const isCan = fillTokens(b.qrCanText ?? '{{PKG}}', c.vars, c.rowVars).trim().toLowerCase() === 'can';
@@ -93,7 +101,8 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
   const stack = (col: SheetSideCol) => {
     if (col.qr) {
       if (!payload) return { text: ' ', rowSpan: rows };
-      const fit = Math.max(20, Math.min(w(col) - pt(2), cellH * rows - pt(1.5)));
+      const room2 = Math.min(w(col) - pt(2 * qrPad), cellH * rows - pt(2 * qrPad));
+      const fit = Math.max(20, qrWant ? Math.min(pt(qrWant), room2) : room2);
       return { rowSpan: rows, stack: [{ qr: payload, fit, eccLevel: 'L', alignment: 'center', margin: [0, (cellH * rows - fit) / 2, 0, 0] }] };
     }
     const items = col.items.map((it) => ({ label: it.label, text: fillTokens(it.text, c.vars, c.rowVars) }));
