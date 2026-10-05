@@ -80,7 +80,7 @@ export interface PdfTemplate {
   header: { enabled: boolean; blocks: (TextBlock | ImageBlock | ColumnsBlock | LineBlock | SpacerBlock)[] };
   footer: { enabled: boolean; blocks: (TextBlock | ImageBlock | ColumnsBlock | LineBlock | SpacerBlock)[] };
   blocks: Block[];
-  watermark: { enabled: boolean; text: string; color: string; opacity: number; size: number; angle: number };
+  watermark: { enabled: boolean; text: string; color: string; opacity: number; size: number; angle: number; /** image watermark (used instead of the text when set) */ imageUrl?: string; imageWidthMm?: number };
   /** questions asked before exporting (header fields such as Line / Plant) */
   prompts?: PromptDef[];
   settings?: { shift?: ShiftSettings };

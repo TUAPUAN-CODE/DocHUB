@@ -5,6 +5,7 @@ import { apiError } from '@/api/client';
 import { filesApi, pdfApi } from '@/api/endpoints';
 import { FilePicker } from '@/components/files/FilePicker';
 import { BLOCK_TYPES_BODY, BLOCK_TYPES_SIDE, ColumnsForm, FieldsForm, Group, ImageForm, LineForm, Num, PDF_SWATCHES, SpacerForm, SpacingForm, TableForm, TextForm } from '@/components/pdf/BlockForms';
+import { WatermarkImage } from '@/components/pdf/WatermarkImage';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Field, Select, TextInput, Toggle } from '@/components/ui/Inputs';
 import { ColorInput, EmptyState, Skeleton } from '@/components/ui/misc';
@@ -327,6 +328,8 @@ function PageSettings({ t, patch, sheets }: { t: PdfTemplate; patch: (p: Partial
         <Toggle checked={t.watermark.enabled} onChange={(v) => patch({ watermark: { ...t.watermark, enabled: v } })} label="แสดงลายน้ำทุกหน้า" />
         {t.watermark.enabled && (
           <>
+            <Field label="รูปลายน้ำ (ถ้าใส่ จะใช้รูปแทนข้อความ)"><WatermarkImage url={t.watermark.imageUrl} onChange={(u) => patch({ watermark: { ...t.watermark, imageUrl: u } })} /></Field>
+            {t.watermark.imageUrl && <Num label="กว้างรูป" value={t.watermark.imageWidthMm ?? 120} onChange={(v) => patch({ watermark: { ...t.watermark, imageWidthMm: v ?? 120 } })} min={10} max={400} suffix="mm" />}
             <Field label="ข้อความ"><TextInput value={t.watermark.text} onChange={(e) => patch({ watermark: { ...t.watermark, text: e.target.value } })} /></Field>
             <div className="grid grid-cols-3 gap-2"><Num label="ขนาด" value={t.watermark.size} onChange={(v) => patch({ watermark: { ...t.watermark, size: v ?? 90 } })} min={10} max={300} /><Num label="จางมาก (0-1)" value={t.watermark.opacity} onChange={(v) => patch({ watermark: { ...t.watermark, opacity: v ?? 0.15 } })} min={0.02} max={1} step={0.01} /><Num label="องศา" value={t.watermark.angle} onChange={(v) => patch({ watermark: { ...t.watermark, angle: v ?? 0 } })} min={-90} max={90} /></div>
             <Field label="สี"><ColorInput value={t.watermark.color} swatches={PDF_SWATCHES} onChange={(v) => patch({ watermark: { ...t.watermark, color: v ?? '#9CA3AF' } })} /></Field>
