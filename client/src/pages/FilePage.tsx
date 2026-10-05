@@ -12,6 +12,8 @@ import type { ExportValues } from '@/lib/pdf/build';
 import { needsExportDialog, signersList } from '@/lib/pdf/exportValues';
 import { ExportDialog } from '@/components/pdf/ExportDialog';
 import { archiveApi } from '@/modules/exportArchive/api';
+import { FlowsDialog } from '@/modules/approvals/FlowsDialog';
+import { SignatureDialog } from '@/modules/approvals/SignatureDialog';
 import { ArchiveDialog } from '@/modules/exportArchive/ArchiveDialog';
 import { ArchiveOption, ArchiveOptionValue } from '@/modules/exportArchive/ArchiveOption';
 import { ColumnManagerModal } from '@/components/builder/ColumnManagerModal';
@@ -140,6 +142,8 @@ export default function FilePage() {
   const [exportDlg, setExportDlg] = useState<PdfTemplate | null>(null);
   const [archiveOpt, setArchiveOpt] = useState<ArchiveOptionValue>({ enabled: false, note: '' });
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [flowsOpen, setFlowsOpen] = useState(false);
+  const [sigOpen, setSigOpen] = useState(false);
   /** a layout that asks questions / needs signer names opens the dialog first; the others export straight away */
   const startPdf = (t: PdfTemplate | null) => {
     if (t && needsExportDialog(t)) { setArchiveOpt({ enabled: false, note: '' }); setExportDlg(t); } else void exportPdf(t);
@@ -266,6 +270,8 @@ export default function FilePage() {
                     ]),
                     { divider: true },
                     { label: 'เอกสารที่ออกแล้ว…', icon: <Download />, onClick: () => setArchiveOpen(true) },
+                    { label: 'ลายเซ็นของฉัน…', icon: <Pencil />, onClick: () => setSigOpen(true) },
+                    ...(canManage ? [{ label: 'สายอนุมัติเอกสาร…', icon: <Pencil />, onClick: () => setFlowsOpen(true) }] : []),
                     ...(canManage ? [{ label: 'ออกแบบรูปแบบ PDF…', icon: <Pencil />, onClick: () => nav(`/files/${id}/pdf`) }] : []),
                   ]} />
                 </Popover>
@@ -328,6 +334,8 @@ export default function FilePage() {
               extra={<ArchiveOption value={archiveOpt} onChange={setArchiveOpt} />}
               onConfirm={async (values) => { const t = exportDlg; await exportPdf(t, values, archiveOpt); setExportDlg(null); }} />
           )}
+          <FlowsDialog open={flowsOpen} onClose={() => setFlowsOpen(false)} fileId={id} />
+          <SignatureDialog open={sigOpen} onClose={() => setSigOpen(false)} />
           <ArchiveDialog open={archiveOpen} onClose={() => setArchiveOpen(false)} fileId={id} />
           <RollbackModal open={modal === 'rollback'} onClose={() => setModal(null)} sheetId={sheetId} sheetName={view.detail.sheet.name} onDone={() => void view.loadRows(true)} />
         </>
