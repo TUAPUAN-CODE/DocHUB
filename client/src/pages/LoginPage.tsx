@@ -7,8 +7,11 @@ import { authApi } from '@/api/endpoints';
 import { Button } from '@/components/ui/Button';
 import { Field, TextInput } from '@/components/ui/Inputs';
 import { useAuth } from '@/store/auth';
+import { useT } from '@/i18n';
+import { LangSwitcher } from '@/i18n/LangSwitcher';
 
 export default function LoginPage() {
+  const t = useT();
   const login = useAuth((s) => s.login);
   const nav = useNavigate();
   const loc = useLocation() as { state?: { from?: string } };
@@ -43,7 +46,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-full lg:grid-cols-[1.1fr_1fr]" style={{ background: 'rgb(var(--c-bg))' }}>
+    <div className="relative grid min-h-full lg:grid-cols-[1.1fr_1fr]" style={{ background: 'rgb(var(--c-bg))' }}>
+      <div className="absolute right-4 top-4 z-20"><LangSwitcher /></div>
       <div className="relative hidden overflow-hidden bg-primary p-12 text-white lg:flex lg:flex-col">
         <svg className="absolute inset-0 h-full w-full opacity-[.12]" aria-hidden>
           <defs><pattern id="g" width="56" height="36" patternUnits="userSpaceOnUse"><path d="M56 0H0V36" fill="none" stroke="white" strokeWidth="1" /></pattern></defs>
@@ -56,34 +60,34 @@ export default function LoginPage() {
           <span className="text-lg font-semibold">DataSheet Pro</span>
         </div>
         <div className="relative mt-auto max-w-lg">
-          <h1 className="text-4xl font-semibold leading-tight">ข้อมูลทั้งทีม<br />อยู่ในตารางเดียว</h1>
-          <p className="mt-4 text-white/80">ออกแบบฟอร์มเอกสาร กำหนดชนิดข้อมูลทุกคอลัมน์ ควบคุมสิทธิ์รายไฟล์ ย้อนดูได้ทุกการแก้ไข และสร้างแดชบอร์ดจากข้อมูลจริง</p>
+          <h1 className="text-4xl font-semibold leading-tight">{t('ข้อมูลทั้งทีม')}<br />{t('อยู่ในตารางเดียว')}</h1>
+          <p className="mt-4 text-white/80">{t('ออกแบบฟอร์มเอกสาร กำหนดชนิดข้อมูลทุกคอลัมน์ ควบคุมสิทธิ์รายไฟล์ ย้อนดูได้ทุกการแก้ไข และสร้างแดชบอร์ดจากข้อมูลจริง')}</p>
         </div>
       </div>
       <div className="flex items-center justify-center p-6">
         <motion.form onSubmit={submit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="ds-card ds-card-pad w-full max-w-sm !p-8">
-          <h2 className="text-2xl font-semibold">เข้าสู่ระบบ</h2>
-          <p className="mt-1 text-sm text-muted">ใช้ชื่อผู้ใช้หรืออีเมลขององค์กร</p>
+          <h2 className="text-2xl font-semibold">{t('เข้าสู่ระบบ')}</h2>
+          <p className="mt-1 text-sm text-muted">{t('ใช้ชื่อผู้ใช้หรืออีเมลขององค์กร')}</p>
           <div className="mt-6 space-y-4">
-            <Field label="ชื่อผู้ใช้หรืออีเมล">
+            <Field label={t('ชื่อผู้ใช้หรืออีเมล')}>
               <TextInput icon={<UserIcon />} value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoFocus required />
             </Field>
-            <Field label="รหัสผ่าน">
+            <Field label={t('รหัสผ่าน')}>
               <div className="ds-input flex h-10 items-center gap-2 px-3">
                 <Lock className="h-4 w-4 text-muted" />
                 <input type={show ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required
                   className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none" />
-                <button type="button" onClick={() => setShow(!show)} className="text-muted hover:text-ink" aria-label={show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}>
+                <button type="button" onClick={() => setShow(!show)} className="text-muted hover:text-ink" aria-label={show ? t('ซ่อนรหัสผ่าน') : t('แสดงรหัสผ่าน')}>
                   {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </Field>
             {err && <motion.p initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{err}</motion.p>}
-            <Button type="submit" size="lg" className="w-full" loading={busy}>เข้าสู่ระบบ</Button>
+            <Button type="submit" size="lg" className="w-full" loading={busy}>{t('เข้าสู่ระบบ')}</Button>
           </div>
           {(providers.google || providers.microsoft) && (
             <div className="mt-5">
-              <div className="mb-4 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-line" />หรือเข้าสู่ระบบด้วย<span className="h-px flex-1 bg-line" /></div>
+              <div className="mb-4 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-line" />{t('หรือเข้าสู่ระบบด้วย')}<span className="h-px flex-1 bg-line" /></div>
               <div className="space-y-2.5">
                 {providers.google && (
                   <button type="button" onClick={() => social('google')} className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface text-sm font-medium transition-colors hover:bg-ink/5">

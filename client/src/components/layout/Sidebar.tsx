@@ -6,8 +6,10 @@ import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { useUi } from '@/store/ui';
+import { useT } from '@/i18n';
 
 function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: string }) {
+  const t = useT();
   const user = useAuth((s) => s.user)!;
   const logout = useAuth((s) => s.logout);
   const pending = useData((s) => s.pendingReviews);
@@ -15,18 +17,18 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
   const inFiles = pathname.startsWith('/browse') || pathname.startsWith('/folders') || pathname.startsWith('/files');
 
   const items = [
-    { to: '/', label: 'หน้าแรก', icon: <Home className="h-[18px] w-[18px]" />, active: pathname === '/' },
-    { to: '/browse', label: 'ไฟล์ทั้งหมด', icon: <FolderOpen className="h-[18px] w-[18px]" />, active: inFiles },
-    { to: '/access-requests', label: 'คำขอสิทธิ์', icon: <KeyRound className="h-[18px] w-[18px]" />, badge: pending },
-    ...(!isBasicRole(user.role) ? [{ to: '/audit', label: 'ประวัติการแก้ไข', icon: <History className="h-[18px] w-[18px]" /> }] : []),
-    ...(user.role === 'admin' ? [{ to: '/users', label: 'จัดการผู้ใช้', icon: <Users className="h-[18px] w-[18px]" /> }] : []),
-    { to: '/trash', label: 'ถังขยะ', icon: <Trash2 className="h-[18px] w-[18px]" /> },
-    ...(!isBasicRole(user.role) ? [{ to: '/devices', label: 'อุปกรณ์ (RFID/IoT)', icon: <Cpu className="h-[18px] w-[18px]" /> }] : []),
-    ...(!isBasicRole(user.role) ? [{ to: '/connectors', label: 'ดึงข้อมูลจากลิงก์/API', icon: <Database className="h-[18px] w-[18px]" /> }] : []),
-    { to: '/approvals', label: 'อนุมัติเอกสาร', icon: <CheckCircle2 className="h-[18px] w-[18px]" /> },
-    { to: '/traceback', label: 'ย้อนรอย (Traceback)', icon: <GitFork className="h-[18px] w-[18px]" /> },
-    { to: '/dashboards', label: 'แดชบอร์ด', icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
-    { to: '/settings', label: 'ตั้งค่า', icon: <Settings className="h-[18px] w-[18px]" /> },
+    { to: '/', label: t('หน้าแรก'), icon: <Home className="h-[18px] w-[18px]" />, active: pathname === '/' },
+    { to: '/browse', label: t('ไฟล์ทั้งหมด'), icon: <FolderOpen className="h-[18px] w-[18px]" />, active: inFiles },
+    { to: '/access-requests', label: t('คำขอสิทธิ์'), icon: <KeyRound className="h-[18px] w-[18px]" />, badge: pending },
+    ...(!isBasicRole(user.role) ? [{ to: '/audit', label: t('ประวัติการแก้ไข'), icon: <History className="h-[18px] w-[18px]" /> }] : []),
+    ...(user.role === 'admin' ? [{ to: '/users', label: t('จัดการผู้ใช้'), icon: <Users className="h-[18px] w-[18px]" /> }] : []),
+    { to: '/trash', label: t('ถังขยะ'), icon: <Trash2 className="h-[18px] w-[18px]" /> },
+    ...(!isBasicRole(user.role) ? [{ to: '/devices', label: t('อุปกรณ์ (RFID/IoT)'), icon: <Cpu className="h-[18px] w-[18px]" /> }] : []),
+    ...(!isBasicRole(user.role) ? [{ to: '/connectors', label: t('ดึงข้อมูลจากลิงก์/API'), icon: <Database className="h-[18px] w-[18px]" /> }] : []),
+    { to: '/approvals', label: t('อนุมัติเอกสาร'), icon: <CheckCircle2 className="h-[18px] w-[18px]" /> },
+    { to: '/traceback', label: t('ย้อนรอย (Traceback)'), icon: <GitFork className="h-[18px] w-[18px]" /> },
+    { to: '/dashboards', label: t('แดชบอร์ด'), icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
+    { to: '/settings', label: t('ตั้งค่า'), icon: <Settings className="h-[18px] w-[18px]" /> },
   ];
 
   return (
@@ -58,7 +60,7 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
 
       <div className="border-t border-white/10 p-3">
         <button onClick={() => void logout()} className="side-item w-full !h-10">
-          <LogOut className="h-4 w-4" /> ออกจากระบบ
+          <LogOut className="h-4 w-4" /> {t('ออกจากระบบ')}
         </button>
       </div>
     </div>
@@ -66,6 +68,7 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
 }
 
 export function Sidebar() {
+  const t = useT();
   const mobile = useUi((s) => s.mobileNav);
   const setMobile = useUi((s) => s.setMobileNav);
   return (
@@ -76,7 +79,7 @@ export function Sidebar() {
           <motion.div className="fixed inset-0 z-[850] lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-slate-900/50" onClick={() => setMobile(false)} />
             <motion.aside className="ds-sidebar relative h-full max-w-[85vw]" initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }} transition={{ type: 'spring', stiffness: 380, damping: 36 }}>
-              <button onClick={() => setMobile(false)} className="absolute right-3 top-6 rounded-lg p-1.5 opacity-80 hover:bg-white/10" aria-label="ปิดเมนู"><X className="h-5 w-5" /></button>
+              <button onClick={() => setMobile(false)} className="absolute right-3 top-6 rounded-lg p-1.5 opacity-80 hover:bg-white/10" aria-label={t('ปิดเมนู')}><X className="h-5 w-5" /></button>
               <SidebarBody scope="mobile" onNavigate={() => setMobile(false)} />
             </motion.aside>
           </motion.div>

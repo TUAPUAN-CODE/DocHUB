@@ -11,8 +11,11 @@ import { useNotifications } from '@/store/notifications';
 import { useUi } from '@/store/ui';
 import { Avatar } from '../ui/misc';
 import { MenuList, Popover } from '../ui/Popover';
+import { useT } from '@/i18n';
+import { LangSwitcher } from '@/i18n/LangSwitcher';
 
 function GlobalSearch() {
+  const t = useT();
   const nav = useNavigate();
   const input = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -42,15 +45,15 @@ function GlobalSearch() {
     <div ref={box} className="w-full max-w-md">
       <div className="ds-input flex h-10 items-center gap-2 px-3">
         <Search className="h-4 w-4 text-muted" />
-        <input ref={input} value={q} placeholder="ค้นหาไฟล์หรือโฟลเดอร์…" className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none"
+        <input ref={input} value={q} placeholder={t('ค้นหาไฟล์หรือโฟลเดอร์…')} className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none"
           onFocus={() => setOpen(true)} onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onKeyDown={(e) => { if (e.key === 'Enter' && q.trim()) go(`/search?q=${encodeURIComponent(q.trim())}`); if (e.key === 'Escape') { setOpen(false); input.current?.blur(); } }} />
         <kbd className="hidden rounded-md border border-line px-1.5 text-[10px] text-muted sm:block">Ctrl K</kbd>
       </div>
       <Popover open={open && !!q.trim()} onClose={() => setOpen(false)} anchor={box.current} width={box.current?.offsetWidth}>
         <div className="max-h-[60vh] overflow-y-auto py-2">
-          {!hasResults && <p className="px-4 py-5 text-center text-sm text-muted">{res ? 'ไม่พบผลลัพธ์' : 'กำลังค้นหา…'}</p>}
-          {res && res.folders.length > 0 && <p className="px-4 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">โฟลเดอร์</p>}
+          {!hasResults && <p className="px-4 py-5 text-center text-sm text-muted">{res ? t('ไม่พบผลลัพธ์') : t('กำลังค้นหา…')}</p>}
+          {res && res.folders.length > 0 && <p className="px-4 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{t('โฟลเดอร์')}</p>}
           {res?.folders.map((f) => (
             <button key={f.id} onClick={() => go(`/folders/${f.id}`)} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-ink/5">
               <Folder className="h-4 w-4 shrink-0" style={{ color: f.color }} />
@@ -58,7 +61,7 @@ function GlobalSearch() {
               {f.level === 0 && <Lock className="h-3.5 w-3.5 text-muted" />}
             </button>
           ))}
-          {res && res.files.length > 0 && <p className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">ไฟล์</p>}
+          {res && res.files.length > 0 && <p className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{t('ไฟล์')}</p>}
           {res?.files.map((f) => (
             <button key={f.id} onClick={() => go(`/files/${f.id}`)} className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-ink/5">
               <FileSpreadsheet className="h-4 w-4 shrink-0" style={{ color: f.color }} />
@@ -78,23 +81,24 @@ function GlobalSearch() {
 }
 
 function NotificationBell() {
+  const t = useT();
   const nav = useNavigate();
   const btn = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const { items, unread, markRead, markAll } = useNotifications();
   return (
     <>
-      <button ref={btn} onClick={() => setOpen(!open)} aria-label="การแจ้งเตือน" className="relative grid h-10 w-10 place-items-center rounded-full text-ink/75 hover:bg-ink/5 hover:text-ink">
+      <button ref={btn} onClick={() => setOpen(!open)} aria-label={t('การแจ้งเตือน')} className="relative grid h-10 w-10 place-items-center rounded-full text-ink/75 hover:bg-ink/5 hover:text-ink">
         <Bell className="h-5 w-5" />
         {unread > 0 && <span className="absolute right-1.5 top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white ring-2 ring-app">{unread > 99 ? '99+' : unread}</span>}
       </button>
       <Popover open={open} onClose={() => setOpen(false)} anchor={btn.current} placement="bottom-end" width={380}>
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <span className="font-semibold">การแจ้งเตือน</span>
-          <button onClick={() => void markAll()} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"><CheckCheck className="h-3.5 w-3.5" /> อ่านทั้งหมด</button>
+          <span className="font-semibold">{t('การแจ้งเตือน')}</span>
+          <button onClick={() => void markAll()} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"><CheckCheck className="h-3.5 w-3.5" /> {t('อ่านทั้งหมด')}</button>
         </div>
         <div className="max-h-[420px] overflow-y-auto">
-          {items.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted">ยังไม่มีการแจ้งเตือน</p>}
+          {items.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted">{t('ยังไม่มีการแจ้งเตือน')}</p>}
           {items.map((n) => (
             <button key={n.id} onClick={() => { void markRead(n.id); setOpen(false); if (n.link) nav(n.link); }}
               className={cn('flex w-full gap-3 border-b border-line/60 px-4 py-3 text-left hover:bg-ink/5', !n.isRead && 'bg-primary/[.04]')}>
@@ -113,6 +117,7 @@ function NotificationBell() {
 }
 
 function UserMenu() {
+  const t = useT();
   const nav = useNavigate();
   const user = useAuth((s) => s.user)!;
   const logout = useAuth((s) => s.logout);
@@ -130,10 +135,10 @@ function UserMenu() {
       </button>
       <Popover open={open} onClose={() => setOpen(false)} anchor={btn.current} placement="bottom-end" width={230}>
         <MenuList onClose={() => setOpen(false)} items={[
-          { label: 'โปรไฟล์ของฉัน', icon: <UserCircle />, onClick: () => nav('/settings?tab=profile') },
-          { label: 'ธีมและรูปแบบ', icon: <Palette />, onClick: () => nav('/settings?tab=appearance') },
+          { label: t('โปรไฟล์ของฉัน'), icon: <UserCircle />, onClick: () => nav('/settings?tab=profile') },
+          { label: t('ธีมและรูปแบบ'), icon: <Palette />, onClick: () => nav('/settings?tab=appearance') },
           { divider: true },
-          { label: 'ออกจากระบบ', icon: <LogOut />, danger: true, onClick: () => void logout() },
+          { label: t('ออกจากระบบ'), icon: <LogOut />, danger: true, onClick: () => void logout() },
         ]} />
       </Popover>
     </>
@@ -141,21 +146,24 @@ function UserMenu() {
 }
 
 function AiButton() {
+  const t = useT();
   const { open, toggle } = useAiPanel();
   return (
-    <button onClick={toggle} className={cn('flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-medium hover:bg-ink/5', open && 'bg-primary/10 text-primary')} aria-label="ผู้ช่วย AI" aria-pressed={open}>
+    <button onClick={toggle} className={cn('flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-medium hover:bg-ink/5', open && 'bg-primary/10 text-primary')} aria-label={t('ผู้ช่วย AI')} aria-pressed={open}>
       <Sparkles className="h-5 w-5" /><span className="hidden sm:inline">AI</span>
     </button>
   );
 }
 
 export function TopBar() {
+  const t = useT();
   const setMobile = useUi((s) => s.setMobileNav);
   return (
     <header className="ds-topbar flex h-16 shrink-0 items-center gap-3 px-4 sm:px-8">
-      <button onClick={() => setMobile(true)} className="grid h-10 w-10 place-items-center rounded-xl hover:bg-ink/5 lg:hidden" aria-label="เปิดเมนู"><Menu className="h-5 w-5" /></button>
+      <button onClick={() => setMobile(true)} className="grid h-10 w-10 place-items-center rounded-xl hover:bg-ink/5 lg:hidden" aria-label={t('เปิดเมนู')}><Menu className="h-5 w-5" /></button>
       <GlobalSearch />
       <div className="ml-auto flex items-center gap-1.5">
+        <LangSwitcher />
         <AiButton />
         <NotificationBell />
         <UserMenu />

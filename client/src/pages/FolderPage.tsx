@@ -21,8 +21,10 @@ import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { toast } from '@/store/ui';
 import { LV, isBasicRole } from '@/types';
+import { useT } from '@/i18n';
 
 export default function FolderPage() {
+  const t = useT();
   const { id = 'root' } = useParams();
   const nav = useNavigate();
   const role = useAuth((s) => s.user?.role);
@@ -56,12 +58,12 @@ export default function FolderPage() {
   }, [data, filter, sort]);
 
   if (error)
-    return <Page><div className="ds-card"><EmptyState icon={<Lock />} title="เปิดโฟลเดอร์ไม่ได้" description={error.message} action={<Button onClick={() => nav('/browse')}>กลับไปที่ไฟล์ทั้งหมด</Button>} /></div></Page>;
+    return <Page><div className="ds-card"><EmptyState icon={<Lock />} title={t('เปิดโฟลเดอร์ไม่ได้')} description={error.message} action={<Button onClick={() => nav('/browse')}>{t('กลับไปที่ไฟล์ทั้งหมด')}</Button>} /></div></Page>;
 
   const folder = data?.folder;
   const level = data?.level ?? 0;
   const canCreate = !isBasicRole(role) && (id === 'root' ? true : level >= LV.write);
-  const crumbs = [{ id: 'root', name: 'ไฟล์ทั้งหมด' }, ...(data?.breadcrumb ?? [])];
+  const crumbs = [{ id: 'root', name: t('ไฟล์ทั้งหมด') }, ...(data?.breadcrumb ?? [])];
 
   return (
     <Page>
@@ -85,23 +87,23 @@ export default function FolderPage() {
           {folder ? <FolderGlyph color={folder.color} size={44} /> : <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"><FolderOpen className="h-5 w-5" /></span>}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="truncate text-[22px] font-semibold tracking-tight">{folder?.name ?? 'ไฟล์ทั้งหมด'}</h1>
+              <h1 className="truncate text-[22px] font-semibold tracking-tight">{folder?.name ?? t('ไฟล์ทั้งหมด')}</h1>
               {folder && <StarButton active={folder.favorite} onToggle={async () => { await useData.getState().toggleFavorite('folder', folder.id); void reload(true); }} />}
             </div>
             <div className="mt-0.5 flex items-center gap-2 text-sm text-muted">
-              {folder ? <><PermBadge perm={levelToPerm(level)} />{folder.description && <span className="truncate">{folder.description}</span>}</> : 'โฟลเดอร์ระดับบนสุดขององค์กร'}
+              {folder ? <><PermBadge perm={levelToPerm(level)} />{folder.description && <span className="truncate">{folder.description}</span>}</> : t('โฟลเดอร์ระดับบนสุดขององค์กร')}
             </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {folder && level >= LV.manage && <Button variant="secondary" icon={<Share2 className="h-4 w-4" />} onClick={() => setShare(true)}>แชร์</Button>}
+          {folder && level >= LV.manage && <Button variant="secondary" icon={<Share2 className="h-4 w-4" />} onClick={() => setShare(true)}>{t('แชร์')}</Button>}
           {canCreate && (
             <>
-              <Button ref={newBtn} icon={<Plus className="h-4 w-4" />} onClick={() => setNewOpen(true)}>สร้างใหม่</Button>
+              <Button ref={newBtn} icon={<Plus className="h-4 w-4" />} onClick={() => setNewOpen(true)}>{t('สร้างใหม่')}</Button>
               <Popover open={newOpen} onClose={() => setNewOpen(false)} anchor={newBtn.current} placement="bottom-end" width={220}>
                 <MenuList onClose={() => setNewOpen(false)} items={[
-                  { label: 'โฟลเดอร์', icon: <FolderPlus />, onClick: () => setNewFolder(true) },
-                  ...(folder ? [{ label: 'ไฟล์ (ตัวสร้างฟอร์ม)', icon: <FilePlus2 />, onClick: () => nav(`/files/new?folder=${folder.id}`) }, { label: 'ไฟล์รวมข้อมูลจากไฟล์อื่น', icon: <Layers />, onClick: () => setUnion(true) }] : []),
+                  { label: t('โฟลเดอร์'), icon: <FolderPlus />, onClick: () => setNewFolder(true) },
+                  ...(folder ? [{ label: t('ไฟล์ (ตัวสร้างฟอร์ม)'), icon: <FilePlus2 />, onClick: () => nav(`/files/new?folder=${folder.id}`) }, { label: t('ไฟล์รวมข้อมูลจากไฟล์อื่น'), icon: <Layers />, onClick: () => setUnion(true) }] : []),
                 ]} />
               </Popover>
             </>
@@ -110,13 +112,13 @@ export default function FolderPage() {
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <TextInput icon={<Search />} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="กรองในโฟลเดอร์นี้" className="w-full sm:w-72" />
+        <TextInput icon={<Search />} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('กรองในโฟลเดอร์นี้')} className="w-full sm:w-72" />
         <div className="flex items-center gap-2 text-sm text-muted"><ArrowDownAZ className="h-4 w-4" />
           <Select value={sort} onChange={(e) => setSort(e.target.value as 'name' | 'updated')} className="w-40">
-            <option value="name">ชื่อ ก-ฮ</option><option value="updated">แก้ไขล่าสุด</option>
+            <option value="name">{t('ชื่อ ก-ฮ')}</option><option value="updated">{t('แก้ไขล่าสุด')}</option>
           </Select>
         </div>
-        <div className="ml-auto"><Segmented value={view} onChange={setView} options={[{ value: 'grid', label: 'การ์ด', icon: <LayoutGrid /> }, { value: 'list', label: 'รายการ', icon: <List /> }]} /></div>
+        <div className="ml-auto"><Segmented value={view} onChange={setView} options={[{ value: 'grid', label: t('การ์ด'), icon: <LayoutGrid /> }, { value: 'list', label: t('รายการ'), icon: <List /> }]} /></div>
       </div>
 
       {loading ? (
@@ -124,12 +126,12 @@ export default function FolderPage() {
       ) : !items.length ? (
         <div className="ds-card">
           {folder && level === 0 ? (
-            <div className="mx-auto max-w-md py-10"><EmptyState icon={<Lock />} title="คุณยังไม่มีสิทธิ์ในโฟลเดอร์นี้" description="ส่งคำขอพร้อมเหตุผลเพื่อให้ผู้ดูแลอนุมัติ" />
+            <div className="mx-auto max-w-md py-10"><EmptyState icon={<Lock />} title={t('คุณยังไม่มีสิทธิ์ในโฟลเดอร์นี้')} description={t('ส่งคำขอพร้อมเหตุผลเพื่อให้ผู้ดูแลอนุมัติ')} />
               <RequestAccessForm target={{ type: 'folder', id: folder.id, name: folder.name }} compact onDone={() => void reload(true)} /></div>
           ) : (
-            <EmptyState icon={<FolderOpen />} title={filter ? 'ไม่พบรายการที่ตรงกับตัวกรอง' : 'โฟลเดอร์นี้ยังว่างอยู่'}
-              description={canCreate ? 'สร้างโฟลเดอร์ย่อย หรือสร้างไฟล์ด้วยตัวสร้างฟอร์มเอกสาร' : undefined}
-              action={canCreate && folder ? <Button icon={<FilePlus2 className="h-4 w-4" />} onClick={() => nav(`/files/new?folder=${folder.id}`)}>สร้างไฟล์</Button> : undefined} />
+            <EmptyState icon={<FolderOpen />} title={filter ? t('ไม่พบรายการที่ตรงกับตัวกรอง') : t('โฟลเดอร์นี้ยังว่างอยู่')}
+              description={canCreate ? t('สร้างโฟลเดอร์ย่อย หรือสร้างไฟล์ด้วยตัวสร้างฟอร์มเอกสาร') : undefined}
+              action={canCreate && folder ? <Button icon={<FilePlus2 className="h-4 w-4" />} onClick={() => nav(`/files/new?folder=${folder.id}`)}>{t('สร้างไฟล์')}</Button> : undefined} />
           )}
         </div>
       ) : view === 'grid' ? (
@@ -143,7 +145,7 @@ export default function FolderPage() {
       ) : (
         <div className="overflow-x-auto">
           <table className="row-table min-w-[720px]">
-            <thead><tr><th>ชื่อ</th><th>แก้ไขล่าสุด</th><th>แก้ไขโดย</th><th className="hidden md:table-cell">ขนาด</th><th>สิทธิ์ของคุณ</th><th /></tr></thead>
+            <thead><tr><th>{t('ชื่อ')}</th><th>{t('แก้ไขล่าสุด')}</th><th>{t('แก้ไขโดย')}</th><th className="hidden md:table-cell">{t('ขนาด')}</th><th>{t('สิทธิ์ของคุณ')}</th><th /></tr></thead>
             <tbody>{items.map((it) => <ItemRow key={it.kind + it.data.id} item={it} onMenu={actions.openMenu} onStar={actions.star} draggable={it.data.level >= LV.manage} />)}</tbody>
           </table>
         </div>
@@ -151,8 +153,8 @@ export default function FolderPage() {
 
       {actions.ui}
       {folder && <UnionDialog open={union} onClose={() => setUnion(false)} mode="file" folderId={folder.id} onDone={(r) => { void useData.getState().loadTree(); nav(`/files/${r.fileId}`); }} />}
-      <MetaModal open={newFolder} onClose={() => setNewFolder(false)} title={folder ? `โฟลเดอร์ใหม่ใน “${folder.name}”` : 'โฟลเดอร์ใหม่'} initial={{ name: '', color: folder?.color ?? '#1552F0' }}
-        onSubmit={async (v) => { await foldersApi.create({ ...v, parentId: folder?.id ?? null }); toast.success('สร้างโฟลเดอร์แล้ว'); void useData.getState().loadTree(); void reload(true); }} />
+      <MetaModal open={newFolder} onClose={() => setNewFolder(false)} title={folder ? `โฟลเดอร์ใหม่ใน “${folder.name}”` : t('โฟลเดอร์ใหม่')} initial={{ name: '', color: folder?.color ?? '#1552F0' }}
+        onSubmit={async (v) => { await foldersApi.create({ ...v, parentId: folder?.id ?? null }); toast.success(t('สร้างโฟลเดอร์แล้ว')); void useData.getState().loadTree(); void reload(true); }} />
       {folder && <ShareDialog open={share} onClose={() => setShare(false)} target={{ type: 'folder', id: folder.id, name: folder.name }} />}
     </Page>
   );

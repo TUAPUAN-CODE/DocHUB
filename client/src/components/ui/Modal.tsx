@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n';
 
 const SIZES = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl', full: 'max-w-[1400px]' };
 
@@ -12,6 +13,7 @@ export function Modal({
   open: boolean; onClose: () => void; title?: ReactNode; description?: ReactNode; children?: ReactNode; footer?: ReactNode;
   size?: keyof typeof SIZES; icon?: ReactNode; className?: string; bodyClassName?: string;
 }) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -36,7 +38,7 @@ export function Modal({
                   {title && <h2 className="text-lg font-semibold leading-tight">{title}</h2>}
                   {description && <p className="mt-1 text-sm text-muted">{description}</p>}
                 </div>
-                <button onClick={onClose} aria-label="ปิด" className="-mr-2 rounded-lg p-1.5 text-muted hover:bg-ink/5 hover:text-ink">
+                <button onClick={onClose} aria-label={t('ปิด')} className="-mr-2 rounded-lg p-1.5 text-muted hover:bg-ink/5 hover:text-ink">
                   <X className="h-5 w-5" />
                 </button>
               </div>
