@@ -232,6 +232,7 @@ function imageUrlsNeeded(t: PdfTemplate, tables: Map<string, SheetData>): string
     const sd = tables.get(t.perRow.sheetId);
     if (sd) sd.rows.forEach((r) => sd.columns.filter((c) => c.dataType === 'image').forEach((c) => urls.push(...imageUrls(r.values[c.id]))));
   }
+  if (t.watermark.enabled && t.watermark.imageUrl) urls.push(t.watermark.imageUrl);
   return urls;
 }
 
@@ -284,7 +285,12 @@ export async function buildDocDefinition(t: PdfTemplate, o: PdfRunOptions) {
   };
   if (t.header.enabled && t.header.blocks.length) doc.header = side(t.header.blocks, true);
   if (t.footer.enabled && t.footer.blocks.length) doc.footer = side(t.footer.blocks, false);
-  if (t.watermark.enabled && t.watermark.text) doc.watermark = { text: t.watermark.text, color: t.watermark.color, opacity: t.watermark.opacity, bold: true, fontSize: t.watermark.size, angle: t.watermark.angle };
+  const wmImg = t.watermark.enabled && t.watermark.imageUrl ? images.get(t.watermark.imageUrl) : undefined;
+  if (wmImg) {
+    const wmW = pt(t.watermark.imageWidthMm ?? 120);
+    const pageH = t.page.orientation === 'landscape' ? pw : ph;
+    doc.background = () => ({ image: wmImg, width: wmW, opacity: t.watermark.opacity, absolutePosition: { x: Math.max(0, (width - wmW) / 2), y: pageH / 3 } });
+  } else if (t.watermark.enabled && t.watermark.text) doc.watermark = { text: t.watermark.text, color: t.watermark.color, opacity: t.watermark.opacity, bold: true, fontSize: t.watermark.size, angle: t.watermark.angle };
   if (t.lockEditing) { doc.ownerPassword = crypto.randomUUID?.() ?? String(Math.random()); doc.permissions = { printing: 'highResolution', modifying: false, copying: false, annotating: false, fillingForms: false, contentAccessibility: true, documentAssembly: false }; }
   return { doc, fonts: [...fonts], truncated: [...tables.values()].some((x) => x.truncated) };
 }

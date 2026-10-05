@@ -38,6 +38,9 @@ import unionRoutes from './routes/union';
 import { shareManageRouter, sharePublicRouter } from './routes/share';
 import formulaModule from './modules/formula/module';
 import exportArchiveModule from './modules/exportArchive/module';
+import approvalsModule from './modules/approvals/module';
+import aiModule from './modules/ai/module';
+import connectorsModule, { startConnectorScheduler } from './modules/connectors/module';
 import './modules/alerts/module';
 import scanModule from './modules/scan/module';
 import mixModule from './modules/mix/module';
@@ -77,7 +80,7 @@ app.use('/api', devicesModule.ingest);
 app.use('/api', authenticate);
 for (const r of [
   userRoutes, folderRoutes, fileRoutes, sheetRoutes, columnRoutes, rowRoutes, cellRoutes, accessRoutes, auditRoutes,
-  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router,
+  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router,
 ]) app.use('/api', r);
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ API ที่เรียก' } });
@@ -105,6 +108,7 @@ getPool()
     // jobs that must run on ONE server: whoever holds the lease runs them, another server takes over if it stops (see services/leader.ts)
     leaderTask('trash-purge', () => { void purgeExpiredTrash(); const t = setInterval(() => void purgeExpiredTrash(), 6 * 3600_000); return () => clearInterval(t); });
     leaderTask('line-alerts', startLineWorker);
+    leaderTask('connectors', startConnectorScheduler);
     leaderTask('rfid-gateway', startGateway);
     for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => void releaseLeases().finally(() => process.exit(0)));
   })

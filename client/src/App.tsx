@@ -21,6 +21,8 @@ const DashboardsPage = lazy(() => import('@/pages/DashboardsPage'));
 const PublicSharePage = lazy(() => import('@/pages/PublicSharePage'));
 const PdfDesignerPage = lazy(() => import('@/pages/PdfDesignerPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const ApprovalsPage = lazy(() => import('@/modules/approvals/ApprovalsPage'));
+const ConnectorsPage = lazy(() => import('@/modules/connectors/ConnectorsPage'));
 const TracebackPage = lazy(() => import('@/pages/TracebackPage'));
 const DevicesPage = lazy(() => import('@/pages/DevicesPage'));
 
@@ -66,6 +68,8 @@ export default function App() {
           <Route path="users" element={<RequireRole roles={['admin']}><UsersPage /></RequireRole>} />
           <Route path="trash" element={<TrashPage />} />
           <Route path="dashboards" element={<DashboardsPage />} />
+          <Route path="approvals" element={<ApprovalsPage />} />
+          <Route path="connectors" element={<RequireRole roles={['master', 'admin']}><ConnectorsPage /></RequireRole>} />
           <Route path="traceback" element={<TracebackPage />} />
           <Route path="devices" element={<RequireRole roles={['master', 'admin']}><DevicesPage /></RequireRole>} />
           <Route path="settings" element={<SettingsPage />} />

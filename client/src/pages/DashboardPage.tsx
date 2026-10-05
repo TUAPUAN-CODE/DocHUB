@@ -12,6 +12,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { Field, Segmented, TextInput, Toggle } from '@/components/ui/Inputs';
 import { ColorInput, EmptyState, Skeleton } from '@/components/ui/misc';
 import { Popover } from '@/components/ui/Popover';
+import { AI_DASH_EVENT } from '@/modules/ai/useAiPanel';
 import { isTyping, useLoad } from '@/hooks';
 import { cn } from '@/lib/cn';
 import { confirmDialog, toast } from '@/store/ui';
@@ -27,7 +28,7 @@ export default function DashboardPage() {
   const { fileId = '', dashId = '' } = useParams();
   const nav = useNavigate();
   const [sp] = useSearchParams();
-  const { data, loading, error } = useLoad(() => dashboardsApi.get(dashId), [dashId]);
+  const { data, loading, error, reload } = useLoad(() => dashboardsApi.get(dashId), [dashId]);
   const [meta, setMeta] = useState<DashboardMeta | null>(null);
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -53,6 +54,17 @@ export default function DashboardPage() {
     setEdit(sp.get('edit') === '1' && data.level >= LV.manage);
     setDirty(false);
   }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // the AI assistant (right bar) added widgets: reload, unless there are unsaved edits that would be lost
+  useEffect(() => {
+    const on = (e: Event) => {
+      if ((e as CustomEvent).detail?.dashboardId !== dashId) return;
+      if (dirty) toast.info('AI เพิ่มกราฟแล้ว', 'คุณมีการแก้ไขที่ยังไม่บันทึก — บันทึกแล้วรีเฟรชหน้าเพื่อดูกราฟใหม่');
+      else void reload(true);
+    };
+    window.addEventListener(AI_DASH_EVENT, on);
+    return () => window.removeEventListener(AI_DASH_EVENT, on);
+  }, [dashId, dirty, reload]);
 
   const fitZoom = useCallback(() => {
     if (!viewport.current || !meta) return;

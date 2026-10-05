@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { useLocation, useOutlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Spinner } from '../ui/misc';
+import { AiPanel } from '@/modules/ai/AiPanel';
 import { OpenFileOverlay } from './OpenFileOverlay';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -23,6 +24,7 @@ export function AppShell() {
           </AnimatePresence>
         </div>
       </main>
+      <AiPanel />
       <OpenFileOverlay />
     </div>
   );

@@ -1,7 +1,7 @@
 import { isBasicRole } from '@/types';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Cpu, FolderOpen, GitFork, History, Home, KeyRound, LayoutDashboard, LogOut, Settings, Trash2, Users, X } from 'lucide-react';
+import { CheckCircle2, Cpu, Database, FolderOpen, GitFork, History, Home, KeyRound, LayoutDashboard, LogOut, Settings, Trash2, Users, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
@@ -22,6 +22,8 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
     ...(user.role === 'admin' ? [{ to: '/users', label: 'จัดการผู้ใช้', icon: <Users className="h-[18px] w-[18px]" /> }] : []),
     { to: '/trash', label: 'ถังขยะ', icon: <Trash2 className="h-[18px] w-[18px]" /> },
     ...(!isBasicRole(user.role) ? [{ to: '/devices', label: 'อุปกรณ์ (RFID/IoT)', icon: <Cpu className="h-[18px] w-[18px]" /> }] : []),
+    ...(!isBasicRole(user.role) ? [{ to: '/connectors', label: 'ดึงข้อมูลจากลิงก์/API', icon: <Database className="h-[18px] w-[18px]" /> }] : []),
+    { to: '/approvals', label: 'อนุมัติเอกสาร', icon: <CheckCircle2 className="h-[18px] w-[18px]" /> },
     { to: '/traceback', label: 'ย้อนรอย (Traceback)', icon: <GitFork className="h-[18px] w-[18px]" /> },
     { to: '/dashboards', label: 'แดชบอร์ด', icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
     { to: '/settings', label: 'ตั้งค่า', icon: <Settings className="h-[18px] w-[18px]" /> },
