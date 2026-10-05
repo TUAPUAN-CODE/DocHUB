@@ -65,3 +65,13 @@ test('mistakes in cross-sheet references are explained', () => {
   bad('LOOKUP([เริ่ม], @คุมDelay[ประเภทวัตถุดิบ], 1)', /ต้องใช้ @แหล่ง/);
   bad('LOOKUP(@คุมDelay, 1, 2)', /ต้องระบุคอลัมน์/);
 });
+
+test('MID, IFERROR and FILL (code templates)', () => {
+  assert.equal(run('MID("2ICBS822SAENQN2300", 2, 1)'), 'I');
+  assert.equal(run('MID("2ICBS822SAENQN2300", 3, 9)'), 'CBS822SAE');
+  assert.equal(run('MID("abc", 5, 2)'), '');
+  assert.equal(run('IFERROR(DATEVALUE("not a date"), "x")'), 'x');
+  assert.equal(run('IFERROR(1 + 1, "x")'), 2);
+  assert.equal(run('FILL("{P} S{YC}{MC}{DC}S{LC}", "P=B23AA|YC=5|MC=A|DC=3|LC=R")'), 'B23AA S5A3SR');
+  assert.equal(run('FILL("BBE:{DD} {MON} {Y+3} {nope}", "DD=07|MON=MAR|Y+3=2029")'), 'BBE:07 MAR 2029 {nope}');
+});
