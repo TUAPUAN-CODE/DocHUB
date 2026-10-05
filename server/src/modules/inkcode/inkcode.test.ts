@@ -1,0 +1,111 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+import { compileFormula, evaluate, FValue } from '../formula';
+import { DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, REF_SHEETS, SHEETS, WS_INPUTS, worksheetFormulas } from './model';
+
+const dataDir = path.resolve(__dirname, '../../../../scripts/inkcode/data');
+const have = fs.existsSync(path.join(dataDir, 'products.json'));
+const load = (f: string) => JSON.parse(fs.readFileSync(path.join(dataDir, f), 'utf8'));
+
+// ---- in-memory DocHUB: every sheet = columns (id/name) + rows (id → value)
+const ID = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
+interface Sheet { id: string; cols: { id: string; name: string; dataType: string }[]; rows: Record<string, FValue>[] }
+const sheets = new Map<string, Sheet>();
+let seq = 1;
+const mk = (name: string, defs: { name: string; type: string }[]): Sheet => {
+  const s: Sheet = { id: ID(1000 + seq++), cols: defs.map((d) => ({ id: ID(seq++ * 7), name: d.name, dataType: d.type === 'float' ? 'float' : d.type })), rows: [] };
+  sheets.set(name, s);
+  return s;
+};
+const col = (s: Sheet, name: string) => s.cols.find((c) => c.name === name)!;
+const date = (iso: string): FValue => ({ kind: 'date', ms: Date.parse(`${iso}T00:00:00Z`) }) as unknown as FValue;
+const keyOf = (v: FValue) => (v === null ? '' : typeof v === 'object' ? String((v as { ms: number }).ms) : String(v)).trim().toLowerCase();
+
+const lookup = (sheetId: string, result: string, keyCol: string, key: FValue): FValue => {
+  const s = [...sheets.values()].find((x) => x.id === sheetId)!;
+  if (key === null) return null;
+  const k = keyOf(key);
+  const hit = s.rows.find((r) => keyOf(r[keyCol]) === k);
+  return hit ? hit[result] ?? null : null;
+};
+
+function addFormulaCols(s: Sheet, defs: ReturnType<typeof worksheetFormulas>) {
+  for (const d of defs) s.cols.push({ id: ID(seq++ * 7), name: d.name, dataType: d.type });
+}
+function computeRow(s: Sheet, defs: ReturnType<typeof worksheetFormulas>, values: Record<string, FValue>) {
+  for (const d of defs) {
+    const others = s.cols.filter((c) => c.name !== d.name);
+    const sources = d.formula!.sources.map((x) => ({ alias: x.alias, sheetId: sheets.get(x.sheet)!.id }));
+    const sourceColumns = new Map(sources.map((x) => [x.sheetId, [...sheets.values()].find((y) => y.id === x.sheetId)!.cols]));
+    const c = compileFormula(d.formula!.expr, others, { sources, sourceColumns });
+    values[col(s, d.name).id] = evaluate(c.ast, { get: (id) => values[id] ?? null, tzOffsetMinutes: 420, lookup });
+  }
+}
+
+test('InkCode formulas compile and render the same codes as the Excel rules', { skip: !have }, () => {
+  const ref = load('ref.json'); const products = load('products.json'); const tokens = Object.keys(load('tokens.json').tokens);
+
+  for (const def of REF_SHEETS) mk(def.name, def.columns);
+  const fill = (name: string, rows: Record<string, unknown>[]) => { const s = sheets.get(name)!; for (const r of rows) s.rows.push(Object.fromEntries(Object.entries(r).map(([k, v]) => [col(s, k).id, k === 'วันที่ผลิต' && typeof v === 'string' ? date(v) : (v as FValue)]))); };
+  fill(SHEETS.year, ref.years.map((y: any) => ({ ปี: y['ปี'], ปี_พศ: y['ปี_พศ'], รหัสปี: y['รหัสปี'], รหัสปี2: y['รหัสปี2'] })));
+  fill(SHEETS.month, ref.months); fill(SHEETS.day, ref.days); fill(SHEETS.line, ref.lines); fill(SHEETS.shift, ref.shifts); fill(SHEETS.calendar, ref.calendar);
+
+  // database
+  const dbDefs = [...DB_PLAIN, ...DB_FORMULAS];
+  const db = mk(SHEETS.db, dbDefs);
+  db.cols = db.cols.filter((c) => !DB_FORMULAS.some((f) => f.name === c.name));
+  addFormulaCols(db, DB_FORMULAS as any);
+  const sample = products.filter((p: any) => p['แบบโค้ดแถว 1'] && p['Short Product Code'] && p['Product Code (SAP)']).slice(0, 400);
+  for (const p of sample) {
+    const values: Record<string, FValue> = {};
+    for (const [k, val] of Object.entries(p)) { const name = DB_KEY_MAP[k] ?? k; const c = db.cols.find((x) => x.name === name); if (c) values[c.id] = (val as FValue) ?? null; }
+    computeRow(db, DB_FORMULAS as any, values);
+    db.rows.push(Object.fromEntries(Object.entries(values)));
+  }
+  // MID formula = Excel's =MID(R,2,1)&MID(R,12,5)&" "&MID(R,3,9)
+  const sap = 'Product Code SAP';
+  const r0 = db.rows[0]; const s0 = String(r0[col(db, sap).id]);
+  const chars = [...s0];
+  assert.equal(r0[col(db, 'Code ฝน').id], chars.slice(1, 2).join('') + chars.slice(11, 16).join('') + ' ' + chars.slice(2, 11).join(''));
+
+  // worksheet
+  const wsFormulas = worksheetFormulas(tokens);
+  const ws = mk(SHEETS.ws, WS_INPUTS);
+  addFormulaCols(ws, wsFormulas);
+  const yc = (y: number) => String(ref.years.find((x: any) => x['ปี'] === String(y))['รหัสปี']);
+  const mc = (m: number) => String(ref.months.find((x: any) => x['เดือน'] === String(m))['ตัวอักษร']);
+  const dc = (d: number) => String(ref.days.find((x: any) => x['วัน'] === String(d))['รหัสวัน']);
+  const lcOf = (l: string) => String(ref.lines.find((x: any) => x['ไลน์'] === l)['รหัสไลน์']);
+
+  let checked = 0;
+  for (const p of sample) {
+    const tpl: string = p['แบบโค้ดแถว 1'];
+    if (!/^\{P\} ?S\{YC\}\{MC\}\{DC\}S\{LC\}$/.test(tpl)) continue;
+    const values: Record<string, FValue> = {
+      [col(ws, 'วันที่ผลิต').id]: date('2026-03-17'), [col(ws, 'ไลน์').id]: 'Can R', [col(ws, 'กะ').id]: 'DS', [col(ws, 'รหัสเอกสาร').id]: p['รหัสเอกสาร'], [col(ws, 'Market').id]: p['Market'] ?? null,
+    };
+    computeRow(ws, wsFormulas, values);
+    const expected = String(p['Short Product Code']) + (tpl.includes(' S') ? ' ' : '') + 'S' + yc(2026) + mc(3) + dc(17) + 'S' + lcOf('Can R');
+    assert.equal(values[col(ws, 'Code Format แถว 1').id], expected, `${p['รหัสเอกสาร']} ${tpl}`);
+    assert.equal(values[col(ws, 'พบในฐานข้อมูล').id], '1');
+    if (++checked >= 5) break;
+  }
+  assert.ok(checked > 0, 'no sample with the standard template');
+
+  // best-before template: "BBE:{DD} {MON} {Y+3}"
+  const bb = sample.find((p: any) => [1, 2, 3, 4].some((n) => /BBE:\{DD\} \{MON\} \{Y\+3\}/.test(p[`แบบโค้ดแถว ${n}`] ?? '')));
+  if (bb) {
+    const n = [1, 2, 3, 4].find((i) => /BBE:\{DD\} \{MON\} \{Y\+3\}/.test(bb[`แบบโค้ดแถว ${i}`] ?? ''))!;
+    const values: Record<string, FValue> = { [col(ws, 'วันที่ผลิต').id]: date('2026-03-07'), [col(ws, 'ไลน์').id]: 'Cup 1', [col(ws, 'รหัสเอกสาร').id]: bb['รหัสเอกสาร'], [col(ws, 'Market').id]: bb['Market'] ?? null };
+    computeRow(ws, wsFormulas, values);
+    assert.equal(values[col(ws, `Code Format แถว ${n}`).id], 'BBE:07 MAR 2029');
+  }
+  // not in database → X; no date → empty code
+  const miss: Record<string, FValue> = { [col(ws, 'วันที่ผลิต').id]: null, [col(ws, 'รหัสเอกสาร').id]: 'NOPE', [col(ws, 'Market').id]: 'XX' };
+  computeRow(ws, wsFormulas, miss);
+  assert.equal(miss[col(ws, 'พบในฐานข้อมูล').id], 'X');
+  assert.equal(miss[col(ws, 'Code Format แถว 1').id], '');
+  for (const d of wsFormulas) assert.ok(d.formula!.expr.length <= 2000, `${d.name} expression too long (${d.formula!.expr.length})`);
+});
