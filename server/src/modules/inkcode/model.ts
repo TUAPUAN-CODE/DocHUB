@@ -142,7 +142,7 @@ export const SAMPLE_ROW = { ชื่อ: 'ตัวอย่าง', วัน�
 
 const dropdown = (name: string, sheet: string, column: string, width = 140): ColDef => ({ name, type: 'select', width, lookup: { sheet, column } });
 export const WS_INPUTS: ColDef[] = [
-  { name: 'วันที่ผลิต', type: 'date', width: 130, required: true },
+  { name: 'วันที่ผลิต', type: 'date', width: 130, required: true }, v('เวลาเริ่ม', 90),
   { ...dropdown('ไลน์', SHEETS.line, 'ไลน์'), description: 'เลือกจากรายการในไฟล์ InkCode - รหัสอ้างอิง › ไลน์' },
   { ...dropdown('กะ', SHEETS.shift, 'กะ', 80), description: 'เลือกจากรายการในไฟล์ InkCode - รหัสอ้างอิง › กะ' },
   { ...dropdown('รหัสเอกสาร', SHEETS.db, 'รหัสเอกสาร'), description: 'เลือกจากรายการใน InkCode - Master Database › ฐานข้อมูล' },

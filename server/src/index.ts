@@ -39,6 +39,7 @@ import { shareManageRouter, sharePublicRouter } from './routes/share';
 import formulaModule from './modules/formula/module';
 import exportArchiveModule from './modules/exportArchive/module';
 import approvalsModule from './modules/approvals/module';
+import inkcodeModule from './modules/inkcode/module';
 import aiModule from './modules/ai/module';
 import connectorsModule, { startConnectorScheduler } from './modules/connectors/module';
 import './modules/alerts/module';
@@ -80,7 +81,7 @@ app.use('/api', devicesModule.ingest);
 app.use('/api', authenticate);
 for (const r of [
   userRoutes, folderRoutes, fileRoutes, sheetRoutes, columnRoutes, rowRoutes, cellRoutes, accessRoutes, auditRoutes,
-  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router,
+  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, inkcodeModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router,
 ]) app.use('/api', r);
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ API ที่เรียก' } });

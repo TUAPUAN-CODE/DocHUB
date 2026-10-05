@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import {
   ChevronRight, Columns3, Copy, Download, Expand, History, Lock, MoreHorizontal, Pencil, Pin, PinOff, Plus, Redo2, RotateCcw, Search, Share2, Shrink, Trash2, Undo2, Upload, ZoomIn, ZoomOut,
-  ScanLine, Merge, Boxes, Cpu,
+  ScanLine, Merge, Boxes, Cpu, FileSpreadsheet,
 } from 'lucide-react';
 import { apiError } from '@/api/client';
 import { filesApi, pdfApi, requestsApi, rowsApi } from '@/api/endpoints';
@@ -12,6 +12,7 @@ import type { ExportValues } from '@/lib/pdf/build';
 import { needsExportDialog, signersList } from '@/lib/pdf/exportValues';
 import { ExportDialog } from '@/components/pdf/ExportDialog';
 import { archiveApi } from '@/modules/exportArchive/api';
+import { PlanImportDialog } from '@/modules/inkcode/PlanImportDialog';
 import { FlowsDialog } from '@/modules/approvals/FlowsDialog';
 import { SignatureDialog } from '@/modules/approvals/SignatureDialog';
 import { ArchiveDialog } from '@/modules/exportArchive/ArchiveDialog';
@@ -77,7 +78,9 @@ export default function FilePage() {
   const view = useSheetView(sheetId);
   const level = file.data?.level ?? 0;
   const union = view.detail?.union ?? null;
-  const canWrite = level >= LV.write && !union; // a union sheet mirrors other sheets: edit them at the source
+  const canWrite = level >= LV.write && !union;
+  // the InkCode worksheet (daily production plan import is offered on it)
+  const isInkWorksheet = ['วันที่ผลิต', 'ไลน์', 'รหัสเอกสาร', 'Market'].every((n) => view.columns.some((c) => c.name === n)); // a union sheet mirrors other sheets: edit them at the source
   const canManage = level >= LV.manage;
 
   const [search, setSearch] = useState('');
@@ -143,6 +146,7 @@ export default function FilePage() {
   const [archiveOpt, setArchiveOpt] = useState<ArchiveOptionValue>({ enabled: false, note: '' });
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [flowsOpen, setFlowsOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [sigOpen, setSigOpen] = useState(false);
   /** a layout that asks questions / needs signer names opens the dialog first; the others export straight away */
   const startPdf = (t: PdfTemplate | null) => {
@@ -232,6 +236,7 @@ export default function FilePage() {
             <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
               <TextInput icon={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาในชีต…" className="!h-9 w-full sm:w-64" />
               {canWrite && <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setRowForm({ row: null })}>เพิ่มแถว</Button>}
+              {canWrite && isInkWorksheet && <Button size="sm" variant="secondary" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => setPlanOpen(true)}>นำเข้าแผนผลิต (Excel)</Button>}
               {canWrite && selRows.length > 0 && <Button size="sm" variant="secondary" className="!text-danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => void deleteRows(selRows)}>{selRows.length > 1 ? `ลบ ${selRows.length} แถวที่เลือก` : 'ลบแถวที่เลือก'}</Button>}
               {canWrite && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} onClick={() => setModal('import')}>นำเข้า</Button>}
               {canWrite && !!view.detail?.settings?.scanProfiles?.length && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} onClick={() => setModal('scan')}>สแกน</Button>}
@@ -334,6 +339,7 @@ export default function FilePage() {
               extra={<ArchiveOption value={archiveOpt} onChange={setArchiveOpt} />}
               onConfirm={async (values) => { const t = exportDlg; await exportPdf(t, values, archiveOpt); setExportDlg(null); }} />
           )}
+          {sheetId && <PlanImportDialog open={planOpen} onClose={() => setPlanOpen(false)} sheetId={sheetId} onDone={() => { void view.loadRows(true); }} />}
           <FlowsDialog open={flowsOpen} onClose={() => setFlowsOpen(false)} fileId={id} />
           <SignatureDialog open={sigOpen} onClose={() => setSigOpen(false)} />
           <ArchiveDialog open={archiveOpen} onClose={() => setArchiveOpen(false)} fileId={id} />
