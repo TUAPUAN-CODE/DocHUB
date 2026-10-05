@@ -1,5 +1,6 @@
 import type { Column } from '@/types';
 import type { InfoRowBlock } from './blocks/infoRow';
+import type { CharGridBlock } from './blocks/charGrid';
 import type { SignatureBlock } from './blocks/signature';
 import { getBlockModule } from './registry';
 
@@ -53,7 +54,7 @@ export interface FieldsBlock extends BlockBase {
 }
 export type BuiltinBlock = TextBlock | ImageBlock | LineBlock | SpacerBlock | PageBreakBlock | ColumnsBlock | TableBlock | FieldsBlock;
 /** built-in blocks + the ones registered as modules (see ./registry.ts and ./blocks) */
-export type Block = BuiltinBlock | SignatureBlock | InfoRowBlock;
+export type Block = BuiltinBlock | SignatureBlock | InfoRowBlock | CharGridBlock;
 export type BuiltinBlockType = BuiltinBlock['type'];
 export type BlockType = Block['type'];
 
@@ -84,6 +85,8 @@ export interface PdfTemplate {
   /** questions asked before exporting (header fields such as Line / Plant) */
   prompts?: PromptDef[];
   settings?: { shift?: ShiftSettings };
+  /** perRow only: print every form N times in a row, each copy with its own label ({{copy}} = number, {{copyLabel}} = label) */
+  copies?: { labels: string[]; separator: 'line' | 'pageBreak' | 'none' };
   /** always show the export dialog (e.g. to save the document into the archive) */
   askOnExport?: boolean;
   /** disable copying / editing in PDF viewers (open with no password) */

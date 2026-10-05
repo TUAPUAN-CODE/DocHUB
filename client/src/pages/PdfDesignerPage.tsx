@@ -7,7 +7,7 @@ import { FilePicker } from '@/components/files/FilePicker';
 import { BLOCK_TYPES_BODY, BLOCK_TYPES_SIDE, ColumnsForm, FieldsForm, Group, ImageForm, LineForm, Num, PDF_SWATCHES, SpacerForm, SpacingForm, TableForm, TextForm } from '@/components/pdf/BlockForms';
 import { WatermarkImage } from '@/components/pdf/WatermarkImage';
 import { Button, IconButton } from '@/components/ui/Button';
-import { Field, Select, TextInput, Toggle } from '@/components/ui/Inputs';
+import { Field, Select, TextArea, TextInput, Toggle } from '@/components/ui/Inputs';
 import { ColorInput, EmptyState, Skeleton } from '@/components/ui/misc';
 import { MenuList, Popover } from '@/components/ui/Popover';
 import { Modal } from '@/components/ui/Modal';
@@ -308,6 +308,15 @@ function PageSettings({ t, patch, sheets }: { t: PdfTemplate; patch: (p: Partial
           <>
             <Field label="ชีตที่ใช้พิมพ์"><Select value={t.perRow.sheetId} onChange={(e) => patch({ perRow: { ...t.perRow!, sheetId: e.target.value, sheetName: sheets.find((s) => s.id === e.target.value)?.name ?? '' } })}>{sheets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
             <Toggle checked={t.perRow.onlySelected} onChange={(v) => patch({ perRow: { ...t.perRow!, onlySelected: v } })} label="พิมพ์เฉพาะแถวที่เลือกในตาราง (ถ้าไม่ได้เลือก = ทุกแถวตามตัวกรอง)" />
+            <Toggle checked={!!t.copies?.labels?.length} onChange={(v) => patch({ copies: v ? { labels: ['ฉบับที่ 1', 'ฉบับที่ 2'], separator: 'line' } : undefined })} label="พิมพ์ซ้ำหลายสำเนาต่อ 1 แถว (เช่น ใบ 4 ส่วน)" />
+            {t.copies?.labels?.length ? (
+              <div className="space-y-2 rounded-xl border border-line p-2.5">
+                <Field label="ชื่อของแต่ละสำเนา (บรรทัดละ 1 สำเนา) — ใช้ {{copy}} และ {{copyLabel}} ในข้อความได้">
+                  <TextArea rows={4} value={t.copies.labels.join('\n')} onChange={(e) => patch({ copies: { ...t.copies!, labels: e.target.value.split('\n').slice(0, 10) } })} />
+                </Field>
+                <Field label="คั่นระหว่างสำเนา"><Select value={t.copies.separator} onChange={(e) => patch({ copies: { ...t.copies!, separator: e.target.value as 'line' | 'pageBreak' | 'none' } })}><option value="line">เส้นประ (ต่อกันในหน้าเดียว)</option><option value="pageBreak">ขึ้นหน้าใหม่ทุกสำเนา</option><option value="none">ไม่คั่น</option></Select></Field>
+              </div>
+            ) : null}
           </>
         )}
       </Group>

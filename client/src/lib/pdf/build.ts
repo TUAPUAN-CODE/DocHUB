@@ -262,9 +262,17 @@ export async function buildDocDefinition(t: PdfTemplate, o: PdfRunOptions) {
     else sd.rows.forEach((row, ri) => {
       const rv: Vars = { '#': String(row.order) };
       for (const col of sd.columns) rv[col.name] = col.dataType === 'image' ? '' : displayValue(col, row.values[col.id] ?? null);
-      const nodes = t.blocks.map((b) => blockToNode(b, { ...ctx, rowVars: rv }, row, sd)).filter(Boolean);
-      if (nodes.length && ri > 0) nodes[0].pageBreak = 'before';
-      content.push(...nodes);
+      const labels = t.copies?.labels?.length ? t.copies.labels : [''];
+      const sep = t.copies?.separator ?? 'line';
+      labels.forEach((label, ci) => {
+        const cv: Vars = t.copies?.labels?.length ? { ...rv, copy: String(ci + 1), copyLabel: label } : rv;
+        const nodes = t.blocks.map((b) => blockToNode(b, { ...ctx, rowVars: cv }, row, sd)).filter(Boolean);
+        if (!nodes.length) return;
+        if (ci === 0 && ri > 0) nodes[0].pageBreak = 'before';
+        else if (ci > 0 && sep === 'pageBreak') nodes[0].pageBreak = 'before';
+        else if (ci > 0 && sep === 'line') content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 4, 0, 6] });
+        content.push(...nodes);
+      });
     });
   } else content.push(...t.blocks.map((b) => blockToNode(b, ctx)).filter(Boolean));
   if (!content.length) content.push({ text: 'เอกสารว่าง — เพิ่มบล็อกในหน้าออกแบบ', italics: true, color: '#9CA3AF' });

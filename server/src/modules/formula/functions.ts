@@ -43,6 +43,8 @@ def({ name: 'AND', minArgs: 1, maxArgs: Infinity, doc: { group: G.logic, signatu
 def({ name: 'OR', minArgs: 1, maxArgs: Infinity, doc: { group: G.logic, signature: 'OR(a, b, …)', description: 'จริงเมื่อมีค่าใดค่าหนึ่งเป็นจริง' }, fn: (a) => a.some((x) => toBool(x)) });
 def({ name: 'NOT', minArgs: 1, maxArgs: 1, doc: { group: G.logic, signature: 'NOT(a)', description: 'กลับค่าจริง/เท็จ' }, fn: (a) => !toBool(a[0]) });
 def({ name: 'ISBLANK', minArgs: 1, maxArgs: 1, doc: { group: G.logic, signature: 'ISBLANK(ค่า)', description: 'จริงเมื่อเซลล์ว่าง' }, fn: (a) => a[0] === null || (typeof a[0] === 'string' && a[0].trim() === '') });
+def({ name: 'IFERROR', minArgs: 2, maxArgs: 2, lazy: true, doc: { group: G.logic, signature: 'IFERROR(ค่า, ค่าสำรอง)', description: 'ใช้ค่าสำรองเมื่อคำนวณค่าแรกไม่ได้ (เช่น แปลงตัวเลข/วันที่ไม่ได้)', example: 'IFERROR(DATEVALUE([วันที่]), "")' },
+  fn: (a) => { try { return a[0](); } catch (e) { if (e instanceof FormulaEvalError) return a[1](); throw e; } } });
 def({ name: 'COALESCE', minArgs: 1, maxArgs: Infinity, lazy: true, doc: { group: G.logic, signature: 'COALESCE(a, b, …)', description: 'ค่าแรกที่ไม่ว่าง' },
   fn: (a) => { for (const t of a) { const v = t(); if (v !== null && !(typeof v === 'string' && v.trim() === '')) return v; } return null; } });
 
@@ -66,6 +68,14 @@ def({ name: 'TRIM', minArgs: 1, maxArgs: 1, doc: { group: G.text, signature: 'TR
 def({ name: 'LEN', minArgs: 1, maxArgs: 1, doc: { group: G.text, signature: 'LEN(ข้อความ)', description: 'จำนวนตัวอักษร' }, fn: (a) => [...toText(a[0])].length });
 def({ name: 'LEFT', minArgs: 2, maxArgs: 2, doc: { group: G.text, signature: 'LEFT(ข้อความ, n)', description: 'n ตัวแรก' }, fn: (a) => [...toText(a[0])].slice(0, Math.max(0, num(a[1]))).join('') });
 def({ name: 'RIGHT', minArgs: 2, maxArgs: 2, doc: { group: G.text, signature: 'RIGHT(ข้อความ, n)', description: 'n ตัวท้าย' }, fn: (a) => { const c = [...toText(a[0])]; const n = Math.max(0, num(a[1])); return n === 0 ? '' : c.slice(-n).join(''); } });
+def({ name: 'MID', minArgs: 3, maxArgs: 3, doc: { group: G.text, signature: 'MID(ข้อความ, เริ่ม, n)', description: 'n ตัวอักษรเริ่มจากตำแหน่งที่กำหนด (ตำแหน่งแรก = 1 เหมือน Excel)', example: 'MID([โค้ด], 3, 9)' },
+  fn: (a) => [...toText(a[0])].slice(Math.max(0, num(a[1]) - 1), Math.max(0, num(a[1]) - 1) + Math.max(0, num(a[2]))).join('') });
+def({ name: 'FILL', minArgs: 2, maxArgs: 2, doc: { group: G.text, signature: 'FILL(แบบ, ตัวแปร)', description: 'แทน {ชื่อ} ในแบบข้อความด้วยค่าจาก "ชื่อ=ค่า|ชื่อ=ค่า" (ชื่อที่ไม่พบจะคง {ชื่อ} ไว้ให้เห็น) ใช้ทำแบบโค้ดที่พิมพ์บนบรรจุภัณฑ์', example: 'FILL("{P} S{YC}{MC}{DC}", "P=B23AA|YC=5|MC=A|DC=3")' },
+  fn: (a) => {
+    const vars = new Map<string, string>();
+    for (const part of toText(a[1]).split('|')) { const i = part.indexOf('='); if (i > 0) vars.set(part.slice(0, i).trim(), part.slice(i + 1)); }
+    return toText(a[0]).replace(/\{([^{}]+)\}/g, (m, k: string) => (vars.has(k.trim()) ? vars.get(k.trim())! : m));
+  } });
 def({ name: 'CONTAINS', minArgs: 2, maxArgs: 2, doc: { group: G.text, signature: 'CONTAINS(ข้อความ, คำค้น)', description: 'จริงเมื่อมีคำค้น (ไม่สนตัวพิมพ์)' }, fn: (a) => toText(a[0]).toLowerCase().includes(toText(a[1]).toLowerCase()) });
 def({ name: 'FORMATNUM', minArgs: 2, maxArgs: 2, doc: { group: G.text, signature: 'FORMATNUM(x, ทศนิยม)', description: 'ข้อความตัวเลขพร้อมจุลภาค', example: 'FORMATNUM([น้ำหนัก], 1)' },
   fn: (a) => num(a[0]).toLocaleString('en-US', { minimumFractionDigits: Math.max(0, num(a[1])), maximumFractionDigits: Math.max(0, num(a[1])) }) });
