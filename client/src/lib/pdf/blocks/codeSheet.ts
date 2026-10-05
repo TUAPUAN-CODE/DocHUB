@@ -1,3 +1,4 @@
+import qrEncModule from 'pdfmake/js/qrEnc.js';
 import { fillTokens } from '../variables';
 import type { BuildCtx } from '../build';
 import { MM } from '../types';
@@ -58,6 +59,29 @@ export const newCodeSheet = (): CodeSheetBlock => ({
 });
 
 const pt = (mm: number) => mm * MM;
+
+/**
+ * A QR Code drawn at exactly `sizePt` points. pdfmake's own {qr, fit} rounds the module size DOWN to a whole number of points
+ * (a 20 mm code can come out as 13 mm, a 10 mm code as nothing), so the code is built from pdfmake's module matrix and scaled
+ * here; runs of dark modules in a row are merged and rects overlap a hair so no seams show.
+ */
+export function qrCanvas(payload: string, sizePt: number) {
+  const enc: any = (qrEncModule as any).default ?? qrEncModule;
+  const node = enc.measure({ qr: payload, eccLevel: 'L' });
+  const base: number = node._width;
+  const f = sizePt / base;
+  const cells = (node._canvas as { x: number; y: number; w: number; h: number }[]).slice(1);   // [0] is the white background
+  const rows = new Map<number, { x: number; w: number; h: number }[]>();
+  for (const r of cells) {
+    const list = rows.get(r.y) ?? [];
+    const last = list[list.length - 1];
+    if (last && Math.abs(last.x + last.w - r.x) < 0.01) last.w += r.w; else list.push({ x: r.x, w: r.w, h: r.h });
+    rows.set(r.y, list);
+  }
+  const rects: any[] = [{ type: 'rect', x: 0, y: 0, w: sizePt, h: sizePt, lineWidth: 0, color: '#FFFFFF' }];
+  for (const [y, list] of rows) for (const r of list) rects.push({ type: 'rect', x: r.x * f, y: y * f, w: r.w * f + 0.12, h: r.h * f + 0.12, lineWidth: 0, color: '#000000' });
+  return { canvas: rects, width: sizePt, height: sizePt };
+}
 const NO_BORDER = [false, false, false, false];
 
 /** What the QR Code of a notice contains: 4 lines × N characters (N = 23 for a Can, 40 otherwise), joined, trailing spaces cut */
@@ -82,8 +106,11 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
   let k = 1;
   if (room - sideTotal < minCell * nMax) k = Math.max(0.4, (room - minCell * nMax) / sideTotal);
   const cw = (room - sideTotal * k) / nMax;
-  const k2 = Math.min(2.2, (room - cw * n) / sideTotal);
-  const w = (x: SheetSideCol) => pt(widthMm(x)) * k2;
+  // freed width goes to the text columns; the QR column keeps its own width (a QR does not grow, white space around it would only appear)
+  const qrTotal = side.filter((x) => x.qr).reduce((s2, x) => s2 + pt(widthMm(x)) * k, 0);
+  const flexTotal = Math.max(1, sideTotal - side.filter((x) => x.qr).reduce((s2, x) => s2 + pt(widthMm(x)), 0));
+  const k2 = Math.min(2.2, (room - cw * n - qrTotal) / flexTotal);
+  const w = (x: SheetSideCol) => pt(widthMm(x)) * (x.qr ? k : k2);
   const fs = Math.min(b.fontSize, cw * 0.95 / 0.6);
   // a wanted QR size also sets the minimum height of the code rows
   const cellH = Math.max(pt(b.cellHeightMm), qrWant ? pt(qrWant + 2 * qrPad) / rows : 0);
@@ -102,8 +129,9 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
     if (col.qr) {
       if (!payload) return { text: ' ', rowSpan: rows };
       const room2 = Math.min(w(col) - pt(2 * qrPad), cellH * rows - pt(2 * qrPad));
-      const fit = Math.max(20, qrWant ? Math.min(pt(qrWant), room2) : room2);
-      return { rowSpan: rows, stack: [{ qr: payload, fit, eccLevel: 'L', alignment: 'center', margin: [0, (cellH * rows - fit) / 2, 0, 0] }] };
+      const fit = Math.max(8, qrWant ? Math.min(pt(qrWant), room2) : room2);
+      const q = qrCanvas(payload, fit);
+      return { rowSpan: rows, stack: [{ canvas: q.canvas, margin: [Math.max(0, (w(col) - fit) / 2), Math.max(0, (cellH * rows - fit) / 2), 0, 0] }] };
     }
     const items = col.items.map((it) => ({ label: it.label, text: fillTokens(it.text, c.vars, c.rowVars) }));
     if (items.length <= 1 && !items[0]?.label) return { ...styleCell(items[0]?.text ?? ''), rowSpan: rows, alignment: 'left' };

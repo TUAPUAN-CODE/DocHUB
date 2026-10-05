@@ -71,7 +71,7 @@ export function CodeSheetForm({ block: b, template, onChange }: BlockFormProps<C
           <Num label="ขนาด QR (ว่าง = เต็มช่อง)" value={b.qrSizeMm ?? null} onChange={(v) => onChange({ qrSizeMm: v })} min={10} max={80} suffix="mm" />
           <Num label="ขอบขาวรอบ QR" value={b.qrPadMm ?? 0.8} onChange={(v) => onChange({ qrPadMm: v ?? 0.8 })} min={0} max={10} step={0.1} suffix="mm" />
         </div>
-        <p className="text-[11px] text-muted">ถ้าใส่ขนาดที่ใหญ่กว่าช่อง ระบบเพิ่มความสูงของแถวโค้ดและความกว้างคอลัมน์ QR ให้พอดี</p>
+        <p className="text-[11px] text-muted">ถ้าใส่ขนาดที่ใหญ่กว่าช่อง ระบบเพิ่มความสูงของแถวโค้ดและความกว้างคอลัมน์ QR ให้พอดี · ขอบขาวรอบ QR ที่น้อยกว่าประมาณ 2 มม. (หรือใกล้เส้นตารางเกินไป) ทำให้โทรศัพท์สแกนยาก แนะนำ 1.5–3 มม.</p>
         <Field label="ข้อความที่บอกว่าเป็น Can"><TextInput value={b.qrCanText ?? '{{PKG}}'} onChange={(e) => onChange({ qrCanText: e.target.value })} className="font-mono text-xs" /></Field>
       </Group>
       <SideEditor title="คอลัมน์ขวา (หลังตารางตำแหน่ง)" cols={b.right} onChange={(right) => onChange({ right })} tokens={tokens} />
