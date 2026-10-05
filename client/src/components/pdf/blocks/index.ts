@@ -1,4 +1,5 @@
 import { registerBlockForm } from '../formRegistry';
+import { CodeSheetForm } from './CodeSheetForm';
 import { CharGridForm } from './CharGridForm';
 import { InfoRowForm } from './InfoRowForm';
 import { SignatureForm } from './SignatureForm';
@@ -7,3 +8,4 @@ import { SignatureForm } from './SignatureForm';
 registerBlockForm('signature', SignatureForm);
 registerBlockForm('infoRow', InfoRowForm);
 registerBlockForm('charGrid', CharGridForm);
+registerBlockForm('codeSheet', CodeSheetForm);

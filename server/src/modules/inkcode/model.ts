@@ -121,6 +121,7 @@ export function worksheetFormulas(usedTokens: string[]): ColDef[] {
     { name: 'ลูกค้า', type: 'varchar', width: 160, formula: { expr: db('ลูกค้า'), sources: d } },
     { name: 'ชนิด', type: 'varchar', width: 130, formula: { expr: db('ชนิด'), sources: d } },
     { name: 'Product Code SAP', type: 'varchar', width: 200, formula: { expr: db('Product Code SAP'), sources: d } },
+    ...['Material Packaging 1', 'Material Packaging 2', 'Material Packaging 3', 'รหัสเอกสารระบบ Code', 'Rev.'].map((n): ColDef => ({ name: n, type: 'varchar', width: 170, formula: { expr: db(n), sources: d } })),
     ...renderColumns(WS_CTX, usedTokens, '', [1, 2, 3, 4].map((n) => `Code Format แถว ${n}`), [SHEETS.db]),
     { name: 'Code ฝน', type: 'varchar', width: 200, formula: { expr: db('Code ฝน'), sources: d } },
   ];
@@ -182,25 +183,42 @@ export const HELP_ROWS = [
   hrow('K6L3 / K6R1', 'ปฏิทิน K6 เอา 3 ตัวแรก / 1 ตัวท้าย (K3-1 = ของวันก่อนหน้า)', REFF, SHEETS.calendar, 'K6', '641 / A'),
 ];
 
-/** the 4-copy print form of the Excel ("ใบแจ้งการเปลี่ยนแปลงการผลิต (นอกแผน)") */
+/** the print form of the Excel ("ใบแจ้งการเปลี่ยนแปลงการผลิต (นอกแผน)"): one table per notice, printed 4 times (A3 landscape) */
 export function printTemplate(worksheetSheetId: string) {
   const id = () => crypto.randomUUID();
-  const text = (text: string, style: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) => ({ id: id(), type: 'text', text, style: { align: 'left', ...style }, marginBottom: 2, ...extra });
+  const text = (text: string, style: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) => ({ id: id(), type: 'text', text, style: { align: 'left', ...style }, marginBottom: 0, ...extra });
+  const row3 = (center: string, right: string, centerStyle: Record<string, unknown>, rightStyle: Record<string, unknown>, mb = 0) => ({
+    id: id(), type: 'columns', gap: 2, marginBottom: mb,
+    cols: [{ widthPct: 22, blocks: [text('')] }, { widthPct: 56, blocks: [text(center, { align: 'center', ...centerStyle })] }, { widthPct: 22, blocks: [text(right, { align: 'right', ...rightStyle })] }],
+  });
+  const side = (header: string, widthMm: number, items: { label?: string; text: string }[]) => ({ id: id(), header, widthMm, items: items.map((i) => ({ id: id(), label: i.label ?? '', text: i.text })) });
   return {
     id: id(), name: 'ใบออกโค้ดนอกแผน 4 ส่วน', mode: 'perRow', perRow: { sheetId: worksheetSheetId, sheetName: SHEETS.ws, onlySelected: true },
-    page: { size: 'A4', orientation: 'landscape', margins: { top: 10, right: 10, bottom: 10, left: 10 } },
-    base: { font: 'Sarabun', fontSize: 11, color: '#111827' },
+    page: { size: 'A3', orientation: 'landscape', margins: { top: 5, right: 8, bottom: 4, left: 8 } },
+    base: { font: 'Sarabun', fontSize: 10, color: '#111827' },
     header: { enabled: false, blocks: [] }, footer: { enabled: false, blocks: [] },
-    copies: { labels: ['ฉบับที่ 1 — ควบคุมเอกสาร', 'ฉบับที่ 2 — หัวหน้าแผนกบรรจุ', 'ฉบับที่ 3 — QC', 'ฉบับที่ 4 — เก็บที่หน้างาน'], separator: 'line' },
+    copies: { labels: ['ฉบับที่ 1', 'ฉบับที่ 2', 'ฉบับที่ 3', 'ฉบับที่ 4'], separator: 'line' },
     blocks: [
-      text('บริษัท ไอ-เทล คอร์ปอเรชั่น จำกัด (มหาชน)', { align: 'center', bold: true, fontSize: 12 }, { marginBottom: 0 }),
-      text('ใบแจ้งการเปลี่ยนแปลงการผลิต (นอกแผน)   — {{copyLabel}}', { align: 'center', fontSize: 11 }),
-      text('Ref. {{#}}    ไลน์: {{ไลน์}}    วันที่ผลิต: {{วันที่ผลิต}}    กะ: {{กะ}}    ลูกค้า: {{ลูกค้า}}    ชนิด: {{ชนิด}}    PO: {{PO}}', { fontSize: 10 }),
-      { id: id(), type: 'charGrid', cells: 40, cellHeightMm: 6, fontSize: 10, borderColor: '#374151', showIndex: true, showLabels: true, marginBottom: 3,
-        lines: [1, 2, 3, 4].map((n) => ({ id: id(), label: `แถว ${n}`, text: `{{Code Format แถว ${n}}}` })) },
-      { id: id(), type: 'signature', perRow: 3, boxHeightMm: 9, gapMm: 8, lineColor: '#111827', lineWidth: 0.6, marginTop: 2, marginBottom: 0,
-        labelStyle: { fontSize: 8, align: 'center' }, nameStyle: { fontSize: 9, align: 'center' },
-        slots: ['( ควบคุมเอกสาร )', '( หัวหน้าแผนกบรรจุ )', '( หัวหน้าแผนก QC )'].map((label) => ({ id: id(), label, askAtExport: false, showDate: false })) },
+      row3('บริษัท ไอ-เทล คอร์ปอเรชั่น จำกัด (มหาชน)', 'F3PFPF39-0-04/10/21', { bold: true, fontSize: 12 }, { fontSize: 9 }),
+      row3('ใบแจ้งการเปลี่ยนแปลงการผลิต (นอกแผน)', 'วันที่ {{วันที่ผลิต}}      {{กะ}}      ({{copyLabel}})', { bold: true, fontSize: 11 }, { fontSize: 9 }, 1),
+      text('แผนก     บรรจุภัณฑ์', { align: 'center', bold: true, fontSize: 10, bg: '#DCEAF7' }, { border: { color: '#374151', width: 0.5, padding: 0.8 }, marginBottom: 0.5 }),
+      {
+        id: id(), type: 'codeSheet', cells: 40, cellHeightMm: 5, fontSize: 9, headerBg: '#DCEAF7', borderColor: '#374151', showIndex: true, gridHeader: 'ตำแหน่ง', marginBottom: 1,
+        left: [side('ไลน์', 13, [{ text: '{{ไลน์}}' }]), side('ลำดับ', 11, [{ text: '{{#}}' }]), side('ลูกค้า', 30, [{ text: '{{ลูกค้า}}' }]), side('ชนิด', 24, [{ text: '{{ชนิด}}' }])],
+        right: [
+          side('Mat. Packaging', 44, [{ text: '{{Material Packaging 1}}' }, { text: '{{Material Packaging 2}}' }, { text: '{{Material Packaging 3}}' }]),
+          side('Code', 54, [{ label: 'PO', text: '{{PO}}' }, { label: 'New code', text: '{{Code ฝน}}' }, { label: 'Code Sap', text: '{{Product Code SAP}}' }]),
+          side('รหัสเอกสารสูตรการผลิต', 27, [{ text: '{{รหัสเอกสาร}}' }]), side('รหัสเอกสารระบบ Code', 28, [{ text: '{{รหัสเอกสารระบบ Code}} / {{Rev.}}' }]), side('QR Code', 20, [{ text: '' }]),
+        ],
+        lines: [1, 2, 3, 4].map((n) => ({ id: id(), text: `{{Code Format แถว ${n}}}` })),
+      },
+      { id: id(), type: 'signature', perRow: 3, boxHeightMm: 4, rowGapMm: 0, gapMm: 40, lineColor: '#111827', lineWidth: 0.4, marginTop: 0, marginBottom: 0,
+        labelStyle: { fontSize: 8.5, align: 'center' }, nameStyle: { fontSize: 9, align: 'center' },
+        slots: [
+          { id: id(), label: '( ควบคุมเอกสาร )', sublabel: 'ผู้จัดทำ', askAtExport: false, showDate: false },
+          { id: id(), label: '(หัวหน้าแผนกบรรจุผลิตภัณฑ์ปลาแมว/หัวหน้าแผนกอาวุโส)', sublabel: 'ผู้ตรวจสอบ', askAtExport: false, showDate: false },
+          { id: id(), label: '(หัวหน้าแผนกควบคุมคุณภาพ/หัวหน้าแผนกอาวุโสฝ่ายควบคุมคุณภาพ)', sublabel: 'ผู้ตรวจสอบ', askAtExport: false, showDate: false },
+        ] },
     ],
     watermark: { enabled: false, text: '', color: '#9CA3AF', opacity: 0.15, size: 90, angle: -35 }, lockEditing: false,
   };

@@ -244,6 +244,11 @@ export async function buildDocDefinition(t: PdfTemplate, o: PdfRunOptions) {
   const tables = await collectData(t, o.current, { limit: o.previewLimit, onProgress: o.onProgress });
   o.onProgress?.('กำลังโหลดรูปภาพ…');
   const images = await preloadImages(imageUrlsNeeded(t, tables));
+  return assembleDoc(t, o, tables, images);
+}
+
+/** The pure part: template + loaded data → pdfmake document (no network; used by the layout tests too) */
+export function assembleDoc(t: PdfTemplate, o: PdfRunOptions, tables: Map<string, SheetData>, images: Map<string, string>) {
   const now = new Date();
   const [pw, ph] = PAGE_PT[t.page.size] ?? PAGE_PT.A4;
   const width = t.page.orientation === 'landscape' ? ph : pw;
@@ -270,7 +275,7 @@ export async function buildDocDefinition(t: PdfTemplate, o: PdfRunOptions) {
         if (!nodes.length) return;
         if (ci === 0 && ri > 0) nodes[0].pageBreak = 'before';
         else if (ci > 0 && sep === 'pageBreak') nodes[0].pageBreak = 'before';
-        else if (ci > 0 && sep === 'line') content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 4, 0, 6] });
+        else if (ci > 0 && sep === 'line') content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 2, 0, 3] });
         content.push(...nodes);
       });
     });

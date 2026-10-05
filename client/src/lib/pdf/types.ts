@@ -1,6 +1,7 @@
 import type { Column } from '@/types';
 import type { InfoRowBlock } from './blocks/infoRow';
 import type { CharGridBlock } from './blocks/charGrid';
+import type { CodeSheetBlock } from './blocks/codeSheet';
 import type { SignatureBlock } from './blocks/signature';
 import { getBlockModule } from './registry';
 
@@ -54,7 +55,7 @@ export interface FieldsBlock extends BlockBase {
 }
 export type BuiltinBlock = TextBlock | ImageBlock | LineBlock | SpacerBlock | PageBreakBlock | ColumnsBlock | TableBlock | FieldsBlock;
 /** built-in blocks + the ones registered as modules (see ./registry.ts and ./blocks) */
-export type Block = BuiltinBlock | SignatureBlock | InfoRowBlock | CharGridBlock;
+export type Block = BuiltinBlock | SignatureBlock | InfoRowBlock | CharGridBlock | CodeSheetBlock;
 export type BuiltinBlockType = BuiltinBlock['type'];
 export type BlockType = Block['type'];
 
