@@ -11,7 +11,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, printTemplate, REF_SHEETS, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
+import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLUMNS, HELP_ROWS, printTemplate, REF_SHEETS, SAMPLE_ROW, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
 
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const DRY = process.argv.includes('--dry');
@@ -29,7 +29,19 @@ async function api<T = any>(method: string, url: string, body?: unknown): Promis
   }
 }
 
-const colInput = (c: ColDef) => ({ name: c.name, dataType: c.type, width: c.width ?? 160, isRequired: !!c.required });
+/** `refs`: sheet name → { id, columns by name } of the sheets already created (needed by drop-down columns) */
+type Refs = Map<string, { id: string; cols: Map<string, string> }>;
+const colInput = (c: ColDef, refs?: Refs) => {
+  const body: Record<string, unknown> = { name: c.name, dataType: c.type, width: c.width ?? 160, isRequired: !!c.required };
+  if (c.description) body.description = c.description;
+  if (c.lookup) {
+    const src = refs?.get(c.lookup.sheet);
+    const colId = src?.cols.get(c.lookup.column);
+    if (!src || !colId) throw new Error(`ไม่พบชีต/คอลัมน์ต้นทางของรายการเลือก "${c.name}" (${c.lookup.sheet} › ${c.lookup.column})`);
+    body.validation = { lookup: { sheetId: src.id, columnId: colId } };
+  }
+  return body;
+};
 type SheetInfo = { id: string; name: string };
 
 async function findOrCreateFolder(name: string): Promise<string> {
@@ -41,14 +53,14 @@ async function findOrCreateFolder(name: string): Promise<string> {
   console.log(`✓ สร้างโฟลเดอร์ "${name}"`);
   return f.id;
 }
-async function createFile(folderId: string, name: string, sheets: SheetDef[]): Promise<{ id: string; sheets: SheetInfo[] } | null> {
+async function createFile(folderId: string, name: string, sheets: SheetDef[], refs?: Refs): Promise<{ id: string; sheets: SheetInfo[] } | null> {
   if (!DRY) {
     const c = await api('GET', `/folders/${folderId}/contents`).catch(() => null);
     if (c?.files?.some((f: any) => f.name === name)) { console.log(`• ไฟล์ "${name}" มีอยู่แล้ว — ข้าม (ไม่เขียนทับ)`); return null; }
   }
   console.log(`${DRY ? '[dry] ' : '✓ '}สร้างไฟล์ "${name}" (${sheets.map((s) => `${s.name}:${s.columns.length} คอลัมน์`).join(', ')})`);
   if (DRY) return null;
-  const { id } = await api('POST', '/files', { name, folderId, color: '#1552F0', sheets: sheets.map((s) => ({ name: s.name, columns: s.columns.map(colInput) })) });
+  const { id } = await api('POST', '/files', { name, folderId, color: '#1552F0', sheets: sheets.map((s) => ({ name: s.name, columns: s.columns.map((c) => colInput(c, refs)) })) });
   const f = await api('GET', `/files/${id}`);
   return { id, sheets: f.sheets.map((s: any) => ({ id: s.id, name: s.name })) };
 }
@@ -86,24 +98,27 @@ async function main() {
   }
   const folder = await findOrCreateFolder('InkCode');
 
-  // 1) reference tables
-  const refFile = await createFile(folder, 'InkCode - รหัสอ้างอิง', REF_SHEETS);
+  const refs: Refs = new Map();
+  const remember = async (name: string, id: string) => { sheetIds.set(name, id); refs.set(name, { id, cols: await colMap(id) }); };
   const sheetIds = new Map<string, string>();
+  // 1) reference tables (+ the sample date / line used to preview the codes in the database)
+  const refFile = await createFile(folder, 'InkCode - รหัสอ้างอิง', REF_SHEETS);
   if (refFile) {
-    const sets: [string, Record<string, unknown>[]][] = [[SHEETS.year, ref.years], [SHEETS.month, ref.months], [SHEETS.day, ref.days], [SHEETS.line, ref.lines], [SHEETS.shift, ref.shifts], [SHEETS.calendar, ref.calendar]];
-    for (const [name, rows] of sets) { sheetIds.set(name, idOf(refFile.sheets, name)); await importRows(idOf(refFile.sheets, name), rows, name); }
+    const sets: [string, Record<string, unknown>[]][] = [[SHEETS.year, ref.years], [SHEETS.month, ref.months], [SHEETS.day, ref.days], [SHEETS.line, ref.lines], [SHEETS.shift, ref.shifts], [SHEETS.sample, [SAMPLE_ROW]], [SHEETS.calendar, ref.calendar]];
+    for (const [name, rows] of sets) { await remember(name, idOf(refFile.sheets, name)); await importRows(idOf(refFile.sheets, name), rows, name); }
   }
-  // 2) database
-  const dbFile = await createFile(folder, 'InkCode - Master Database', [{ name: SHEETS.db, columns: DB_PLAIN }]);
+  // 2) database (+ help sheet + preview columns that show the real codes for the sample date / line)
+  const dbFile = await createFile(folder, 'InkCode - Master Database', [{ name: SHEETS.db, columns: DB_PLAIN }, { name: SHEETS.help, columns: HELP_COLUMNS }]);
   if (dbFile) {
-    const dbId = idOf(dbFile.sheets, SHEETS.db); sheetIds.set(SHEETS.db, dbId);
+    const dbId = idOf(dbFile.sheets, SHEETS.db); await remember(SHEETS.db, dbId);
     const rows = products.map((p) => Object.fromEntries(Object.entries(p).map(([k, v]) => [DB_KEY_MAP[k] ?? k, v])));
     await importRows(dbId, rows, SHEETS.db);
-    await addFormulas(dbId, DB_FORMULAS, sheetIds);
+    await importRows(idOf(dbFile.sheets, SHEETS.help), HELP_ROWS, SHEETS.help);
+    await addFormulas(dbId, [...DB_FORMULAS, ...dbPreviewFormulas(tokens)], sheetIds);
   }
   // 3) daily worksheet + print form
   if (refFile && dbFile) {
-    const wsFile = await createFile(folder, 'InkCode - ใบออกโค้ดนอกแผน', [{ name: SHEETS.ws, columns: WS_INPUTS }]);
+    const wsFile = await createFile(folder, 'InkCode - ใบออกโค้ดนอกแผน', [{ name: SHEETS.ws, columns: WS_INPUTS }], refs);
     if (wsFile) {
       const wsId = idOf(wsFile.sheets, SHEETS.ws);
       await addFormulas(wsId, worksheetFormulas(tokens), sheetIds);

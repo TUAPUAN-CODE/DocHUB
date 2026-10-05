@@ -9,13 +9,17 @@
  * This file only builds definitions (pure) — seedInkCode.ts sends them to a running DocHUB server.
  */
 export type ColType = 'varchar' | 'text' | 'date' | 'float';
-export interface ColDef { name: string; type: ColType; width?: number; formula?: { expr: string; sources: { alias: string; sheet: string }[] }; required?: boolean }
+export interface ColDef {
+  name: string; type: ColType | 'select'; width?: number; formula?: { expr: string; sources: { alias: string; sheet: string }[] }; required?: boolean; description?: string;
+  /** drop-down whose choices are the values of a column of another sheet (sheet = sheet name inside the same seed, file = which seeded file) */
+  lookup?: { sheet: string; column: string };
+}
 export interface SheetDef { name: string; columns: ColDef[]; tab?: string }
 
 const v = (name: string, width = 140): ColDef => ({ name, type: 'varchar', width });
 const t = (name: string, width = 320): ColDef => ({ name, type: 'text', width });
 
-export const SHEETS = { year: 'ปี', month: 'เดือน', day: 'วัน', line: 'ไลน์', shift: 'กะ', calendar: 'ปฏิทิน', db: 'ฐานข้อมูล', ws: 'Worksheet' } as const;
+export const SHEETS = { year: 'ปี', month: 'เดือน', day: 'วัน', line: 'ไลน์', shift: 'กะ', calendar: 'ปฏิทิน', sample: 'ตัวอย่าง', db: 'ฐานข้อมูล', help: 'คู่มือตัวแปร', ws: 'Worksheet' } as const;
 
 export const REF_SHEETS: SheetDef[] = [
   { name: SHEETS.year, columns: [v('ปี'), v('ปี_พศ'), v('รหัสปี'), v('รหัสปี2')] },
@@ -23,12 +27,13 @@ export const REF_SHEETS: SheetDef[] = [
   { name: SHEETS.day, columns: [v('วัน'), v('รหัสวัน')] },
   { name: SHEETS.line, columns: [v('ไลน์'), v('รหัสไลน์'), v('รหัสไลน์2'), v('Plant'), v('อื่นๆ')] },
   { name: SHEETS.shift, columns: [v('กะ'), v('SC2'), v('SC3'), v('SC4')] },
+  { name: SHEETS.sample, columns: [v('ชื่อ', 100), { name: 'วันที่ผลิต', type: 'date', width: 130 }, v('ไลน์'), v('กะ', 70)] },
   { name: SHEETS.calendar, columns: [{ name: 'วันที่ผลิต', type: 'date', width: 130 }, ...[2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => v(`K${i}`, 120))] },
 ];
 
 export const DB_PLAIN: ColDef[] = [
   v('รหัสเอกสาร'), v('PKG', 80), v('Market'), v('ลูกค้า'),
-  t('แบบโค้ดแถว 1'), t('แบบโค้ดแถว 2'), t('แบบโค้ดแถว 3'), t('แบบโค้ดแถว 4'),
+  ...[1, 2, 3, 4].map((n): ColDef => ({ ...t(`แบบโค้ดแถว ${n}`), description: 'แบบข้อความที่มี {ตัวแปร} เช่น {P} S{YC}{MC}{DC}S{LC} — ความหมายและที่มาของแต่ละตัวแปรดูในชีต "คู่มือตัวแปร" ผลลัพธ์จริงดูที่คอลัมน์ "ตัวอย่างโค้ดแถว" ทางขวา' })),
   v('รหัสเอกสารระบบ Code'), v('Rev.', 70), v('Short Product Code'), v('Product Code SAP', 200),
   v('Material Packaging 1', 200), v('Material Packaging 2', 200), v('Material Packaging 3', 200),
   v('ชนิด'), t('Note', 200), v('SVT', 70), t('บันทึกประวัติ', 240), v('สถานะ'), v('สถานะติดตาม'), v('special'),
@@ -43,66 +48,138 @@ export const DB_FORMULAS: ColDef[] = [
   { name: 'Code ฝน', type: 'varchar', width: 200, formula: { expr: 'MID([Product Code SAP], 2, 1) & MID([Product Code SAP], 12, 5) & " " & MID([Product Code SAP], 3, 9)', sources: [] } },
 ];
 
-/* ---------------- the daily worksheet ---------------- */
-const D = '[วันที่ผลิต]';
+/* ---------------- tokens → formulas ---------------- */
 const num = (e: string) => `TEXT(${e})`;
-const pad2 = (fn: 'DAY' | 'MONTH', arg = D) => `IF(${fn}(${arg}) < 10, "0" & ${fn}(${arg}), TEXT(${fn}(${arg})))`;
 const lk = (alias: string, result: string, key: string, k: string) => `LOOKUP(@${alias}[${result}], @${alias}[${key}], ${k})`;
 
-/** token → expression that produces its value for the row (D = the production date) */
-export const DATE_TOKENS: Record<string, string> = {
-  Y: num(`YEAR(${D})`), D: num(`DAY(${D})`), DD: pad2('DAY'), 'DD-1': pad2('DAY', `DATEADD("day", ${D}, -1)`), Mo: num(`MONTH(${D})`), MM: pad2('MONTH'), Y1: `RIGHT(${num(`YEAR(${D})`)}, 1)`, YY: `RIGHT(${num(`YEAR(${D})`)}, 2)`,
-  ...Object.fromEntries([1, 2, 3, 4, 5].flatMap((n) => [
-    [`Y+${n}`, num(`YEAR(${D}) + ${n}`)], [`YY+${n}`, `RIGHT(${num(`YEAR(${D}) + ${n}`)}, 2)`], [`Y1+${n}`, `RIGHT(${num(`YEAR(${D}) + ${n}`)}, 1)`],
-  ])),
-};
-export const CODE_TOKENS: Record<string, string> = {
-  YC: lk('ปี', 'รหัสปี', 'ปี', `YEAR(${D})`), YC2: lk('ปี', 'รหัสปี2', 'ปี', `YEAR(${D})`), YB: lk('ปี', 'ปี_พศ', 'ปี', `YEAR(${D})`),
-  MC: lk('เดือน', 'ตัวอักษร', 'เดือน', `MONTH(${D})`), MON: lk('เดือน', 'ชื่อย่อ', 'เดือน', `MONTH(${D})`), M2: lk('เดือน', 'อักษร2', 'เดือน', `MONTH(${D})`),
-  DC: lk('วัน', 'รหัสวัน', 'วัน', `DAY(${D})`),
-  LC: lk('ไลน์', 'รหัสไลน์', 'ไลน์', '[ไลน์]'), LC2: lk('ไลน์', 'รหัสไลน์2', 'ไลน์', '[ไลน์]'), PF: lk('ไลน์', 'Plant', 'ไลน์', '[ไลน์]'), LX: lk('ไลน์', 'อื่นๆ', 'ไลน์', '[ไลน์]'),
-  SC2: lk('กะ', 'SC2', 'กะ', '[กะ]'), SC3: lk('กะ', 'SC3', 'กะ', '[กะ]'), SC4: lk('กะ', 'SC4', 'กะ', '[กะ]'),
-};
+/** Where a template is rendered: the Worksheet row (real production date / line) or the database row (sample date / line, to preview) */
+export interface Ctx { date: string; line: string; shift: string; short: string; docCode: string; tpl: (n: number) => string; link: string }
+const pad2 = (c: Ctx, fn: 'DAY' | 'MONTH', arg = c.date) => `IF(${fn}(${arg}) < 10, "0" & ${fn}(${arg}), TEXT(${fn}(${arg})))`;
+
+export function dateTokens(c: Ctx): Record<string, string> {
+  const D = c.date;
+  return {
+    Y: num(`YEAR(${D})`), D: num(`DAY(${D})`), DD: pad2(c, 'DAY'), 'DD-1': pad2(c, 'DAY', `DATEADD("day", ${D}, -1)`), Mo: num(`MONTH(${D})`), MM: pad2(c, 'MONTH'), Y1: `RIGHT(${num(`YEAR(${D})`)}, 1)`, YY: `RIGHT(${num(`YEAR(${D})`)}, 2)`,
+    ...Object.fromEntries([1, 2, 3, 4, 5].flatMap((n) => [
+      [`Y+${n}`, num(`YEAR(${D}) + ${n}`)], [`YY+${n}`, `RIGHT(${num(`YEAR(${D}) + ${n}`)}, 2)`], [`Y1+${n}`, `RIGHT(${num(`YEAR(${D}) + ${n}`)}, 1)`],
+    ])),
+  };
+}
+export function codeTokens(c: Ctx): Record<string, string> {
+  const D = c.date, L = c.line, S = c.shift;
+  return {
+    YC: lk('ปี', 'รหัสปี', 'ปี', `YEAR(${D})`), YC2: lk('ปี', 'รหัสปี2', 'ปี', `YEAR(${D})`), YB: lk('ปี', 'ปี_พศ', 'ปี', `YEAR(${D})`),
+    MC: lk('เดือน', 'ตัวอักษร', 'เดือน', `MONTH(${D})`), MON: lk('เดือน', 'ชื่อย่อ', 'เดือน', `MONTH(${D})`), M2: lk('เดือน', 'อักษร2', 'เดือน', `MONTH(${D})`),
+    DC: lk('วัน', 'รหัสวัน', 'วัน', `DAY(${D})`),
+    LC: lk('ไลน์', 'รหัสไลน์', 'ไลน์', L), LC2: lk('ไลน์', 'รหัสไลน์2', 'ไลน์', L), PF: lk('ไลน์', 'Plant', 'ไลน์', L), LX: lk('ไลน์', 'อื่นๆ', 'ไลน์', L),
+    SC2: lk('กะ', 'SC2', 'กะ', S), SC3: lk('กะ', 'SC3', 'กะ', S), SC4: lk('กะ', 'SC4', 'กะ', S),
+  };
+}
 /** product / calendar tokens: P F and the calendar columns K2…K10 (optionally LEFT/RIGHT n, or the day before) */
-export function productToken(tok: string): string | null {
-  if (tok === 'P') return lk('ฐานข้อมูล', 'Short Product Code', 'Link', '[Link]');
-  if (tok === 'F') return '[รหัสเอกสาร]';
+export function productToken(tok: string, c: Ctx): string | null {
+  if (tok === 'P') return c.short;
+  if (tok === 'F') return c.docCode;
   const m = /^K(\d+)(?:([LR])(\d+)|(-1))?$/.exec(tok);
   if (!m || +m[1] < 2 || +m[1] > 10) return null;
-  const key = m[4] ? `DATEADD("day", ${D}, -1)` : D;
+  const key = m[4] ? `DATEADD("day", ${c.date}, -1)` : c.date;
   const base = lk('ปฏิทิน', `K${m[1]}`, 'วันที่ผลิต', key);
   return m[2] ? `${m[2] === 'L' ? 'LEFT' : 'RIGHT'}(${base}, ${m[3]})` : base;
 }
+const isKnown = (tok: string) => { const c = WS_CTX; return !!(dateTokens(c)[tok] || codeTokens(c)[tok] || productToken(tok, c)); };
 
-const join = (map: Record<string, string>, names: string[]) => names.map((n) => `"${n}=" & ${map[n] ?? productToken(n)}`).join(' & "|" & ');
+const join = (names: string[], get: (n: string) => string | null | undefined) => names.map((n) => `"${n}=" & ${get(n)}`).join(' & "|" & ');
 const ALIASES = (names: string[]) => names.map((a) => ({ alias: a, sheet: a }));
+const REF_ALIASES = [SHEETS.year, SHEETS.month, SHEETS.day, SHEETS.line, SHEETS.shift];
 
-/** `usedTokens`: tokens found in the templates (tokens.json) — the helper columns only compute what is needed */
-export function worksheetFormulas(usedTokens: string[]): ColDef[] {
-  const used = new Set(usedTokens);
-  const prodNames = [...new Set(['P', 'F', ...usedTokens.filter((x) => productToken(x))])];
-  const dateNames = Object.keys(DATE_TOKENS);
-  const codeNames = Object.keys(CODE_TOKENS);
-  for (const x of used) if (!DATE_TOKENS[x] && !CODE_TOKENS[x] && !productToken(x)) throw new Error(`ไม่รู้จักตัวแปร {${x}} ในแบบโค้ด`);
-  const db = (r: string) => lk('ฐานข้อมูล', r, 'Link', '[Link]');
-  const vars = '[ตัวแปรวันที่] & "|" & [ตัวแปรรหัส] & "|" & [ตัวแปรสินค้า]';
-  const code = (n: number) => `IF(ISBLANK([วันที่ผลิต]), "", FILL(${db(`แบบโค้ดแถว ${n}`)}, ${vars}))`;
+const db = (r: string) => lk('ฐานข้อมูล', r, 'Link', '[Link]');
+const WS_CTX: Ctx = { date: '[วันที่ผลิต]', line: '[ไลน์]', shift: '[กะ]', short: db('Short Product Code'), docCode: '[รหัสเอกสาร]', link: '[Link]', tpl: (n) => db(`แบบโค้ดแถว ${n}`) };
+const DB_CTX: Ctx = { date: '[วันที่ตัวอย่าง]', line: '[ไลน์ตัวอย่าง]', shift: '[กะตัวอย่าง]', short: '[Short Product Code]', docCode: '[รหัสเอกสาร]', link: '[Link]', tpl: (n) => `[แบบโค้ดแถว ${n}]` };
+
+/** The three helper columns (date / code / product variables) + the four rendered code lines for a context */
+function renderColumns(c: Ctx, usedTokens: string[], prefix: string, codeNames: string[], tplSources: string[]): ColDef[] {
+  for (const x of usedTokens) if (!isKnown(x)) throw new Error(`ไม่รู้จักตัวแปร {${x}} ในแบบโค้ด`);
+  const dT = dateTokens(c), cT = codeTokens(c);
+  const prodNames = [...new Set(['P', 'F', ...usedTokens.filter((x) => productToken(x, c))])];
+  const guard = (e: string) => `IF(ISBLANK(${c.date}), "", ${e})`;
+  const vN = `${prefix}ตัวแปรวันที่`, vC = `${prefix}ตัวแปรรหัส`, vP = `${prefix}ตัวแปรสินค้า`;
+  const vars = `[${vN}] & "|" & [${vC}] & "|" & [${vP}]`;
+  const hasLookupP = c.short.startsWith('LOOKUP');
   return [
-    { name: 'Link', type: 'varchar', width: 150, formula: { expr: '[รหัสเอกสาร] & [Market]', sources: [] } },
-    { name: 'พบในฐานข้อมูล', type: 'varchar', width: 120, formula: { expr: `IF(ISBLANK([รหัสเอกสาร]), "", IF(ISBLANK(${db('Link')}), "X", "1"))`, sources: ALIASES([SHEETS.db]) } },
-    { name: 'ลูกค้า', type: 'varchar', width: 160, formula: { expr: db('ลูกค้า'), sources: ALIASES([SHEETS.db]) } },
-    { name: 'ชนิด', type: 'varchar', width: 130, formula: { expr: db('ชนิด'), sources: ALIASES([SHEETS.db]) } },
-    { name: 'Product Code SAP', type: 'varchar', width: 200, formula: { expr: db('Product Code SAP'), sources: ALIASES([SHEETS.db]) } },
-    { name: 'ตัวแปรวันที่', type: 'text', width: 140, formula: { expr: `IF(ISBLANK(${D}), "", ${join(DATE_TOKENS, dateNames)})`, sources: [] } },
-    { name: 'ตัวแปรรหัส', type: 'text', width: 140, formula: { expr: `IF(ISBLANK(${D}), "", ${join(CODE_TOKENS, codeNames)})`, sources: ALIASES([SHEETS.year, SHEETS.month, SHEETS.day, SHEETS.line, SHEETS.shift]) } },
-    { name: 'ตัวแปรสินค้า', type: 'text', width: 140, formula: { expr: `IF(ISBLANK(${D}), "", ${join({}, prodNames)})`, sources: ALIASES([SHEETS.db, SHEETS.calendar]) } },
-    ...[1, 2, 3, 4].map((n) => ({ name: `Code Format แถว ${n}`, type: 'text' as const, width: 300, formula: { expr: code(n), sources: ALIASES([SHEETS.db]) } })),
-    { name: 'Code ฝน', type: 'varchar', width: 200, formula: { expr: db('Code ฝน'), sources: ALIASES([SHEETS.db]) } },
+    { name: vN, type: 'text', width: 140, formula: { expr: guard(join(Object.keys(dT), (n) => dT[n])), sources: [] } },
+    { name: vC, type: 'text', width: 140, formula: { expr: guard(join(Object.keys(cT), (n) => cT[n])), sources: ALIASES(REF_ALIASES) } },
+    { name: vP, type: 'text', width: 140, formula: { expr: guard(join(prodNames, (n) => productToken(n, c))), sources: ALIASES([...(hasLookupP ? [SHEETS.db] : []), SHEETS.calendar]) } },
+    ...codeNames.map((name, i) => ({ name, type: 'text' as const, width: 300, formula: { expr: `IF(OR(ISBLANK(${c.date}), ISBLANK(${c.tpl(i + 1)})), "", FILL(${c.tpl(i + 1)}, ${vars}))`, sources: ALIASES(tplSources) } })),
   ];
 }
+
+/** Worksheet: what the staff type → everything else is computed */
+export function worksheetFormulas(usedTokens: string[]): ColDef[] {
+  const d = ALIASES([SHEETS.db]);
+  return [
+    { name: 'Link', type: 'varchar', width: 150, formula: { expr: '[รหัสเอกสาร] & [Market]', sources: [] } },
+    { name: 'พบในฐานข้อมูล', type: 'varchar', width: 120, description: '1 = พบรหัสเอกสาร+Market ในฐานข้อมูล · X = ไม่พบ (ตรวจการพิมพ์)', formula: { expr: `IF(ISBLANK([รหัสเอกสาร]), "", IF(ISBLANK(${db('Link')}), "X", "1"))`, sources: d } },
+    { name: 'ลูกค้า', type: 'varchar', width: 160, formula: { expr: db('ลูกค้า'), sources: d } },
+    { name: 'ชนิด', type: 'varchar', width: 130, formula: { expr: db('ชนิด'), sources: d } },
+    { name: 'Product Code SAP', type: 'varchar', width: 200, formula: { expr: db('Product Code SAP'), sources: d } },
+    ...renderColumns(WS_CTX, usedTokens, '', [1, 2, 3, 4].map((n) => `Code Format แถว ${n}`), [SHEETS.db]),
+    { name: 'Code ฝน', type: 'varchar', width: 200, formula: { expr: db('Code ฝน'), sources: d } },
+  ];
+}
+
+/** Master database: preview of the 4 code lines for a sample date / line (edit the sheet "ตัวอย่าง" in the reference file) */
+export function dbPreviewFormulas(usedTokens: string[]): ColDef[] {
+  const smp = ALIASES([SHEETS.sample]);
+  const pick = (col: string) => lk('ตัวอย่าง', col, 'ชื่อ', '"ตัวอย่าง"');
+  return [
+    { name: 'วันที่ตัวอย่าง', type: 'date', width: 130, description: 'ดึงจากชีต "ตัวอย่าง" ในไฟล์ InkCode - รหัสอ้างอิง (แก้ที่นั่น)', formula: { expr: pick('วันที่ผลิต'), sources: smp } },
+    { name: 'ไลน์ตัวอย่าง', type: 'varchar', width: 120, formula: { expr: pick('ไลน์'), sources: smp } },
+    { name: 'กะตัวอย่าง', type: 'varchar', width: 90, formula: { expr: pick('กะ'), sources: smp } },
+    ...renderColumns(DB_CTX, usedTokens, 'ตัวอย่าง-', [1, 2, 3, 4].map((n) => `ตัวอย่างโค้ดแถว ${n}`), []),
+  ];
+}
+export const SAMPLE_ROW = { ชื่อ: 'ตัวอย่าง', วันที่ผลิต: '2026-03-17', ไลน์: 'Can R', กะ: 'DS' };
+
+const dropdown = (name: string, sheet: string, column: string, width = 140): ColDef => ({ name, type: 'select', width, lookup: { sheet, column } });
 export const WS_INPUTS: ColDef[] = [
-  { name: 'วันที่ผลิต', type: 'date', width: 130, required: true }, v('ไลน์'), v('กะ', 70), v('รหัสเอกสาร'), v('Market'),
+  { name: 'วันที่ผลิต', type: 'date', width: 130, required: true },
+  { ...dropdown('ไลน์', SHEETS.line, 'ไลน์'), description: 'เลือกจากรายการในไฟล์ InkCode - รหัสอ้างอิง › ไลน์' },
+  { ...dropdown('กะ', SHEETS.shift, 'กะ', 80), description: 'เลือกจากรายการในไฟล์ InkCode - รหัสอ้างอิง › กะ' },
+  { ...dropdown('รหัสเอกสาร', SHEETS.db, 'รหัสเอกสาร'), description: 'เลือกจากรายการใน InkCode - Master Database › ฐานข้อมูล' },
+  { ...dropdown('Market', SHEETS.db, 'Market'), description: 'เลือกจากรายการใน InkCode - Master Database › ฐานข้อมูล (ต้องเป็นคู่กับรหัสเอกสาร)' },
   { name: 'วันออกจากตู้อบ', type: 'date', width: 140 }, v('PO'), { name: 'ยอด', type: 'float', width: 100 }, t('หมายเหตุ', 240),
+];
+
+/** Help sheet of the master database: every variable of a code template and where its value comes from */
+export const HELP_COLUMNS: ColDef[] = [v('ตัวแปร', 90), t('ความหมาย', 260), v('ดึงมาจากไฟล์', 200), v('ชีต', 130), v('คอลัมน์', 150), v('ตัวอย่าง', 160)];
+const REFF = 'InkCode - รหัสอ้างอิง', DBF = 'InkCode - Master Database';
+const hrow = (ตัวแปร: string, ความหมาย: string, ไฟล์: string, ชีต: string, คอลัมน์: string, ตัวอย่าง: string) => ({ ตัวแปร: `{${ตัวแปร}}`, ความหมาย, ดึงมาจากไฟล์: ไฟล์, ชีต, คอลัมน์, ตัวอย่าง });
+export const HELP_ROWS = [
+  hrow('P', 'Short Product Code ของสินค้า (แถวนี้)', DBF, SHEETS.db, 'Short Product Code', 'B23AA'),
+  hrow('F', 'รหัสเอกสาร ของแถวที่กรอกใน Worksheet', 'ใบออกโค้ดนอกแผน', SHEETS.ws, 'รหัสเอกสาร', 'P519'),
+  hrow('YC', 'รหัสปี (ตามปีของวันที่ผลิต)', REFF, SHEETS.year, 'รหัสปี', '9 (ปี 2026)'),
+  hrow('YC2', 'รหัสปี แบบที่ 2', REFF, SHEETS.year, 'รหัสปี2', '6'),
+  hrow('YB', 'ปี พ.ศ.', REFF, SHEETS.year, 'ปี_พศ', '2569'),
+  hrow('MC', 'รหัสเดือน (A–M ไม่มี I)', REFF, SHEETS.month, 'ตัวอักษร', 'C (มีนาคม)'),
+  hrow('MON', 'ชื่อเดือนย่อ', REFF, SHEETS.month, 'ชื่อย่อ', 'MAR'),
+  hrow('M2', 'ชื่อเดือน 2 ตัวอักษร', REFF, SHEETS.month, 'อักษร2', 'MR'),
+  hrow('DC', 'รหัสวัน', REFF, SHEETS.day, 'รหัสวัน', 'H (วันที่ 17)'),
+  hrow('LC', 'รหัสไลน์ (ตามไลน์ที่เลือก)', REFF, SHEETS.line, 'รหัสไลน์', 'R (Can R)'),
+  hrow('LC2', 'รหัสไลน์ แบบ 2 หลัก', REFF, SHEETS.line, 'รหัสไลน์2', '01'),
+  hrow('PF', 'Plant ของไลน์', REFF, SHEETS.line, 'Plant', 'PF2'),
+  hrow('SC2', 'รหัสกะ (ตัวที่ 2)', REFF, SHEETS.shift, 'SC2', '1'),
+  hrow('SC3', 'รหัสกะ (ตัวที่ 3)', REFF, SHEETS.shift, 'SC3', 'S'),
+  hrow('SC4', 'รหัสกะ (ตัวที่ 4)', REFF, SHEETS.shift, 'SC4', '1'),
+  hrow('Y', 'ปี ค.ศ. 4 หลัก ของวันที่ผลิต (คำนวณ ไม่ได้ดึงจากตาราง)', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '2026'),
+  hrow('Y+3', 'ปี ค.ศ. บวก 3 (ใช้ +1…+5 ได้)', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '2029'),
+  hrow('YY', 'ปี 2 หลักท้าย (YY+3 = ปีบวก 3 แล้วเอา 2 หลัก)', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '26'),
+  hrow('Y1', 'ปี 1 หลักท้าย', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '6'),
+  hrow('D', 'วันที่ (ไม่เติมศูนย์)', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '5'),
+  hrow('DD', 'วันที่ 2 หลัก (เติมศูนย์)', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '05'),
+  hrow('DD-1', 'วันที่ของ "วันก่อนหน้า" แบบ 2 หลัก', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '04'),
+  hrow('Mo', 'เดือนเป็นตัวเลข (ไม่เติมศูนย์)', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '3'),
+  hrow('MM', 'เดือนเป็นตัวเลข 2 หลัก', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '03'),
+  hrow('K2…K10', 'ค่าจากปฏิทิน Julian ของวันที่ผลิต (K3 = เลขวันที่ในปี เช่น 278)', REFF, SHEETS.calendar, 'K2…K10', '278'),
+  hrow('K6L3 / K6R1', 'ปฏิทิน K6 เอา 3 ตัวแรก / 1 ตัวท้าย (K3-1 = ของวันก่อนหน้า)', REFF, SHEETS.calendar, 'K6', '641 / A'),
 ];
 
 /** the 4-copy print form of the Excel ("ใบแจ้งการเปลี่ยนแปลงการผลิต (นอกแผน)") */

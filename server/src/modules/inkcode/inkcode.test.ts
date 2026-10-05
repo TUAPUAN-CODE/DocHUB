@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { compileFormula, evaluate, FValue } from '../formula';
-import { DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, REF_SHEETS, SHEETS, WS_INPUTS, worksheetFormulas } from './model';
+import { DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, REF_SHEETS, SAMPLE_ROW, SHEETS, WS_INPUTS, worksheetFormulas } from './model';
 
 const dataDir = path.resolve(__dirname, '../../../../scripts/inkcode/data');
 const have = fs.existsSync(path.join(dataDir, 'products.json'));
@@ -50,18 +50,17 @@ test('InkCode formulas compile and render the same codes as the Excel rules', { 
   for (const def of REF_SHEETS) mk(def.name, def.columns);
   const fill = (name: string, rows: Record<string, unknown>[]) => { const s = sheets.get(name)!; for (const r of rows) s.rows.push(Object.fromEntries(Object.entries(r).map(([k, v]) => [col(s, k).id, k === 'วันที่ผลิต' && typeof v === 'string' ? date(v) : (v as FValue)]))); };
   fill(SHEETS.year, ref.years.map((y: any) => ({ ปี: y['ปี'], ปี_พศ: y['ปี_พศ'], รหัสปี: y['รหัสปี'], รหัสปี2: y['รหัสปี2'] })));
-  fill(SHEETS.month, ref.months); fill(SHEETS.day, ref.days); fill(SHEETS.line, ref.lines); fill(SHEETS.shift, ref.shifts); fill(SHEETS.calendar, ref.calendar);
+  fill(SHEETS.month, ref.months); fill(SHEETS.day, ref.days); fill(SHEETS.line, ref.lines); fill(SHEETS.shift, ref.shifts); fill(SHEETS.calendar, ref.calendar); fill(SHEETS.sample, [SAMPLE_ROW]);
 
   // database
-  const dbDefs = [...DB_PLAIN, ...DB_FORMULAS];
-  const db = mk(SHEETS.db, dbDefs);
-  db.cols = db.cols.filter((c) => !DB_FORMULAS.some((f) => f.name === c.name));
-  addFormulaCols(db, DB_FORMULAS as any);
+  const dbFormulas = [...DB_FORMULAS, ...dbPreviewFormulas(tokens)];
+  const db = mk(SHEETS.db, DB_PLAIN);
+  addFormulaCols(db, dbFormulas as any);
   const sample = products.filter((p: any) => p['แบบโค้ดแถว 1'] && p['Short Product Code'] && p['Product Code (SAP)']).slice(0, 400);
   for (const p of sample) {
     const values: Record<string, FValue> = {};
     for (const [k, val] of Object.entries(p)) { const name = DB_KEY_MAP[k] ?? k; const c = db.cols.find((x) => x.name === name); if (c) values[c.id] = (val as FValue) ?? null; }
-    computeRow(db, DB_FORMULAS as any, values);
+    computeRow(db, dbFormulas as any, values);
     db.rows.push(Object.fromEntries(Object.entries(values)));
   }
   // MID formula = Excel's =MID(R,2,1)&MID(R,12,5)&" "&MID(R,3,9)
@@ -70,6 +69,13 @@ test('InkCode formulas compile and render the same codes as the Excel rules', { 
   const chars = [...s0];
   assert.equal(r0[col(db, 'Code ฝน').id], chars.slice(1, 2).join('') + chars.slice(11, 16).join('') + ' ' + chars.slice(2, 11).join(''));
 
+  // the database previews the codes for the sample date (2026-03-17) and line (Can R) — same rule as the worksheet
+  const stdIdx = sample.findIndex((p: any) => /^\{P\} ?S\{YC\}\{MC\}\{DC\}S\{LC\}$/.test(p['แบบโค้ดแถว 1']));
+  assert.ok(stdIdx >= 0);
+  const pv = db.rows[stdIdx];
+  const short0 = String(sample[stdIdx]['Short Product Code']);
+  assert.match(String(pv[col(db, 'ตัวอย่างโค้ดแถว 1').id]), new RegExp('^' + short0.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' ?S\\w+S\\w+$'));
+  assert.equal(pv[col(db, 'วันที่ตัวอย่าง').id] !== null, true);
   // worksheet
   const wsFormulas = worksheetFormulas(tokens);
   const ws = mk(SHEETS.ws, WS_INPUTS);
@@ -108,4 +114,16 @@ test('InkCode formulas compile and render the same codes as the Excel rules', { 
   assert.equal(miss[col(ws, 'พบในฐานข้อมูล').id], 'X');
   assert.equal(miss[col(ws, 'Code Format แถว 1').id], '');
   for (const d of wsFormulas) assert.ok(d.formula!.expr.length <= 2000, `${d.name} expression too long (${d.formula!.expr.length})`);
+});
+
+test('worksheet drop-down columns are valid DocHUB column definitions', () => {
+  const { columnInput, checkColumnInput } = require('../../shared/schemas');
+  const fake = '00000000-0000-0000-0000-0000000000aa';
+  for (const c of WS_INPUTS) {
+    const body: Record<string, unknown> = { name: c.name, dataType: c.type, width: c.width ?? 160, isRequired: !!c.required, ...(c.description ? { description: c.description } : {}) };
+    if (c.lookup) body.validation = { lookup: { sheetId: fake, columnId: fake } };
+    const parsed = columnInput.parse(body);
+    checkColumnInput(parsed);
+  }
+  assert.ok(WS_INPUTS.filter((c) => c.lookup).length >= 4);
 });
