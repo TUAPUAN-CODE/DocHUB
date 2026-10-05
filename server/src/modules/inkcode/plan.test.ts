@@ -14,13 +14,16 @@ test('plan: one item per product block, line/shift/date resolved', () => {
     [t(7), 'Cup', 1, 'ส้ม', 'Smucker', 'USA', 'NO', 'JAPPMM X', 'M252', 3, 'ครบยอดอย่างน้อย'],
     [t(7), 'Cup', 1, 'ส้ม', 'Smucker', 'USA', 'NO', 'JAPPMM X', 'M252', 3, 47334],
     [t(7), 'Cup', 1, 'ส้ม', 'Smucker', 'USA', 'NO', 'JAPPMM X', 'M252', 3, 'ถ้วย'],
+    [t(7), 'Cup', 2, 'Soup', 'Mars', 'USA', 'NO', 'QAHPMA B', 'P342', 10, 'ครบยอด'],
+    [t(7), 'Cup', 2, 'Soup', 'Mars', 'USA', 'NO', 'QAHPMA B', 'MRDPF184/26', 1, 139],
+    [t(7), 'Cup', 2, 'Soup', 'Mars', 'USA', 'NO', 'QAHPMA B', 'P342', 10, 'ถ้วย'],
     [t(19, 30), 'Pouch', 'Spout 2', 'x', 'Almo', 'Italy', 'NO', 'C', 'J111', 1, 500],
     [null, null, null, null, null, null, null, null, '(หัวหน้าแผนกวางแผนการผลิตและควบคุมเอกสาร)'],
   ]);
   const r = parsePlan(buf, ['Cup 1', 'Spout', 'Auto A']);
   assert.equal(r.date, '2026-10-03');
-  assert.equal(r.items.length, 2);
-  assert.deepEqual(r.items.map((i) => [i.line, i.doc, i.country, i.shift, i.qty, i.time]), [['Cup 1', 'M252', 'USA', 'DS', 47334, '07:00'], ['Spout', 'J111', 'Italy', 'NS', 500, '19:30']]);
+  assert.equal(r.items.length, 3);
+  assert.deepEqual(r.items.map((i) => [i.line, i.doc, i.country, i.shift, i.qty, i.time]), [['Cup 1', 'M252', 'USA', 'DS', 47334, '07:00'], ['Cup 2', 'P342', 'USA', 'DS', null, '07:00'], ['Spout', 'J111', 'Italy', 'NS', 500, '19:30']]);
 });
 test('plan: helpers', () => {
   assert.equal(shiftOf('06:00'), 'DS'); assert.equal(shiftOf('18:59'), 'DS'); assert.equal(shiftOf('19:00'), 'NS'); assert.equal(shiftOf('02:00'), 'NS');

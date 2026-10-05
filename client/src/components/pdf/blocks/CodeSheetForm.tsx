@@ -18,7 +18,8 @@ function SideEditor({ title, cols, onChange, tokens }: { title: string; cols: Sh
             <div className="w-24 shrink-0"><Num label="" value={c.widthMm} onChange={(v) => set(c.id, { widthMm: v ?? 20 })} min={6} max={120} suffix="mm" /></div>
             <button type="button" onClick={() => onChange(cols.filter((x) => x.id !== c.id))} className="rounded p-1 text-muted hover:bg-danger/10 hover:text-danger" aria-label="ลบคอลัมน์"><Trash2 className="h-3.5 w-3.5" /></button>
           </div>
-          {c.items.map((it) => (
+          <Toggle checked={!!c.qr} onChange={(v) => set(c.id, { qr: v })} label="คอลัมน์นี้คือ QR Code (สร้างจาก 4 บรรทัดโค้ดอัตโนมัติ)" />
+          {!c.qr && c.items.map((it) => (
             <div key={it.id} className="flex items-center gap-1.5">
               <TextInput value={it.label} onChange={(e) => set(c.id, { items: c.items.map((x) => (x.id === it.id ? { ...x, label: e.target.value } : x)) })} className="!h-8 w-24 shrink-0 text-xs" placeholder="ป้าย (ถ้ามี)" />
               <TextInput value={it.text} onChange={(e) => set(c.id, { items: c.items.map((x) => (x.id === it.id ? { ...x, text: e.target.value } : x)) })} className="!h-8 font-mono text-xs" placeholder="{{ชื่อคอลัมน์}}" list={`cs-${it.id}`} />
@@ -26,7 +27,7 @@ function SideEditor({ title, cols, onChange, tokens }: { title: string; cols: Sh
               {c.items.length > 1 && <button type="button" onClick={() => set(c.id, { items: c.items.filter((x) => x.id !== it.id) })} className="rounded p-1 text-muted hover:text-danger" aria-label="ลบรายการ"><Trash2 className="h-3 w-3" /></button>}
             </div>
           ))}
-          <Button size="sm" variant="secondary" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => set(c.id, { items: [...c.items, newSideItem()] })} disabled={c.items.length >= 6}>เพิ่มบรรทัดในคอลัมน์</Button>
+          {!c.qr && <Button size="sm" variant="secondary" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => set(c.id, { items: [...c.items, newSideItem()] })} disabled={c.items.length >= 6}>เพิ่มบรรทัดในคอลัมน์</Button>}
         </div>
       ))}
       <Button size="sm" variant="secondary" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => onChange([...cols, newSideCol()])}>เพิ่มคอลัมน์</Button>
@@ -55,8 +56,18 @@ export function CodeSheetForm({ block: b, template, onChange }: BlockFormProps<C
           <Num label="สูงช่อง" value={b.cellHeightMm} onChange={(v) => onChange({ cellHeightMm: v ?? 5 })} min={3} max={20} suffix="mm" />
           <Num label="ขนาดตัวอักษร" value={b.fontSize} onChange={(v) => onChange({ fontSize: v ?? 9 })} min={5} max={20} />
         </div>
+        <Toggle checked={b.autoCells !== false} onChange={(v) => onChange({ autoCells: v })} label="ซ่อนช่องตำแหน่งที่ไม่มีตัวอักษร (ตามบรรทัดที่ยาวที่สุด)" />
+        {b.autoCells !== false && <Num label="จำนวนช่องขั้นต่ำ" value={b.minCells ?? 12} onChange={(v) => onChange({ minCells: v ?? 12 })} min={1} max={80} />}
         <Toggle checked={b.showIndex} onChange={(v) => onChange({ showIndex: v })} label="แสดงเลขตำแหน่ง 1…N" />
         <Field label="สีหัวตาราง"><ColorInput value={b.headerBg} swatches={PDF_SWATCHES} onChange={(v) => onChange({ headerBg: v ?? '#DCEAF7' })} /></Field>
+      </Group>
+      <Group title="QR Code">
+        <p className="text-[11px] text-muted">ข้อมูลใน QR = 4 บรรทัดโค้ด บรรทัดละ N ตัวอักษร (เติมช่องว่างให้ครบ) ต่อกัน แล้วตัดช่องว่างท้ายออก — วิธีเดียวกับเครื่องมือสร้าง QR เดิม</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Num label="Can: ตัวอักษร/แถว" value={b.qrCanChars ?? 23} onChange={(v) => onChange({ qrCanChars: v ?? 23 })} min={5} max={80} />
+          <Num label="อื่นๆ: ตัวอักษร/แถว" value={b.qrOtherChars ?? 40} onChange={(v) => onChange({ qrOtherChars: v ?? 40 })} min={5} max={80} />
+        </div>
+        <Field label="ข้อความที่บอกว่าเป็น Can"><TextInput value={b.qrCanText ?? '{{PKG}}'} onChange={(e) => onChange({ qrCanText: e.target.value })} className="font-mono text-xs" /></Field>
       </Group>
       <SideEditor title="คอลัมน์ขวา (หลังตารางตำแหน่ง)" cols={b.right} onChange={(right) => onChange({ right })} tokens={tokens} />
       <p className="text-[11px] text-muted">ถ้าความกว้างรวมเกินหน้ากระดาษ ระบบย่อคอลัมน์ข้างให้อัตโนมัติ (ช่องตำแหน่งแคบสุดประมาณ 2.8 มม.) แนะนำกระดาษ A3 แนวนอน</p>

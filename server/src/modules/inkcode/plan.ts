@@ -55,7 +55,7 @@ export function parsePlan(body: Buffer, knownLines: string[] = []): PlanResult {
     if (hi < 0) continue;
     const head = rows[hi].map((c) => norm(txt(c)));
     const col = (...names: string[]) => head.findIndex((h) => names.includes(h));
-    const cDoc = col('doc.no'), cCountry = col('country'), cLine = col('line'), cProduct = col('product'), cTime = col('time'), cSize = col('size'), cCust = col('customer'), cRev = col('rev.'), cQty = col('ยอดผลิต');
+    const cDoc = col('doc.no'), cCountry = col('country'), cLine = col('line'), cProduct = col('product'), cTime = col('time'), cSize = col('size'), cCust = col('customer'), cRev = col('rev.'), cQty = col('ยอดผลิต'), cCode = col('code');
     if (cCountry < 0 || cLine < 0 || cTime < 0) continue;   // the daily plan has a Time column; other sheets with Doc.No (weekly plans) are not it
     // date: "…ประจำวันที่" followed by a date in the first rows
     let date: string | null = null;
@@ -65,7 +65,11 @@ export function parsePlan(body: Buffer, knownLines: string[] = []): PlanResult {
     }
     if (!date) warnings.push('ไม่พบวันที่ในหัวแผน (ข้อความ "ประจำวันที่ …") — ต้องระบุวันที่เอง');
 
-    const items = new Map<string, PlanItem>();
+    // A product is written on several rows (raw materials, notes). Those rows may carry other Doc.No values
+    // (e.g. a raw-material formula "MRDPF184/26" next to the product's own "P342"): the product's document is the
+    // Doc.No that appears most on its rows — never the first odd one — and quantities are read from those rows only.
+    interface Group { time: string | null; product: string; lineRaw: string; country: string; code: string; size: string | null; customer: string | null; docs: Map<string, { n: number; rev: string | null; qty: number | null }>; first: number }
+    const groups = new Map<string, Group>();
     for (let i = hi + 1; i < rows.length; i++) {
       const r = rows[i];
       const doc = txt(r[cDoc]);
@@ -74,16 +78,25 @@ export function parsePlan(body: Buffer, knownLines: string[] = []): PlanResult {
       const time = timeText(r[cTime]);
       const product = txt(r[cProduct]);
       const lineRaw = txt(r[cLine]);
-      const key = [time, product, lineRaw, doc, country].join('|');
-      const qty = cQty >= 0 && typeof r[cQty] === 'number' ? (r[cQty] as number) : null;
-      const cur = items.get(key);
-      if (cur) { if (cur.qty === null && qty !== null) cur.qty = qty; continue; }       // the plan repeats a product on 3-4 rows (raw materials, notes …)
-      const rl = resolveLine(product, lineRaw, knownLines);
-      if (!rl.known && knownLines.length) warnings.push(`แถว ${i + 1}: ไม่พบไลน์ "${rl.line}" ในตารางรหัสอ้างอิง (${product} / ${lineRaw})`);
-      else if (rl.guessed) warnings.push(`แถว ${i + 1}: "${lineRaw}" มีหลายไลน์ — เลือก "${rl.line}" (ตรวจ/แก้ภายหลังได้)`);
-      items.set(key, { time, product, lineRaw, line: rl.line, size: cSize >= 0 ? txt(r[cSize]) || null : null, customer: cCust >= 0 ? txt(r[cCust]) || null : null, country, doc, rev: cRev >= 0 ? txt(r[cRev]) || null : null, qty, shift: shiftOf(time), sourceRow: i + 1 });
+      const code = cCode >= 0 ? txt(r[cCode]) : '';
+      const key = [time, product, lineRaw, country, code].join('|');
+      let g = groups.get(key);
+      if (!g) { g = { time, product, lineRaw, country, code, size: cSize >= 0 ? txt(r[cSize]) || null : null, customer: cCust >= 0 ? txt(r[cCust]) || null : null, docs: new Map(), first: i + 1 }; groups.set(key, g); }
+      const d = g.docs.get(doc) ?? { n: 0, rev: cRev >= 0 ? txt(r[cRev]) || null : null, qty: null };
+      d.n++;
+      if (d.qty === null && cQty >= 0 && typeof r[cQty] === 'number') d.qty = r[cQty] as number;
+      g.docs.set(doc, d);
     }
-    return { date, sheetName: name, items: [...items.values()], warnings: [...new Set(warnings)] };
+    const items: PlanItem[] = [];
+    for (const g of groups.values()) {
+      const best = [...g.docs.entries()].reduce((a, b) => (b[1].n > a[1].n ? b : a));
+      const rl = resolveLine(g.product, g.lineRaw, knownLines);
+      if (!rl.known && knownLines.length) warnings.push(`แถว ${g.first}: ไม่พบไลน์ "${rl.line}" ในตารางรหัสอ้างอิง (${g.product} / ${g.lineRaw})`);
+      else if (rl.guessed) warnings.push(`แถว ${g.first}: "${g.lineRaw}" มีหลายไลน์ — เลือก "${rl.line}" (ตรวจ/แก้ภายหลังได้)`);
+      if (g.docs.size > 1) warnings.push(`แถว ${g.first}: ${g.product} ${g.lineRaw} มีหลาย Doc.No (${[...g.docs.keys()].join(', ')}) — ใช้ "${best[0]}"`);
+      items.push({ time: g.time, product: g.product, lineRaw: g.lineRaw, line: rl.line, size: g.size, customer: g.customer, country: g.country, doc: best[0], rev: best[1].rev, qty: best[1].qty, shift: shiftOf(g.time), sourceRow: g.first });
+    }
+    return { date, sheetName: name, items, warnings: [...new Set(warnings)] };
   }
   throw new Error('ไม่พบตารางแผนผลิตในไฟล์ (ต้องมีหัวคอลัมน์ Doc.No, Line, Country)');
 }

@@ -9,7 +9,11 @@ import type { BlockBase } from '../types';
  * Left and right columns span all the grid lines; a right column may stack several "label | value" items.
  */
 export interface SheetSideItem { id: string; label: string; text: string }
-export interface SheetSideCol { id: string; header: string; widthMm: number; items: SheetSideItem[] }
+export interface SheetSideCol {
+  id: string; header: string; widthMm: number; items: SheetSideItem[];
+  /** this column holds a QR Code made from the code lines (see CodeSheetBlock.qr*) */
+  qr?: boolean;
+}
 export interface CodeSheetLine { id: string; text: string }
 export interface CodeSheetBlock extends BlockBase {
   type: 'codeSheet';
@@ -23,20 +27,28 @@ export interface CodeSheetBlock extends BlockBase {
   headerBg: string;
   borderColor: string;
   showIndex: boolean;
+  /** hide the boxes to the right of the longest code line (the table keeps its width: the other columns widen) */
+  autoCells?: boolean;
+  minCells?: number;
+  /** QR payload = the 4 lines, each padded/cut to N characters, joined, trailing spaces removed (same as the QR tool of the plant) */
+  qrCanChars?: number;
+  qrOtherChars?: number;
+  /** text that is "can" for a Can package (e.g. {{PKG}}) → qrCanChars per line, anything else → qrOtherChars */
+  qrCanText?: string;
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Math.random().toString(36).slice(2));
 export const newSideItem = (text = '', label = ''): SheetSideItem => ({ id: uid(), label, text });
 export const newSideCol = (header = 'หัวคอลัมน์', widthMm = 25, items: SheetSideItem[] = [newSideItem()]): SheetSideCol => ({ id: uid(), header, widthMm, items });
 export const newCodeSheet = (): CodeSheetBlock => ({
-  id: uid(), type: 'codeSheet', cells: 40, cellHeightMm: 5.5, fontSize: 9, headerBg: '#DCEAF7', borderColor: '#374151', showIndex: true, gridHeader: 'ตำแหน่ง', marginBottom: 2,
+  id: uid(), type: 'codeSheet', cells: 40, cellHeightMm: 5.5, fontSize: 9, headerBg: '#DCEAF7', borderColor: '#374151', showIndex: true, gridHeader: 'ตำแหน่ง', marginBottom: 2, autoCells: true, minCells: 12, qrCanChars: 23, qrOtherChars: 40, qrCanText: '{{PKG}}',
   left: [newSideCol('ไลน์', 14, [newSideItem('{{ไลน์}}')]), newSideCol('ลำดับ', 12, [newSideItem('{{#}}')]), newSideCol('ลูกค้า', 30, [newSideItem('{{ลูกค้า}}')]), newSideCol('ชนิด', 24, [newSideItem('{{ชนิด}}')])],
   right: [
     newSideCol('Mat. Packaging', 42, [newSideItem('{{Material Packaging 1}}'), newSideItem('{{Material Packaging 2}}'), newSideItem('{{Material Packaging 3}}')]),
     newSideCol('Code', 44, [newSideItem('{{PO}}', 'PO'), newSideItem('{{Code ฝน}}', 'New code'), newSideItem('{{Product Code SAP}}', 'Code Sap')]),
     newSideCol('รหัสเอกสารสูตรการผลิต', 24, [newSideItem('{{รหัสเอกสาร}}')]),
     newSideCol('รหัสเอกสารระบบ Code', 28, [newSideItem('{{รหัสเอกสารระบบ Code}}/{{Rev.}}')]),
-    newSideCol('QR Code', 20, [newSideItem('')]),
+    { ...newSideCol('QR Code', 26, [newSideItem('')]), qr: true },
   ],
   lines: [1, 2, 3, 4].map((n) => ({ id: uid(), text: `{{Code Format แถว ${n}}}` })),
 });
@@ -44,31 +56,46 @@ export const newCodeSheet = (): CodeSheetBlock => ({
 const pt = (mm: number) => mm * MM;
 const NO_BORDER = [false, false, false, false];
 
+/** What the QR Code of a notice contains: 4 lines × N characters (N = 23 for a Can, 40 otherwise), joined, trailing spaces cut */
+export function qrPayload(lines: string[], charsPerRow: number): string {
+  return lines.map((l) => { const cs = [...l]; return cs.length >= charsPerRow ? cs.slice(0, charsPerRow).join('') : l + ' '.repeat(charsPerRow - cs.length); }).join('').replace(/\s+$/, '');
+}
+
 export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
-  const n = Math.max(5, Math.min(80, Math.floor(b.cells || 40)));
+  const nMax = Math.max(5, Math.min(80, Math.floor(b.cells || 40)));
   const rows = Math.max(1, b.lines.length);
+  const texts = b.lines.map((l) => fillTokens(l.text, c.vars, c.rowVars));
+  const used = Math.max(1, ...texts.map((t) => [...t.replace(/\s+$/, '')].length));
+  const n = b.autoCells === false ? nMax : Math.max(Math.min(nMax, b.minCells ?? 12), Math.min(nMax, used));
   const side = [...b.left, ...b.right];
   const sideTotal = side.reduce((s, x) => s + pt(x.widthMm), 0);
   const room = c.contentWidth - pt(b.marginLeft ?? 0) - pt(b.marginRight ?? 0);
-  // grid boxes get what the side columns leave; if that is too little the side columns shrink, never the page overflows
+  // box width is what a full row of boxes would get; hidden boxes free their width for the other columns
   const minCell = pt(2.8);
   let k = 1;
-  if (room - sideTotal < minCell * n) k = Math.max(0.4, (room - minCell * n) / sideTotal);
-  const w = (x: SheetSideCol) => pt(x.widthMm) * k;
-  const cw = (room - sideTotal * k) / n;
+  if (room - sideTotal < minCell * nMax) k = Math.max(0.4, (room - minCell * nMax) / sideTotal);
+  const cw = (room - sideTotal * k) / nMax;
+  const k2 = Math.min(2.2, (room - cw * n) / sideTotal);
+  const w = (x: SheetSideCol) => pt(x.widthMm) * k2;
   const fs = Math.min(b.fontSize, cw * 0.95 / 0.6);
   const cellH = pt(b.cellHeightMm);
   const head = (text: string, extra: object = {}) => ({ text, bold: true, fontSize: Math.min(9, b.fontSize), alignment: 'center', fillColor: b.headerBg, margin: [0, 2, 0, 2], ...extra });
-  const span = (col: SheetSideCol, rowSpan: number) => ({ text: '', rowSpan });
+  const span = (_col: SheetSideCol, rowSpan: number) => ({ text: '', rowSpan });
+  const isCan = fillTokens(b.qrCanText ?? '{{PKG}}', c.vars, c.rowVars).trim().toLowerCase() === 'can';
+  const payload = qrPayload(texts, isCan ? (b.qrCanChars ?? 23) : (b.qrOtherChars ?? 40));
 
   const body: any[][] = [];
-  // header row 1: side headers (spanning header rows 1-2), grid title over all boxes
   const r1: any[] = [...b.left.map((x) => head(x.header, { rowSpan: b.showIndex ? 2 : 1 })), head(b.gridHeader, { colSpan: n, fontSize: 9 }), ...Array.from({ length: n - 1 }, () => ({})), ...b.right.map((x) => head(x.header, { rowSpan: b.showIndex ? 2 : 1 }))];
   body.push(r1);
   if (b.showIndex) body.push([...b.left.map(() => ({})), ...Array.from({ length: n }, (_v, i) => ({ text: String(i + 1), fontSize: Math.min(6.5, cw / 2.2), alignment: 'center', color: '#374151', margin: [0, 0.5, 0, 0.5] })), ...b.right.map(() => ({}))]);
 
   const styleCell = (text: string) => ({ text: text || ' ', fontSize: Math.min(b.fontSize, 9.5), margin: [2, 1, 2, 1] });
   const stack = (col: SheetSideCol) => {
+    if (col.qr) {
+      if (!payload) return { text: ' ', rowSpan: rows };
+      const fit = Math.max(20, Math.min(w(col) - pt(2), cellH * rows - pt(1.5)));
+      return { rowSpan: rows, stack: [{ qr: payload, fit, eccLevel: 'L', alignment: 'center', margin: [0, (cellH * rows - fit) / 2, 0, 0] }] };
+    }
     const items = col.items.map((it) => ({ label: it.label, text: fillTokens(it.text, c.vars, c.rowVars) }));
     if (items.length <= 1 && !items[0]?.label) return { ...styleCell(items[0]?.text ?? ''), rowSpan: rows, alignment: 'left' };
     const lw = Math.min(w(col) * 0.38, pt(16));
@@ -81,10 +108,9 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
     };
   };
   const overflow: string[] = [];
-  b.lines.forEach((l, ri) => {
-    const text = fillTokens(l.text, c.vars, c.rowVars);
+  texts.forEach((text, ri) => {
     const cs = [...text];
-    if (cs.length > n) overflow.push(`แถว ${ri + 1}: ${cs.length} ตัวอักษร (เกิน ${n} ช่อง)`);
+    if (cs.length > nMax) overflow.push(`แถว ${ri + 1}: ${cs.length} ตัวอักษร (เกิน ${nMax} ช่อง)`);
     const first = ri === 0;
     body.push([
       ...b.left.map((x) => (first ? { ...stack(x), alignment: x.header === 'ลำดับ' || x.header === 'ไลน์' ? 'center' : 'left' } : span(x, 1))),
@@ -98,7 +124,6 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
     layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => b.borderColor, vLineColor: () => b.borderColor, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
     unbreakable: true,
   };
-  void NO_BORDER;
   const out: any[] = [node];
   if (overflow.length) out.push({ text: `⚠ ${overflow.join(' · ')}`, color: '#DC2626', fontSize: 8, margin: [0, 2, 0, 0] });
   return { stack: out, margin: [pt(b.marginLeft ?? 0), pt(b.marginTop ?? 0), pt(b.marginRight ?? 0), pt(b.marginBottom ?? 0)] };

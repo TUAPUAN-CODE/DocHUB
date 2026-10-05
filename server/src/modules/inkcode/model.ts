@@ -121,6 +121,7 @@ export function worksheetFormulas(usedTokens: string[]): ColDef[] {
     { name: 'ลูกค้า', type: 'varchar', width: 160, formula: { expr: db('ลูกค้า'), sources: d } },
     { name: 'ชนิด', type: 'varchar', width: 130, formula: { expr: db('ชนิด'), sources: d } },
     { name: 'Product Code SAP', type: 'varchar', width: 200, formula: { expr: db('Product Code SAP'), sources: d } },
+    { name: 'PKG', type: 'varchar', width: 80, description: 'ชนิดบรรจุภัณฑ์ (Can = QR 23 ตัวอักษร/แถว, อื่นๆ 40)', formula: { expr: db('PKG'), sources: d } },
     ...['Material Packaging 1', 'Material Packaging 2', 'Material Packaging 3', 'รหัสเอกสารระบบ Code', 'Rev.'].map((n): ColDef => ({ name: n, type: 'varchar', width: 170, formula: { expr: db(n), sources: d } })),
     ...renderColumns(WS_CTX, usedTokens, '', [1, 2, 3, 4].map((n) => `Code Format แถว ${n}`), [SHEETS.db]),
     { name: 'Code ฝน', type: 'varchar', width: 200, formula: { expr: db('Code ฝน'), sources: d } },
@@ -204,11 +205,12 @@ export function printTemplate(worksheetSheetId: string) {
       text('แผนก     บรรจุภัณฑ์', { align: 'center', bold: true, fontSize: 10, bg: '#DCEAF7' }, { border: { color: '#374151', width: 0.5, padding: 0.8 }, marginBottom: 0.5 }),
       {
         id: id(), type: 'codeSheet', cells: 40, cellHeightMm: 5, fontSize: 9, headerBg: '#DCEAF7', borderColor: '#374151', showIndex: true, gridHeader: 'ตำแหน่ง', marginBottom: 1,
+        autoCells: true, minCells: 12, qrCanChars: 23, qrOtherChars: 40, qrCanText: '{{PKG}}',
         left: [side('ไลน์', 13, [{ text: '{{ไลน์}}' }]), side('ลำดับ', 11, [{ text: '{{#}}' }]), side('ลูกค้า', 30, [{ text: '{{ลูกค้า}}' }]), side('ชนิด', 24, [{ text: '{{ชนิด}}' }])],
         right: [
           side('Mat. Packaging', 44, [{ text: '{{Material Packaging 1}}' }, { text: '{{Material Packaging 2}}' }, { text: '{{Material Packaging 3}}' }]),
           side('Code', 54, [{ label: 'PO', text: '{{PO}}' }, { label: 'New code', text: '{{Code ฝน}}' }, { label: 'Code Sap', text: '{{Product Code SAP}}' }]),
-          side('รหัสเอกสารสูตรการผลิต', 27, [{ text: '{{รหัสเอกสาร}}' }]), side('รหัสเอกสารระบบ Code', 28, [{ text: '{{รหัสเอกสารระบบ Code}} / {{Rev.}}' }]), side('QR Code', 20, [{ text: '' }]),
+          side('รหัสเอกสารสูตรการผลิต', 27, [{ text: '{{รหัสเอกสาร}}' }]), side('รหัสเอกสารระบบ Code', 28, [{ text: '{{รหัสเอกสารระบบ Code}} / {{Rev.}}' }]), { ...side('QR Code', 26, [{ text: '' }]), qr: true },
         ],
         lines: [1, 2, 3, 4].map((n) => ({ id: id(), text: `{{Code Format แถว ${n}}}` })),
       },
