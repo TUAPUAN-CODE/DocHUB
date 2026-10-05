@@ -25,7 +25,10 @@ export const getLookup = (col: Pick<ColumnDef, 'validation' | 'data_type'>): Loo
 };
 
 /** Distinct values of the source column (optionally limited to one parent value), as strings */
-export async function lookupValues(l: Lookup, parentValue: string | null, search?: string): Promise<string[]> {
+/** Most values returned for a drop-down (a code list can be a few thousand long) */
+export const LOOKUP_LIMIT = 20_000;
+
+export async function lookupValues(l: Lookup, parentValue: string | null, search?: string, exact?: string): Promise<string[]> {
   if (l.parent && (parentValue === null || parentValue === '')) return [];
   const cols = await loadColumns(l.sheetId);
   const src = cols.find((c) => c.column_id === l.columnId);
@@ -44,8 +47,9 @@ export async function lookupValues(l: Lookup, parentValue: string | null, search
     params.sv = T.text(`%${search.trim().replace(/[%_[]/g, (m) => `[${m}]`)}%`);
     like = `AND ${textExpr(src.data_type, 'v')} LIKE @sv`;
   }
+  if (exact !== undefined) { params.ev = T.text(exact); like += ` AND ${textExpr(src.data_type, 'v')} = @ev`; }
   const rows = await q(
-    `SELECT DISTINCT TOP 1000 ${textExpr(src.data_type, 'v')} AS val
+    `SELECT DISTINCT TOP ${LOOKUP_LIMIT} ${textExpr(src.data_type, 'v')} AS val
      FROM Rows r JOIN Cells v ON v.row_id = r.row_id AND v.column_id = @vc ${join}
      WHERE r.sheet_id = @s AND r.is_deleted = 0 AND ${textExpr(src.data_type, 'v')} IS NOT NULL AND ${textExpr(src.data_type, 'v')} <> N'' ${like}
      ORDER BY val`,
@@ -75,7 +79,9 @@ export async function normalizeWithLookup(
 ): Promise<NormResult> {
   const l = getLookup(col);
   if (!l) return normalizeValue(col, raw, opts);
-  const values = await resolve(l, parentValue);
+  let values = await resolve(l, parentValue);
+  // a very long list is cut at LOOKUP_LIMIT: check the typed value against the source itself instead of rejecting it
+  if (values.length >= LOOKUP_LIMIT && typeof raw === 'string' && raw.trim() && !values.includes(raw.trim())) values = [...values, ...(await lookupValues(l, parentValue, undefined, raw.trim()))];
   const res = normalizeValue({ ...col, options: values.map((v) => ({ value: v, label: v })) }, raw, opts);
   if (!res.ok && l.parent && !values.length && !(parentValue ?? '').trim()) return { ok: false, error: `กรุณาเลือกค่าของคอลัมน์ที่เชื่อมโยงก่อน ("${col.column_name}" ขึ้นกับคอลัมน์อื่น)` };
   return res;
