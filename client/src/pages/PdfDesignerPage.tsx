@@ -308,6 +308,8 @@ function PageSettings({ t, patch, sheets }: { t: PdfTemplate; patch: (p: Partial
           <>
             <Field label="ชีตที่ใช้พิมพ์"><Select value={t.perRow.sheetId} onChange={(e) => patch({ perRow: { ...t.perRow!, sheetId: e.target.value, sheetName: sheets.find((s) => s.id === e.target.value)?.name ?? '' } })}>{sheets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
             <Toggle checked={t.perRow.onlySelected} onChange={(v) => patch({ perRow: { ...t.perRow!, onlySelected: v } })} label="พิมพ์เฉพาะแถวที่เลือกในตาราง (ถ้าไม่ได้เลือก = ทุกแถวตามตัวกรอง)" />
+            <div className="max-w-[12rem]"><Num label="จำนวนฟอร์ม (แถว) ต่อ 1 หน้า" value={t.perRow.rowsPerPage ?? 1} onChange={(v) => patch({ perRow: { ...t.perRow!, rowsPerPage: Math.max(1, Math.round(v ?? 1)) } })} min={1} max={20} /></div>
+            <p className="text-[11px] text-muted">1 = แถวละหน้า · 4 = วาง 4 แถวต่อหน้า (คั่นเส้นประ) เช่น กระดาษ A3 แนวนอน</p>
             <Toggle checked={!!t.copies?.labels?.length} onChange={(v) => patch({ copies: v ? { labels: ['ฉบับที่ 1', 'ฉบับที่ 2'], separator: 'line' } : undefined })} label="พิมพ์ซ้ำหลายสำเนาต่อ 1 แถว (เช่น ใบ 4 ส่วน)" />
             {t.copies?.labels?.length ? (
               <div className="space-y-2 rounded-xl border border-line p-2.5">

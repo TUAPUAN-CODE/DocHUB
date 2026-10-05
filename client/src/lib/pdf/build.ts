@@ -273,7 +273,9 @@ export function assembleDoc(t: PdfTemplate, o: PdfRunOptions, tables: Map<string
         const cv: Vars = t.copies?.labels?.length ? { ...rv, copy: String(ci + 1), copyLabel: label } : rv;
         const nodes = t.blocks.map((b) => blockToNode(b, { ...ctx, rowVars: cv }, row, sd)).filter(Boolean);
         if (!nodes.length) return;
-        if (ci === 0 && ri > 0) nodes[0].pageBreak = 'before';
+        const per = Math.max(1, Math.floor(t.perRow?.rowsPerPage ?? 1));
+        if (ci === 0 && ri > 0 && ri % per === 0) nodes[0].pageBreak = 'before';
+        else if (ci === 0 && ri > 0) content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 2, 0, 3] });
         else if (ci > 0 && sep === 'pageBreak') nodes[0].pageBreak = 'before';
         else if (ci > 0 && sep === 'line') content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 2, 0, 3] });
         content.push(...nodes);

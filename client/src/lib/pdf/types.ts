@@ -76,7 +76,7 @@ export interface PdfTemplate {
   name: string;
   /** table = one report with tables; perRow = one form page per row (fields + {{Column}} tokens) */
   mode: 'table' | 'perRow';
-  perRow?: { sheetId: string; sheetName: string; onlySelected: boolean };
+  perRow?: { sheetId: string; sheetName: string; onlySelected: boolean; /** forms (rows) on one page, default 1 */ rowsPerPage?: number };
   page: { size: PageSize; orientation: 'portrait' | 'landscape'; margins: { top: number; right: number; bottom: number; left: number } };
   base: { font: PdfFont; fontSize: number; color: string };
   header: { enabled: boolean; blocks: (TextBlock | ImageBlock | ColumnsBlock | LineBlock | SpacerBlock)[] };
