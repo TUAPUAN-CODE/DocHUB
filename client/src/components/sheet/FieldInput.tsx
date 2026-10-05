@@ -4,7 +4,7 @@ import { fromLocalInput, toLocalInput } from '@/lib/format';
 import type { CellValue, Column } from '@/types';
 import { TextArea, TextInput, Toggle } from '../ui/Inputs';
 import { SearchSelect } from '../ui/SearchSelect';
-import { useLookupOptions } from '@/lib/lookup';
+import { searchLookupOptions, useLookupOptions, parentValueFor } from '@/lib/lookup';
 import { DocNumberField } from './DocNumberField';
 import { ImagePicker, toUrls } from './ImageCell';
 
@@ -33,6 +33,15 @@ export function FieldInput({ col, value, onChange, invalid, autoFocus, rowValues
     case 'boolean':
       return <div className="flex h-10 items-center"><Toggle checked={!!value} onChange={(v) => onChange(v)} label={value ? 'ใช่' : 'ไม่ใช่'} /></div>;
     case 'select':
+      // a source with more values than one page: pick by typing — the server searches the whole table
+      if (lk.isLookup && lk.more && col.id && col.sheetId) {
+        const c = col as Column;
+        const parent = parentValueFor(c, rowValues ?? {});
+        return (
+          <SearchSelect value={(value as string) ?? null} onChange={(v) => onChange(v)} placeholder={ph ?? 'พิมพ์เพื่อค้นหา…'} searchPlaceholder="พิมพ์ค้นหาจากทั้งตาราง…" className={invalid ? '!border-danger' : ''}
+            load={async (q) => [...(showEmpty ? [{ value: '', label: '— ไม่ระบุ —' }] : []), ...(q.trim() ? await searchLookupOptions(c, parent, q) : lk.options ?? []).map((v) => ({ value: v, label: v }))]} />
+        );
+      }
       return (
         <SearchSelect value={(value as string) ?? null} onChange={(v) => onChange(v)} placeholder={ph ?? 'เลือก…'} className={invalid ? '!border-danger' : ''}
           options={[...(showEmpty ? [{ value: '', label: '— ไม่ระบุ —' }] : []), ...options.map((o) => ({ value: o.value, label: o.label, color: o.color }))]}

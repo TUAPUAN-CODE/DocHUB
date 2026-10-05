@@ -2,7 +2,7 @@ import { KeyboardEvent, ReactNode, useEffect, useMemo, useRef, useState } from '
 import { Check, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { fmtDate, fmtDateTime, fmtNumber, fromLocalInput, optionLabel, toLocalInput } from '@/lib/format';
-import { useLookupOptions } from '@/lib/lookup';
+import { searchLookupOptions, useLookupOptions, parentValueFor } from '@/lib/lookup';
 import type { CellValue, Column, SelectOption } from '@/types';
 import { Popover } from '../ui/Popover';
 import { DocNumberCellEditor } from './DocNumberCell';
@@ -110,15 +110,24 @@ function LookupAwareOptionEditor(p: { col: Column; value: CellValue | undefined;
   const lk = useLookupOptions(p.col, p.rowValues);
   const options: SelectOption[] = lk.isLookup ? (lk.options ?? []).map((v) => ({ value: v, label: v })) : p.col.options;
   const hint = lk.isLookup ? (lk.loading ? 'กำลังโหลดตัวเลือก…' : lk.needsParent ? 'กรุณาเลือกคอลัมน์ที่เชื่อมโยงก่อน' : !options.length ? 'ไม่มีตัวเลือกในตารางต้นทาง' : null) : null;
-  return <OptionEditor col={p.col} options={options} hint={hint} value={p.value} anchor={p.anchor} onCommit={p.onCommit} onCancel={p.onCancel} />;
+  const remote = lk.isLookup && lk.more ? (q: string) => searchLookupOptions(p.col, parentValueFor(p.col, p.rowValues), q) : undefined;
+  return <OptionEditor col={p.col} options={options} hint={hint} search={remote} value={p.value} anchor={p.anchor} onCommit={p.onCommit} onCancel={p.onCancel} />;
 }
 
-function OptionEditor({ col, options, hint, value, anchor, onCommit, onCancel }: { col: Column; options: SelectOption[]; hint?: string | null; value: CellValue | undefined; anchor: HTMLElement | null; onCommit: (v: CellValue, m: Move) => void; onCancel: () => void }) {
+function OptionEditor({ col, options, hint, search, value, anchor, onCommit, onCancel }: { col: Column; options: SelectOption[]; hint?: string | null; search?: (q: string) => Promise<string[]>; value: CellValue | undefined; anchor: HTMLElement | null; onCommit: (v: CellValue, m: Move) => void; onCancel: () => void }) {
   const multi = col.dataType === 'multi_select';
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<string[]>(multi ? ((value as string[]) ?? []) : value ? [String(value)] : []);
   const [hi, setHi] = useState(0);
-  const list = useMemo(() => options.filter((o) => !q || o.label.toLowerCase().includes(q.toLowerCase())), [options, q]);
+  const [remote, setRemote] = useState<SelectOption[] | null>(null);
+  // source longer than one page: ask the server (whole table) while the user types
+  useEffect(() => {
+    if (!search || !q.trim()) { setRemote(null); return; }
+    let live = true;
+    const t = setTimeout(() => { void search(q).then((r) => live && setRemote(r.map((v) => ({ value: v, label: v })))); }, 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [q, search]);
+  const list = useMemo(() => remote ?? options.filter((o) => !q || o.label.toLowerCase().includes(q.toLowerCase())), [options, q, remote]);
   const canClear = !col.isRequired && col.validation?.allowEmpty !== false;
   useEffect(() => setHi(0), [q]);
   const pick = (v: string) => {

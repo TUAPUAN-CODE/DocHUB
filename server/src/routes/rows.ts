@@ -118,7 +118,7 @@ router.post(
   ah(async (req, res) => {
     const sheetId = pid(req);
     await requireSheet(req.user!, sheetId, LV.read);
-    const body = parse(z.object({ columnId: zId, parentValue: z.string().max(500).nullish(), search: z.string().max(200).optional() }), req.body);
+    const body = parse(z.object({ columnId: zId, parentValue: z.string().max(500).nullish(), search: z.string().max(200).optional(), limit: z.number().int().min(1).max(5000).optional() }), req.body);
     const cols = await loadColumns(sheetId);
     const col = cols.find((c) => c.column_id === body.columnId);
     const def = col ? toColumnDef(col) : null;
@@ -127,7 +127,9 @@ router.post(
     const l = def ? getLookup(def) : null;
     if (!l) throw badRequest('คอลัมน์นี้ไม่ได้ดึงตัวเลือกจากตารางอื่น');
     // The list is read with the server's rights on purpose: writers may pick a value without having read access to the source sheet
-    ok(res, { options: await lookupValues(l, body.parentValue ?? null, body.search), needsParent: !!l.parent });
+    // one extra value tells the browser that the list is cut (it then searches on the server while the user types)
+    const got = await lookupValues(l, body.parentValue ?? null, body.search, undefined, body.limit ? body.limit + 1 : undefined);
+    ok(res, { options: body.limit ? got.slice(0, body.limit) : got, more: !!body.limit && got.length > body.limit, needsParent: !!l.parent });
   }),
 );
 

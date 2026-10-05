@@ -108,8 +108,8 @@ export const rowsApi = {
   remove: (rowId: string) => del(`/rows/${rowId}`),
   columnStats: (sheetId: string, b: { columnIds: string[]; filters: ColumnFilter[]; search?: string }) =>
     post<{ totalRows: number; columns: ColumnStat[] }>(`/sheets/${sheetId}/column-stats`, b),
-  lookupOptions: (sheetId: string, b: { columnId: string; parentValue?: string | null; search?: string }) =>
-    post<{ options: string[]; needsParent: boolean }>(`/sheets/${sheetId}/lookup-options`, b),
+  lookupOptions: (sheetId: string, b: { columnId: string; parentValue?: string | null; search?: string; limit?: number }) =>
+    post<{ options: string[]; more?: boolean; needsParent: boolean }>(`/sheets/${sheetId}/lookup-options`, b),
   docPreview: (sheetId: string, b: { columnId: string; prefix?: string | null; date?: string | null }) =>
     post<{ number: string | null }>(`/sheets/${sheetId}/doc-number/preview`, b),
   importRows: (sheetId: string, b: { rows: { rowNo: number; values: Record<string, unknown> }[]; skipInvalid?: boolean; dryRun?: boolean }) =>
