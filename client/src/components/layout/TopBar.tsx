@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, ChevronDown, FileSpreadsheet, Folder, Lock, LogOut, Menu, Palette, Search, UserCircle } from 'lucide-react';
+import { useAiPanel } from '@/modules/ai/useAiPanel';
+import { Bell, Sparkles, CheckCheck, ChevronDown, FileSpreadsheet, Folder, Lock, LogOut, Menu, Palette, Search, UserCircle } from 'lucide-react';
 import { searchApi, SearchResult } from '@/api/endpoints';
 import { useDebounce } from '@/hooks';
 import { cn } from '@/lib/cn';
@@ -139,6 +140,15 @@ function UserMenu() {
   );
 }
 
+function AiButton() {
+  const { open, toggle } = useAiPanel();
+  return (
+    <button onClick={toggle} className={cn('flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-medium hover:bg-ink/5', open && 'bg-primary/10 text-primary')} aria-label="ผู้ช่วย AI" aria-pressed={open}>
+      <Sparkles className="h-5 w-5" /><span className="hidden sm:inline">AI</span>
+    </button>
+  );
+}
+
 export function TopBar() {
   const setMobile = useUi((s) => s.setMobileNav);
   return (
@@ -146,6 +156,7 @@ export function TopBar() {
       <button onClick={() => setMobile(true)} className="grid h-10 w-10 place-items-center rounded-xl hover:bg-ink/5 lg:hidden" aria-label="เปิดเมนู"><Menu className="h-5 w-5" /></button>
       <GlobalSearch />
       <div className="ml-auto flex items-center gap-1.5">
+        <AiButton />
         <NotificationBell />
         <UserMenu />
       </div>
