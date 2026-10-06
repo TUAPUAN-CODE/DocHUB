@@ -24,9 +24,10 @@ export const inkcodeApi = {
 export interface AutoItem extends PlanItem { plant: string | null; area: string }
 export interface AutoPreview { date: string; sheetName: string; warnings: string[]; knownLines: string[]; plants: string[]; areas: string[]; items: AutoItem[]; files: { plant: string; folderPath: string; fileName: string; exists: boolean; fileId: string | null }[] }
 export interface AutoTarget { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: { created: number; duplicate: number; skippedNotInDb: number; skippedOtherPlant: number; failed: { doc: string; line: string; reason: string }[] } }
-export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[] }
+export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string }
 
 export const inkcodeAutoApi = {
+  drop: (file: File, folderId: string) => post<AutoResult>('/inkcode/plan/drop', form(file, '', { folderId }), { timeout: 300_000 }),
   preview: (file: File, o: { date?: string; lineMap: Record<string, string>; plantMap: Record<string, string> }) =>
     post<AutoPreview>('/inkcode/plan/auto/preview', form(file, '', { ...(o.date ? { date: o.date } : {}), lineMap: JSON.stringify(o.lineMap), plantMap: JSON.stringify(o.plantMap) }), { timeout: 120_000 }),
   import: (file: File, o: { date?: string; onlyMatched: boolean; lineMap: Record<string, string>; plantMap: Record<string, string> }) =>

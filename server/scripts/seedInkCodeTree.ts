@@ -3,6 +3,7 @@
  *
  *   InkCode / InkCode - ใบออกโค้ด / PF1 | PF2 / <ปี> / <เดือน> (โฟลเดอร์)  →  <YYYY-MM-DD> (1 ไฟล์ต่อวัน)  →  ชีต Pouch | Can | Cup | อื่นๆ
  *   InkCode / InkCode - ใบออกโค้ด / แม่แบบ / แม่แบบรายวัน   (ไฟล์ต้นแบบของไฟล์รายวัน)
+ *   InkCode / InkCode - ใบออกโค้ด / แผนผลิต / <ปี> / <เดือน>   (โฟลเดอร์ใน DocHUB สำหรับวางไฟล์แผนผลิต .xlsx — วางแล้วนำเข้าอัตโนมัติ)
  *
  * The day files are NOT all made up front: the first plan imported for a date creates its day file from the template (see
  * "นำเข้าแผนผลิต" in the menu, or the drop folder below). `--pre YYYY-MM` makes every day file of that month now.
@@ -89,6 +90,14 @@ async function main() {
   const tpl = await dayTemplate(tplFolder, master.id);
   // the template (and so every day file made from it) follows the PDF layouts of the Worksheet file
   await api('POST', `/files/${tpl}/pdf-templates/master`, { masterFileId: master.id });
+
+  // plan folders inside DocHUB: drop a plan .xlsx into the month folder in the browser
+  const plansRoot = await folder(tree, TREE.plans, 'วางไฟล์แผนผลิต (.xlsx) ในโฟลเดอร์ ปี › เดือน — ระบบสร้างโค้ดและไฟล์รายวันให้อัตโนมัติ');
+  for (let y = FROM; y <= TO; y++) {
+    const yf = await folder(plansRoot, String(y));
+    for (let m = 1; m <= 12; m++) await folder(yf, monthFolderName(m));
+  }
+  console.log(`✓ โฟลเดอร์วางไฟล์แผนผลิตใน DocHUB: ${TREE.plans} / ${FROM}–${TO} / เดือน`);
 
   const monthIds = new Map<string, string>();   // "PF1/2026/10" → folder id
   for (const plant of PLANTS) {

@@ -243,7 +243,7 @@ export function printTemplateByCustomer(worksheetSheetId: string) {
 }
 
 /* ---------- working tree: PF1 | PF2 › year › month (folder) › day (file) › area (sheet) ---------- */
-export const TREE = { root: 'InkCode', tree: 'InkCode - ใบออกโค้ด', templateFolder: 'แม่แบบ', dayTemplate: 'แม่แบบรายวัน', plants: ['PF1', 'PF2'] } as const;
+export const TREE = { root: 'InkCode', tree: 'InkCode - ใบออกโค้ด', templateFolder: 'แม่แบบ', plans: 'แผนผลิต', dayTemplate: 'แม่แบบรายวัน', plants: ['PF1', 'PF2'] } as const;
 /** sheets of a day file — one per production area; the last one catches lines that belong to none of the others */
 export const AREAS = ['Pouch', 'Can', 'Cup', 'อื่นๆ'] as const;
 export const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];

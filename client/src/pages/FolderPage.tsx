@@ -22,6 +22,7 @@ import { useData } from '@/store/data';
 import { toast } from '@/store/ui';
 import { LV, isBasicRole } from '@/types';
 import { useT } from '@/i18n';
+import { PlanDropZone } from '@/modules/inkcode/PlanDropZone';
 
 export default function FolderPage() {
   const t = useT();
@@ -64,6 +65,10 @@ export default function FolderPage() {
   const level = data?.level ?? 0;
   const canCreate = !isBasicRole(role) && (id === 'root' ? true : level >= LV.write);
   const crumbs = [{ id: 'root', name: t('ไฟล์ทั้งหมด') }, ...(data?.breadcrumb ?? [])];
+  // plan folders: "InkCode - ใบออกโค้ด / แผนผลิต / ปี / เดือน" accept the production plan (.xlsx) by drop
+  const names = (data?.breadcrumb ?? []).map((c) => c.name);
+  const planAt = names.indexOf('แผนผลิต');
+  const isPlanMonth = !isBasicRole(role) && !!folder && level >= LV.write && planAt >= 1 && names[planAt - 1] === 'InkCode - ใบออกโค้ด' && names.length >= planAt + 3;
 
   return (
     <Page>
@@ -110,6 +115,8 @@ export default function FolderPage() {
           )}
         </div>
       </div>
+
+      {isPlanMonth && folder && <PlanDropZone folderId={folder.id} onDone={() => void reload(true)} />}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <TextInput icon={<Search />} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('กรองในโฟลเดอร์นี้')} className="w-full sm:w-72" />

@@ -6,6 +6,10 @@ import { getFileRow, invalidateFolders } from '../../shared/permissions';
 import { duplicateFile } from '../../routes/files';
 import { annotate, context, dbPairs, insertItems, InsertResult, linePlants, norm } from './core';
 import { areaOf, AREAS, dayPath, plantInText, TREE } from './model';
+import { withTx } from '../../config/db';
+import { insertColumn } from '../../services/structure';
+import { createRowTx } from '../../services/rowCreate';
+import { LV, requireFolder } from '../../shared/permissions';
 import { parsePlan } from './plan';
 
 /**
@@ -90,11 +94,15 @@ export async function previewAuto(user: AuthUser, buf: Buffer, o: AutoOptions) {
   return { date: p.date, sheetName: p.plan.sheetName, warnings: p.plan.warnings, knownLines: p.known, plants: TREE.plants, areas: AREAS, items: p.items, files };
 }
 
-export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: InsertResult }[] }
+export interface AutoResult { date: string; total: number; skippedNoPlant: number; items?: { time: string | null; line: string; plant: string | null; area: string; doc: string; country: string; qty: number | null; status: string }[]; targets: { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: InsertResult }[] }
 
 export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, req?: Request): Promise<AutoResult> {
   const p = await prepare(user, buf, o);
-  const out: AutoResult = { date: p.date, total: p.items.length, skippedNoPlant: 0, targets: [] };
+  const out: AutoResult = {
+    date: p.date, total: p.items.length, skippedNoPlant: 0, targets: [],
+    items: p.items.map((i) => ({ time: i.time, line: i.line, plant: i.plant, area: i.area, doc: i.doc, country: i.country, qty: i.qty,
+      status: !i.plant ? 'ข้าม: ไม่ทราบโรงงาน' : o.onlyMatched !== false && i.inDb === false ? 'ข้าม: ไม่พบในฐานข้อมูล' : 'นำเข้า (แถวที่มีอยู่แล้วไม่ซ้ำ)' })),
+  };
   const byPlant = new Map<string, typeof p.items>();
   for (const it of p.items) {
     if (!it.plant) { out.skippedNoPlant++; continue; }
@@ -118,4 +126,44 @@ export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, re
     }
   }
   return out;
+}
+
+/** Is `folderId` inside "<TREE.tree> / แผนผลิต" (the folder where plan files are dropped)? */
+async function inPlanFolder(folderId: string): Promise<boolean> {
+  let cur: string | null = folderId;
+  const names: string[] = [];
+  for (let i = 0; cur && i < 8; i++) {
+    const f = await q1(`SELECT folder_name, parent_id FROM Folders WHERE folder_id = @f AND is_deleted = 0`, { f: T.uuid(cur) });
+    if (!f) break;
+    names.push(f.folder_name);
+    cur = f.parent_id;
+  }
+  const at = names.indexOf(TREE.plans);
+  return at >= 0 && names[at + 1] === TREE.tree;
+}
+
+/**
+ * A plan file dropped into a plan folder of DocHUB: imported like the "นำเข้าแผนผลิต" page does (nothing to confirm — lines without a
+ * plant or not in the database are skipped and listed), and a record file is left in that folder with every row of the plan and what was done to it.
+ */
+export async function dropPlan(user: AuthUser, buf: Buffer, originalName: string, folderId: string, req?: Request): Promise<AutoResult & { recordFileId: string }> {
+  await requireFolder(user, folderId, LV.write);
+  if (!(await inPlanFolder(folderId))) throw badRequest(`วางแผนผลิตได้เฉพาะในโฟลเดอร์ ${TREE.tree} / ${TREE.plans} / ปี / เดือน`);
+  const r = await importAuto(user, buf, { onlyMatched: true }, req);
+  const base = originalName.replace(/\.xlsx?$/i, '').slice(0, 150);
+  const name = `แผน ${r.date} · ${base}`;
+  const cols = ['ไฟล์แผน', 'วันที่ผลิต', 'เวลา', 'ไลน์', 'โรงงาน', 'พื้นที่', 'Doc.No', 'ประเทศ', 'ยอด', 'ผลการนำเข้า'];
+  const recordFileId = await withTx(async (tx) => {
+    const f = await q1(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id VALUES (@n, @fo, @d, N'#16A34A', N'sheet', @u)`,
+      { n: name, fo: T.uuid(folderId), d: T.text(`บันทึกการนำเข้าแผนผลิตวันที่ ${r.date} (ไฟล์ ${originalName}) — ข้อมูลอยู่ในไฟล์รายวันของ PF1/PF2`), u: T.uuid(user.id) }, tx);
+    const sh = await q1(`INSERT INTO Sheets (file_id, sheet_name, sort_order, created_by) OUTPUT inserted.sheet_id VALUES (@f, N'ผลนำเข้า', 0, @u)`, { f: T.uuid(f!.file_id), u: T.uuid(user.id) }, tx);
+    const ids: string[] = [];
+    for (const [i, c] of cols.entries()) ids.push((await insertColumn(tx, sh!.sheet_id, { name: c, dataType: 'varchar', isRequired: false, width: c === 'ผลการนำเข้า' ? 240 : 130 } as any, i, user.id))!.column_id as string);
+    for (const it of (r.items ?? []).slice(0, 500)) {
+      const vals = [originalName, r.date, it.time ?? '', it.line, it.plant ?? '', it.area, it.doc, it.country, it.qty === null ? '' : String(it.qty), it.status];
+      await createRowTx(tx, user, { file_id: f!.file_id }, sh!.sheet_id, Object.fromEntries(ids.map((id, k) => [id.toLowerCase(), vals[k]])), 'plan-drop', req);
+    }
+    return f!.file_id as string;
+  });
+  return { ...r, recordFileId };
 }

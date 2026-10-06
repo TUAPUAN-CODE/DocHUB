@@ -5,7 +5,7 @@ import { badRequest, ah, ok, parse, safeJson } from '../../shared/http';
 import { LV, requireSheet } from '../../shared/permissions';
 import { annotate, context, dbPairs, insertItems, NAMES, norm } from './core';
 import { parsePlan } from './plan';
-import { importAuto, previewAuto } from './auto';
+import { dropPlan, importAuto, previewAuto } from './auto';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
@@ -66,6 +66,14 @@ router.post('/inkcode/plan/auto/import', upload.single('file'), ah(async (req, r
   const b = parse(autoBody, req.body);
   if (!req.file) throw badRequest('ไม่พบไฟล์ที่อัปโหลด');
   ok(res, await importAuto(req.user!, req.file.buffer, { date: b.date, onlyMatched: b.onlyMatched === '1', lineMap: safeJson(b.lineMap, {}), plantMap: safeJson(b.plantMap, {}) }, req));
+}));
+
+/** A plan file dropped into a plan folder (… / แผนผลิต / ปี / เดือน) in the file browser */
+router.post('/inkcode/plan/drop', upload.single('file'), ah(async (req, res) => {
+  const b = parse(z.object({ folderId: z.string().min(30).max(40) }), req.body);
+  if (!req.file) throw badRequest('ไม่พบไฟล์ที่อัปโหลด');
+  const name = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+  ok(res, await dropPlan(req.user!, req.file.buffer, name, b.folderId.toLowerCase(), req));
 }));
 
 export default router;
