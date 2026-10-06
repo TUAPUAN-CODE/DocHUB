@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowDown, ArrowLeft, ArrowUp, Copy, Download, FileDown, FileJson, FilePlus2, FileUp, Files, Loader2, Share2, Plus, RefreshCw, Save, Settings2, Trash2 } from 'lucide-react';
 import { apiError } from '@/api/client';
-import { filesApi, foldersApi, pdfApi } from '@/api/endpoints';
+import { filesApi, foldersApi, pdfApi, rowsApi } from '@/api/endpoints';
 import { FilePicker } from '@/components/files/FilePicker';
 import { BLOCK_TYPES_BODY, BLOCK_TYPES_SIDE, ColumnsForm, FieldsForm, Group, ImageForm, LineForm, Num, PDF_SWATCHES, SpacerForm, SpacingForm, TableForm, TextForm } from '@/components/pdf/BlockForms';
 import { WatermarkImage } from '@/components/pdf/WatermarkImage';
@@ -111,13 +111,27 @@ export default function PdfDesignerPage() {
   const [ver, setVer] = useState(0);
   const prev = useRef<string | null>(null);
   const tplKey = useMemo(() => JSON.stringify(tpl), [tpl]);
+  // a layout that follows the sheet being printed (every day file) is previewed with the first sheet of this file that has rows
+  const [prevSheet, setPrevSheet] = useState<{ id: string; name: string } | null>(null);
+  useEffect(() => {
+    if (!tpl?.followSheet || !sheets.length) { setPrevSheet(null); return; }
+    let live = true;
+    void (async () => {
+      for (const sh of sheets) {
+        try { const r = await rowsApi.query(sh.id, { page: 1, pageSize: 1, sorts: [], filters: [] }); if (r.total > 0) { if (live) setPrevSheet({ id: sh.id, name: sh.name }); return; } } catch (e) { console.error('preview sheet:', e); }
+      }
+      if (live) setPrevSheet(null);
+    })();
+    return () => { live = false; };
+  }, [tpl?.followSheet, file.data?.file.id, ver]); // eslint-disable-line react-hooks/exhaustive-deps
+  const previewCurrent = useMemo(() => (prevSheet ? { sheetId: prevSheet.id, sheetName: prevSheet.name, filters: [], sorts: [] } : null), [prevSheet]);
   useEffect(() => {
     if (!tpl || !file.data) { setUrl(null); return; }
     let live = true;
     const t = setTimeout(async () => {
       setBusy(true); setErr(null);
       try {
-        const { blob } = await generatePdf(tpl, { fileName, user: me?.displayName ?? '', current: null, previewLimit: 40, values: defaultExportValues(tpl, me?.displayName ?? '') });
+        const { blob } = await generatePdf(tpl, { fileName, user: me?.displayName ?? '', current: previewCurrent, previewLimit: 40, values: defaultExportValues(tpl, me?.displayName ?? '') });
         if (!live) return;
         const u = URL.createObjectURL(blob);
         if (prev.current) URL.revokeObjectURL(prev.current);
@@ -125,7 +139,7 @@ export default function PdfDesignerPage() {
       } catch (e) { if (live) setErr((e as Error).message || 'สร้างตัวอย่างไม่สำเร็จ'); } finally { if (live) setBusy(false); }
     }, 700);
     return () => { live = false; clearTimeout(t); };
-  }, [tplKey, ver, file.data?.file.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tplKey, ver, file.data?.file.id, previewCurrent]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (prev.current) URL.revokeObjectURL(prev.current); }, []);
 
   /* ---------- template ops ---------- */
@@ -153,7 +167,7 @@ export default function PdfDesignerPage() {
   const download = async () => {
     if (!tpl) return;
     setBusy(true);
-    try { const { blob, truncated } = await generatePdf(tpl, { fileName, user: me?.displayName ?? '', current: null, values: defaultExportValues(tpl, me?.displayName ?? '') }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${fileName} - ${tpl.name}.pdf`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); if (truncated) toast.info('ข้อมูลเกินกำหนด', 'ส่งออกเฉพาะ 50,000 แถวแรก'); } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
+    try { const { blob, truncated } = await generatePdf(tpl, { fileName, user: me?.displayName ?? '', current: previewCurrent, values: defaultExportValues(tpl, me?.displayName ?? '') }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${fileName} - ${tpl.name}.pdf`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); if (truncated) toast.info('ข้อมูลเกินกำหนด', 'ส่งออกเฉพาะ 50,000 แถวแรก'); } catch (e) { toast.error((e as Error).message); } finally { setBusy(false); }
   };
   const exportJson = () => {
     if (!tpl) return;
@@ -293,7 +307,7 @@ export default function PdfDesignerPage() {
         {/* center: live preview */}
         <section className="ds-card relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex items-center gap-2 border-b border-line px-3 py-2 text-xs text-muted">
-            ตัวอย่างสด (ใช้ข้อมูลจริง 40 แถวแรกของแต่ละตาราง) {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            ตัวอย่างสด (ใช้ข้อมูลจริง 40 แถวแรกของแต่ละตาราง{prevSheet ? ` · ชีต ${prevSheet.name}` : ''}) {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             <button onClick={() => setVer((v) => v + 1)} className="ml-auto inline-flex items-center gap-1 hover:text-primary"><RefreshCw className="h-3.5 w-3.5" />รีเฟรช</button>
           </div>
           <div className="relative min-h-0 flex-1 bg-ink/[.06]">

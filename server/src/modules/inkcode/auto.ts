@@ -65,6 +65,14 @@ export async function dayFile(user: AuthUser, plant: string, date: string, creat
   return { id, folderPath: path, created: true };
 }
 
+/** The file whose PDF layouts every day file uses (the Worksheet file) — bound again here in case the template lost it */
+async function pdfMasterId(templateFileId: string): Promise<string | null> {
+  const t = await q1(`SELECT pdf_master_id FROM Files WHERE file_id = @f`, { f: T.uuid(templateFileId) });
+  if (t?.pdf_master_id) return t.pdf_master_id as string;
+  const root = await folderChild(null, TREE.root);
+  return root ? ((await q1(`SELECT file_id FROM Files WHERE is_deleted = 0 AND folder_id = @r AND file_name = N'InkCode - ใบออกโค้ดนอกแผน'`, { r: T.uuid(root) }))?.file_id ?? null) : null;
+}
+
 async function prepare(user: AuthUser, buf: Buffer, o: AutoOptions) {
   if (isBasicRole(user.role)) throw badRequest('เฉพาะ Master หรือ Admin เท่านั้นที่นำเข้าแผนอัตโนมัติได้');
   const { templateFileId } = await roots();
@@ -128,6 +136,8 @@ export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, re
     const live = list.filter((i) => !(o.onlyMatched !== false && i.inDb === false));
     if (!live.length) { for (const area of new Set(list.map((i) => i.sheet))) out.targets.push({ plant, area, fileId: '', fileName: p.date, folderPath: '', fileCreated: false, result: { created: 0, duplicate: 0, skippedNotInDb: list.filter((i) => i.sheet === area).length, skippedOtherPlant: 0, failed: [] } }); continue; }
     const d = await dayFile(user, plant, p.date, true, req);
+    const master = await pdfMasterId((await roots()).templateFileId);
+    if (master && master.toLowerCase() !== String(d.id).toLowerCase()) await q(`UPDATE Files SET pdf_master_id = @m WHERE file_id = @f AND pdf_master_id IS NULL`, { m: T.uuid(master), f: T.uuid(d.id!) });
     const sheets = await sheetsOf(d.id!);
     for (const area of [...new Set(list.map((i) => i.sheet))].sort()) {
       const part = list.filter((i) => i.sheet === area);
