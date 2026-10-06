@@ -1,6 +1,7 @@
 import { rowsApi } from '@/api/endpoints';
 import { loadCols } from '@/lib/dashCols';
 import type { Column, ColumnFilter, Row, SortSpec } from '@/types';
+import { sampleRow } from './sample';
 import type { Block, FieldsBlock, PdfTemplate, TableBlock, TableCol } from './types';
 
 export interface SheetData { sheetId: string; columns: Column[]; rows: Row[]; total: number; truncated: boolean }
@@ -30,7 +31,7 @@ export const tableBlocks = (t: PdfTemplate) => t.blocks.filter((b): b is TableBl
 export const fieldBlocks = (t: PdfTemplate) => t.blocks.filter((b): b is FieldsBlock => b.type === 'fields');
 
 /** Loads the rows each table needs. `limit` caps the rows per table (small for the live preview). */
-export async function collectData(t: PdfTemplate, cur: CurrentView | null, opts: { limit?: number; onProgress?: (msg: string) => void } = {}): Promise<Map<string, SheetData>> {
+export async function collectData(t: PdfTemplate, cur: CurrentView | null, opts: { limit?: number; onProgress?: (msg: string) => void; sample?: boolean } = {}): Promise<Map<string, SheetData>> {
   const out = new Map<string, SheetData>();
   const jobs: { sheetId: string; limit: number | null; useCurrent: boolean; key: string }[] = [];
   if (t.mode === 'perRow' && t.perRow?.sheetId) jobs.push({ sheetId: t.perRow.sheetId, limit: null, useCurrent: true, key: t.perRow.sheetId });
@@ -51,6 +52,8 @@ export async function collectData(t: PdfTemplate, cur: CurrentView | null, opts:
     }
     let use = rows.slice(0, cap);
     if (t.mode === 'perRow' && j.sheetId === t.perRow?.sheetId && t.perRow.onlySelected && cur?.selectedRowIds?.length) use = rows.filter((r) => cur.selectedRowIds!.includes(r.id));
+    // designer preview of a sheet without rows: one example row, so the layout can be seen
+    if (opts.sample && !use.length && t.mode === 'perRow' && j.sheetId === t.perRow?.sheetId) use = [sampleRow(cols)];
     out.set(j.key, { sheetId: j.sheetId, columns: cols, rows: use, total: Math.min(total, cap), truncated: total > cap });
   }
   return out;

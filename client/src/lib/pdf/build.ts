@@ -238,11 +238,11 @@ function imageUrlsNeeded(t: PdfTemplate, tables: Map<string, SheetData>): string
 
 /** Answers collected in the export dialog */
 export interface ExportValues { prompts?: Record<string, string>; signers?: Record<string, string> }
-export interface PdfRunOptions { fileName: string; user: string; current: CurrentView | null; previewLimit?: number; onProgress?: (m: string) => void; values?: ExportValues }
+export interface PdfRunOptions { fileName: string; user: string; current: CurrentView | null; previewLimit?: number; /** designer: print one example row when the sheet has none */ sample?: boolean; onProgress?: (m: string) => void; values?: ExportValues }
 
 export async function buildDocDefinition(template: PdfTemplate, o: PdfRunOptions) {
   const t = bindToCurrent(template, o.current);
-  const tables = await collectData(t, o.current, { limit: o.previewLimit, onProgress: o.onProgress });
+  const tables = await collectData(t, o.current, { limit: o.previewLimit, onProgress: o.onProgress, sample: o.sample });
   o.onProgress?.('กำลังโหลดรูปภาพ…');
   const images = await preloadImages(imageUrlsNeeded(t, tables));
   return assembleDoc(t, o, tables, images);

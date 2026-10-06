@@ -131,7 +131,7 @@ export default function PdfDesignerPage() {
     const t = setTimeout(async () => {
       setBusy(true); setErr(null);
       try {
-        const { blob } = await generatePdf(tpl, { fileName, user: me?.displayName ?? '', current: previewCurrent, previewLimit: 40, values: defaultExportValues(tpl, me?.displayName ?? '') });
+        const { blob } = await generatePdf(tpl, { fileName, user: me?.displayName ?? '', current: previewCurrent, previewLimit: 40, sample: true, values: defaultExportValues(tpl, me?.displayName ?? '') });
         if (!live) return;
         const u = URL.createObjectURL(blob);
         if (prev.current) URL.revokeObjectURL(prev.current);
@@ -307,7 +307,7 @@ export default function PdfDesignerPage() {
         {/* center: live preview */}
         <section className="ds-card relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex items-center gap-2 border-b border-line px-3 py-2 text-xs text-muted">
-            ตัวอย่างสด (ใช้ข้อมูลจริง 40 แถวแรกของแต่ละตาราง{prevSheet ? ` · ชีต ${prevSheet.name}` : ''}) {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            ตัวอย่างสด (ใช้ข้อมูลจริง 40 แถวแรกของแต่ละตาราง{prevSheet ? ` · ชีต ${prevSheet.name}` : ' · ชีตยังไม่มีข้อมูล แสดงแถวตัวอย่างสมมติ'}) {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             <button onClick={() => setVer((v) => v + 1)} className="ml-auto inline-flex items-center gap-1 hover:text-primary"><RefreshCw className="h-3.5 w-3.5" />รีเฟรช</button>
           </div>
           <div className="relative min-h-0 flex-1 bg-ink/[.06]">
@@ -360,6 +360,11 @@ function PageSettings({ t, patch, sheets, colsBySheet }: { t: PdfTemplate; patch
       <Group title="โหมดเอกสาร">
         <Field label="รูปแบบ"><Select value={t.mode} onChange={(e) => patch({ mode: e.target.value as PdfTemplate['mode'], perRow: e.target.value === 'perRow' ? t.perRow ?? { sheetId: sheets[0]?.id ?? '', sheetName: sheets[0]?.name ?? '', onlySelected: true } : t.perRow })}><option value="table">รายงานตาราง (หลายแถวในตาราง)</option><option value="perRow">แบบฟอร์มต่อแถว (1 แถว = 1 หน้า)</option></Select></Field>
         <Toggle checked={!!t.followSheet} onChange={(v) => patch({ followSheet: v || undefined })} label="ใช้กับชีตที่กำลังพิมพ์ (ใช้รูปแบบเดียวกับทุกชีตรายวัน/ทุกไฟล์ที่มีคอลัมน์ชื่อเหมือนกัน)" />
+        {t.mode === 'table' && t.blocks.some((b) => b.type === 'codeSheet' || b.type === 'charGrid' || b.type === 'signature' || b.type === 'fields') && (
+          <p className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-2 text-xs text-amber-700 dark:bg-amber-500/10">
+            รูปแบบนี้มีบล็อกที่ใช้กับ “แบบฟอร์มต่อแถว” เท่านั้น (ตารางโค้ด / ช่องข้อมูลของแถว) ในโหมด “รายงานตาราง” จะไม่มีข้อมูลแสดง — เปลี่ยนกลับเป็น “แบบฟอร์มต่อแถว” ถ้าต้องการพิมพ์ใบแจ้งโค้ดทีละแถว หรือเพิ่มบล็อก “ตาราง” เพื่อทำรายงานหลายแถว
+          </p>
+        )}
         {t.mode === 'perRow' && t.perRow && (
           <>
             <Field label="ชีตที่ใช้พิมพ์"><Select value={t.perRow.sheetId} onChange={(e) => patch({ perRow: { ...t.perRow!, sheetId: e.target.value, sheetName: sheets.find((s) => s.id === e.target.value)?.name ?? '' } })}>{sheets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
