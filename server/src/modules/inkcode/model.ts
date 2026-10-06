@@ -79,10 +79,18 @@ export function codeTokens(c: Ctx): Record<string, string> {
     SC2: lk('กะ', 'SC2', 'กะ', S), SC3: lk('กะ', 'SC3', 'กะ', S), SC4: lk('กะ', 'SC4', 'กะ', S),
   };
 }
-/** product / calendar tokens: P F and the calendar columns K2…K10 (optionally LEFT/RIGHT n, or the day before) */
+/** product / calendar tokens: P F and the calendar columns K2…K10 (optionally LEFT/RIGHT n, the day before, or a part of a date column) */
 export function productToken(tok: string, c: Ctx): string | null {
   if (tok === 'P') return c.short;
   if (tok === 'F') return c.docCode;
+  // parts of a date column of the calendar (K4, K5, K8, K10 hold ISO dates "YYYY-MM-DD"): K8Y K8YY K8MM K8DD K8MON K8MC K8M2, "-1" = looked up with the day before
+  const dp = /^K(\d+)(YY|Y|MM|DD|MON|MC|M2)(-1)?$/.exec(tok);
+  if (dp && +dp[1] >= 2 && +dp[1] <= 10) {
+    const base = lk('ปฏิทิน', `K${dp[1]}`, 'วันที่ผลิต', dp[3] ? `DATEADD("day", ${c.date}, -1)` : c.date);
+    const mo = `VALUE(MID(${base}, 6, 2))`;
+    const byMonth = (col: string) => lk('เดือน', col, 'เดือน', mo);
+    return { Y: `LEFT(${base}, 4)`, YY: `MID(${base}, 3, 2)`, MM: `MID(${base}, 6, 2)`, DD: `MID(${base}, 9, 2)`, MON: byMonth('ชื่อย่อ'), MC: byMonth('ตัวอักษร'), M2: byMonth('อักษร2') }[dp[2] as 'Y'] ?? null;
+  }
   const m = /^K(\d+)(?:([LR])(\d+)|(-1))?$/.exec(tok);
   if (!m || +m[1] < 2 || +m[1] > 10) return null;
   const key = m[4] ? `DATEADD("day", ${c.date}, -1)` : c.date;
@@ -111,7 +119,7 @@ function renderColumns(c: Ctx, usedTokens: string[], prefix: string, codeNames: 
   return [
     { name: vN, type: 'text', width: 140, formula: { expr: guard(join(Object.keys(dT), (n) => dT[n])), sources: [] } },
     { name: vC, type: 'text', width: 140, formula: { expr: guard(join(Object.keys(cT), (n) => cT[n])), sources: ALIASES(REF_ALIASES) } },
-    { name: vP, type: 'text', width: 140, formula: { expr: guard(join(prodNames, (n) => productToken(n, c))), sources: ALIASES([...(hasLookupP ? [SHEETS.db] : []), SHEETS.calendar]) } },
+    { name: vP, type: 'text', width: 140, formula: { expr: guard(join(prodNames, (n) => productToken(n, c))), sources: ALIASES([...(hasLookupP ? [SHEETS.db] : []), SHEETS.calendar, SHEETS.month]) } },
     ...codeNames.map((name, i) => ({ name, type: 'text' as const, width: 300, formula: { expr: `IF(OR(ISBLANK(${c.date}), ISBLANK(${c.tpl(i + 1)})), "", FILL(${c.tpl(i + 1)}, ${vars}))`, sources: ALIASES(tplSources) } })),
   ];
 }
@@ -185,6 +193,7 @@ export const HELP_ROWS = [
   hrow('Mo', 'เดือนเป็นตัวเลข (ไม่เติมศูนย์)', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '3'),
   hrow('MM', 'เดือนเป็นตัวเลข 2 หลัก', 'วันที่ผลิตใน Worksheet', SHEETS.ws, 'วันที่ผลิต', '03'),
   hrow('K2…K10', 'ค่าจากปฏิทิน Julian ของวันที่ผลิต (K3 = เลขวันที่ในปี เช่น 278)', REFF, SHEETS.calendar, 'K2…K10', '278'),
+  hrow('K8DD K8MON K8Y …', 'ส่วนของวันที่ในคอลัมน์วันที่ของปฏิทิน (K4 K5 K8 K10): Y ปี 4 หลัก · YY ปี 2 หลัก · MM เดือน 2 หลัก · DD วัน 2 หลัก · MON ชื่อเดือนย่อ · MC/M2 รหัสเดือน; ต่อท้าย -1 = ค้นด้วยวันก่อนหน้า (เช่น K10DD-1)', REFF, SHEETS.calendar, 'K8', '03 / OCT / 2028'),
   hrow('K6L3 / K6R1', 'ปฏิทิน K6 เอา 3 ตัวแรก / 1 ตัวท้าย (K3-1 = ของวันก่อนหน้า)', REFF, SHEETS.calendar, 'K6', '641 / A'),
 ];
 

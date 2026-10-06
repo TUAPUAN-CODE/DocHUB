@@ -40,332 +40,11 @@
   ]
  },
  {
-  "row": 92,
-  "doc": "J056",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C92)<10,\"0\"&DAY($C92),DAY($C92))&IF(MONTH($C92)<10,\"0\"&MONTH($C92),MONTH($C92))&RIGHT(YEAR($C92),2)&\" BB \"&IF(DAY(VLOOKUP($C92-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C92-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C92-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C92,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C92,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C92,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C92,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 93,
-  "doc": "J059",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C93)<10,\"0\"&DAY($C93),DAY($C93))&IF(MONTH($C93)<10,\"0\"&MONTH($C93),MONTH($C93))&RIGHT(YEAR($C93),2)&\" BB \"&IF(DAY(VLOOKUP($C93-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C93-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C93-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C93,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C93,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C93,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C93,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 94,
-  "doc": "J062",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C94)<10,\"0\"&DAY($C94),DAY($C94))&IF(MONTH($C94)<10,\"0\"&MONTH($C94),MONTH($C94))&RIGHT(YEAR($C94),2)&\" BB \"&IF(DAY(VLOOKUP($C94-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C94-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C94-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C94,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C94,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C94,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C94,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 95,
-  "doc": "J088",
-  "market": "Italy",
-  "items": [
-   "K: =\"BB \"&IF(DAY(VLOOKUP($C95-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C95-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C95-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C95,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C95,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C95,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C95,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 96,
-  "doc": "J089",
-  "market": "Italy",
-  "items": [
-   "K: =\"BB \"&IF(DAY(VLOOKUP($C96-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C96-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C96-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C96,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C96,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C96,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C96,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 97,
-  "doc": "J090",
-  "market": "Italy",
-  "items": [
-   "K: =\"BB \"&IF(DAY(VLOOKUP($C97-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C97-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C97-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C97,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C97,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C97,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C97,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 98,
-  "doc": "J091",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C98-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C98-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C98-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C98,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C98,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C98,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C98,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 99,
-  "doc": "J092",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C99-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C99-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C99-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C99,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C99,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C99,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C99,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 100,
-  "doc": "J111",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C100)<10,\"0\"&DAY($C100),DAY($C100))&IF(MONTH($C100)<10,\"0\"&MONTH($C100),MONTH($C100))&RIGHT(YEAR($C100),2)&\" BB \"&IF(DAY(VLOOKUP($C100-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C100-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C100-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C100,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C100,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C100,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C100,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 101,
-  "doc": "J111",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C101)<10,\"0\"&DAY($C101),DAY($C101))&IF(MONTH($C101)<10,\"0\"&MONTH($C101),MONTH($C101))&RIGHT(YEAR($C101),2)&\" BB \"&IF(DAY(VLOOKUP($C101-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C101-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C101-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C101,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C101,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C101,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C101,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 102,
-  "doc": "J112",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C102)<10,\"0\"&DAY($C102),DAY($C102))&IF(MONTH($C102)<10,\"0\"&MONTH($C102),MONTH($C102))&RIGHT(YEAR($C102),2)&\" BB \"&IF(DAY(VLOOKUP($C102-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C102-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C102-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C102,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C102,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C102,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C102,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 103,
-  "doc": "J113",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C103)<10,\"0\"&DAY($C103),DAY($C103))&IF(MONTH($C103)<10,\"0\"&MONTH($C103),MONTH($C103))&RIGHT(YEAR($C103),2)&\" BB \"&IF(DAY(VLOOKUP($C103-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C103-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C103-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C103,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C103,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C103,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C103,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 104,
-  "doc": "J114",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C104)<10,\"0\"&DAY($C104),DAY($C104))&IF(MONTH($C104)<10,\"0\"&MONTH($C104),MONTH($C104))&RIGHT(YEAR($C104),2)&\" BB \"&IF(DAY(VLOOKUP($C104-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C104-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C104-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C104,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C104,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C104,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C104,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 105,
-  "doc": "J114",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C105)<10,\"0\"&DAY($C105),DAY($C105))&IF(MONTH($C105)<10,\"0\"&MONTH($C105),MONTH($C105))&RIGHT(YEAR($C105),2)&\" BB \"&IF(DAY(VLOOKUP($C105-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C105-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C105-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C105,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C105,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C105,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C105,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 106,
-  "doc": "J115",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C106)<10,\"0\"&DAY($C106),DAY($C106))&IF(MONTH($C106)<10,\"0\"&MONTH($C106),MONTH($C106))&RIGHT(YEAR($C106),2)&\" BB \"&IF(DAY(VLOOKUP($C106-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C106-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C106-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C106,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C106,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C106,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C106,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 107,
-  "doc": "J115",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C107)<10,\"0\"&DAY($C107),DAY($C107))&IF(MONTH($C107)<10,\"0\"&MONTH($C107),MONTH($C107))&RIGHT(YEAR($C107),2)&\" BB \"&IF(DAY(VLOOKUP($C107-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C107-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C107-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C107,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C107,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C107,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C107,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 108,
-  "doc": "J116",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C108)<10,\"0\"&DAY($C108),DAY($C108))&IF(MONTH($C108)<10,\"0\"&MONTH($C108),MONTH($C108))&RIGHT(YEAR($C108),2)&\" BB \"&IF(DAY(VLOOKUP($C108-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C108-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C108-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C108,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C108,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C108,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C108,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 109,
-  "doc": "J116",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C109)<10,\"0\"&DAY($C109),DAY($C109))&IF(MONTH($C109)<10,\"0\"&MONTH($C109),MONTH($C109))&RIGHT(YEAR($C109),2)&\" BB \"&IF(DAY(VLOOKUP($C109-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C109-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C109-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C109,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C109,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C109,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C109,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 110,
-  "doc": "J120",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C110)<10,\"0\"&DAY($C110),DAY($C110))&IF(MONTH($C110)<10,\"0\"&MONTH($C110),MONTH($C110))&RIGHT(YEAR($C110),2)&\" BB \"&IF(DAY(VLOOKUP($C110-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C110-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C110-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C110,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C110,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C110,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C110,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 111,
-  "doc": "J120",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C111)<10,\"0\"&DAY($C111),DAY($C111))&IF(MONTH($C111)<10,\"0\"&MONTH($C111),MONTH($C111))&RIGHT(YEAR($C111),2)&\" BB \"&IF(DAY(VLOOKUP($C111-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C111-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C111-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C111,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C111,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C111,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C111,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 112,
-  "doc": "J121",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C112)<10,\"0\"&DAY($C112),DAY($C112))&IF(MONTH($C112)<10,\"0\"&MONTH($C112),MONTH($C112))&RIGHT(YEAR($C112),2)&\" BB \"&IF(DAY(VLOOKUP($C112-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C112-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C112-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C112,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C112,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C112,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C112,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 113,
-  "doc": "J121",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C113)<10,\"0\"&DAY($C113),DAY($C113))&IF(MONTH($C113)<10,\"0\"&MONTH($C113),MONTH($C113))&RIGHT(YEAR($C113),2)&\" BB \"&IF(DAY(VLOOKUP($C113-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C113-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C113-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C113,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C113,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C113,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C113,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 114,
-  "doc": "J122",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C114)<10,\"0\"&DAY($C114),DAY($C114))&IF(MONTH($C114)<10,\"0\"&MONTH($C114),MONTH($C114))&RIGHT(YEAR($C114),2)&\" BB \"&IF(DAY(VLOOKUP($C114-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C114-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C114-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C114,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C114,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C114,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C114,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 115,
-  "doc": "J122",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C115)<10,\"0\"&DAY($C115),DAY($C115))&IF(MONTH($C115)<10,\"0\"&MONTH($C115),MONTH($C115))&RIGHT(YEAR($C115),2)&\" BB \"&IF(DAY(VLOOKUP($C115-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C115-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C115-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C115,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C115,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C115,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C115,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 116,
-  "doc": "J123",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C116)<10,\"0\"&DAY($C116),DAY($C116))&IF(MONTH($C116)<10,\"0\"&MONTH($C116),MONTH($C116))&RIGHT(YEAR($C116),2)&\" BB \"&IF(DAY(VLOOKUP($C116-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C116-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C116-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C116,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C116,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C116,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C116,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 117,
-  "doc": "J123",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C117)<10,\"0\"&DAY($C117),DAY($C117))&IF(MONTH($C117)<10,\"0\"&MONTH($C117),MONTH($C117))&RIGHT(YEAR($C117),2)&\" BB \"&IF(DAY(VLOOKUP($C117-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C117-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C117-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C117,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C117,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C117,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C117,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 118,
-  "doc": "J150",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C118-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C118-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C118-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C118,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C118,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C118,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C118,Ref!$A$34:$J$398,10,0)),2)&\" \"&P118&\" S\"&HLOOKUP(YEAR($C118),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C118),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C118),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E118,Ref!$G$11:$BB$15,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 119,
-  "doc": "J151",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C119-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C119-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C119-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C119,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C119,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C119,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C119,Ref!$A$34:$J$398,10,0)),2)&\" \"&P119&\" S\"&HLOOKUP(YEAR($C119),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C119),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C119),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E119,Ref!$G$11:$BB$15,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 120,
-  "doc": "J152",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C120)<10,\"0\"&DAY($C120),DAY($C120))&IF(MONTH($C120)<10,\"0\"&MONTH($C120),MONTH($C120))&RIGHT(YEAR($C120),2)&\" BB \"&IF(DAY(VLOOKUP($C120-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C120-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C120-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C120,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C120,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C120,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C120,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 121,
-  "doc": "J153",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C121)<10,\"0\"&DAY($C121),DAY($C121))&IF(MONTH($C121)<10,\"0\"&MONTH($C121),MONTH($C121))&RIGHT(YEAR($C121),2)&\" BB \"&IF(DAY(VLOOKUP($C121-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C121-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C121-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C121,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C121,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C121,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C121,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 122,
-  "doc": "J154",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C122)<10,\"0\"&DAY($C122),DAY($C122))&IF(MONTH($C122)<10,\"0\"&MONTH($C122),MONTH($C122))&RIGHT(YEAR($C122),2)&\" BB \"&IF(DAY(VLOOKUP($C122-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C122-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C122-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C122,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C122,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C122,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C122,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 123,
-  "doc": "J159",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C123)<10,\"0\"&DAY($C123),DAY($C123))&IF(MONTH($C123)<10,\"0\"&MONTH($C123),MONTH($C123))&RIGHT(YEAR($C123),2)&\" BB \"&IF(DAY(VLOOKUP($C123-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C123-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C123-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C123,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C123,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C123,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C123,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 124,
-  "doc": "J160",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C124)<10,\"0\"&DAY($C124),DAY($C124))&IF(MONTH($C124)<10,\"0\"&MONTH($C124),MONTH($C124))&RIGHT(YEAR($C124),2)&\" BB \"&IF(DAY(VLOOKUP($C124-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C124-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C124-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C124,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C124,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C124,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C124,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 125,
-  "doc": "J164",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C125)<10,\"0\"&DAY($C125),DAY($C125))&IF(MONTH($C125)<10,\"0\"&MONTH($C125),MONTH($C125))&RIGHT(YEAR($C125),2)&\" BB \"&IF(DAY(VLOOKUP($C125-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C125-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C125-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C125,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C125,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C125,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C125,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
   "row": 126,
   "doc": "J182",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C126)<10,\"0\"&MONTH($C126),MONTH($C126))&IF(DAY($C126)<10,\"0\"&DAY($C126),DAY($C126))&RIGHT(YEAR($C126),2)&\" BB \"&IF(MONTH(VLOOKUP($C126,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C126,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C126,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C126-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C126-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C126-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C126,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P126&\" \"&VLOOKUP($E126&$D126,Ref!$Y$28:$Z$47,2,0)"
-  ]
- },
- {
-  "row": 127,
-  "doc": "J185",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C127)<10,\"0\"&DAY($C127),DAY($C127))&IF(MONTH($C127)<10,\"0\"&MONTH($C127),MONTH($C127))&RIGHT(YEAR($C127),2)&\" BB \"&IF(DAY(VLOOKUP($C127-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C127-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C127-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C127,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C127,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C127,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C127,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 128,
-  "doc": "J186",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C128)<10,\"0\"&DAY($C128),DAY($C128))&IF(MONTH($C128)<10,\"0\"&MONTH($C128),MONTH($C128))&RIGHT(YEAR($C128),2)&\" BB \"&IF(DAY(VLOOKUP($C128-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C128-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C128-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C128,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C128,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C128,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C128,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 129,
-  "doc": "J187",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C129)<10,\"0\"&DAY($C129),DAY($C129))&IF(MONTH($C129)<10,\"0\"&MONTH($C129),MONTH($C129))&RIGHT(YEAR($C129),2)&\" BB \"&IF(DAY(VLOOKUP($C129-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C129-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C129-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C129,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C129,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C129,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C129,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 130,
-  "doc": "J188",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C130)<10,\"0\"&DAY($C130),DAY($C130))&IF(MONTH($C130)<10,\"0\"&MONTH($C130),MONTH($C130))&RIGHT(YEAR($C130),2)&\" BB \"&IF(DAY(VLOOKUP($C130-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C130-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C130-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C130,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C130,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C130,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C130,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 131,
-  "doc": "J189",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C131)<10,\"0\"&DAY($C131),DAY($C131))&IF(MONTH($C131)<10,\"0\"&MONTH($C131),MONTH($C131))&RIGHT(YEAR($C131),2)&\" BB \"&IF(DAY(VLOOKUP($C131-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C131-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C131-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C131,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C131,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C131,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C131,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 132,
-  "doc": "J190",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C132)<10,\"0\"&DAY($C132),DAY($C132))&IF(MONTH($C132)<10,\"0\"&MONTH($C132),MONTH($C132))&RIGHT(YEAR($C132),2)&\" BB \"&IF(DAY(VLOOKUP($C132-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C132-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C132-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C132,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C132,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C132,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C132,Ref!$A$34:$J$398,10,0)),2)"
   ]
  },
  {
@@ -377,180 +56,11 @@
   ]
  },
  {
-  "row": 158,
-  "doc": "J231",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C158)<10,\"0\"&DAY($C158),DAY($C158))&IF(MONTH($C158)<10,\"0\"&MONTH($C158),MONTH($C158))&RIGHT(YEAR($C158),2)&\" BB \"&IF(DAY(VLOOKUP($C158-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C158-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C158-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C158,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C158,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C158,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C158,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 159,
-  "doc": "J232",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C159)<10,\"0\"&DAY($C159),DAY($C159))&IF(MONTH($C159)<10,\"0\"&MONTH($C159),MONTH($C159))&RIGHT(YEAR($C159),2)&\" BB \"&IF(DAY(VLOOKUP($C159-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C159-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C159-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C159,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C159,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C159,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C159,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 160,
-  "doc": "J233",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C160)<10,\"0\"&DAY($C160),DAY($C160))&IF(MONTH($C160)<10,\"0\"&MONTH($C160),MONTH($C160))&RIGHT(YEAR($C160),2)&\" BB \"&IF(DAY(VLOOKUP($C160-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C160-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C160-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C160,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C160,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C160,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C160,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 161,
-  "doc": "J236",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C161)<10,\"0\"&DAY($C161),DAY($C161))&IF(MONTH($C161)<10,\"0\"&MONTH($C161),MONTH($C161))&RIGHT(YEAR($C161),2)&\" BB \"&IF(DAY(VLOOKUP($C161-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C161-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C161-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C161,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C161,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C161,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C161,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 162,
-  "doc": "J237",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C162)<10,\"0\"&DAY($C162),DAY($C162))&IF(MONTH($C162)<10,\"0\"&MONTH($C162),MONTH($C162))&RIGHT(YEAR($C162),2)&\" BB \"&IF(DAY(VLOOKUP($C162-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C162-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C162-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C162,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C162,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C162,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C162,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 163,
-  "doc": "J238",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C163)<10,\"0\"&DAY($C163),DAY($C163))&IF(MONTH($C163)<10,\"0\"&MONTH($C163),MONTH($C163))&RIGHT(YEAR($C163),2)&\" BB \"&IF(DAY(VLOOKUP($C163-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C163-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C163-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C163,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C163,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C163,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C163,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 164,
-  "doc": "J239",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C164)<10,\"0\"&DAY($C164),DAY($C164))&IF(MONTH($C164)<10,\"0\"&MONTH($C164),MONTH($C164))&RIGHT(YEAR($C164),2)&\" BB \"&IF(DAY(VLOOKUP($C164-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C164-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C164-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C164,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C164,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C164,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C164,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 165,
-  "doc": "J240",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C165)<10,\"0\"&DAY($C165),DAY($C165))&IF(MONTH($C165)<10,\"0\"&MONTH($C165),MONTH($C165))&RIGHT(YEAR($C165),2)&\" BB \"&IF(DAY(VLOOKUP($C165-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C165-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C165-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C165,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C165,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C165,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C165,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 166,
-  "doc": "J240",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C166)<10,\"0\"&DAY($C166),DAY($C166))&IF(MONTH($C166)<10,\"0\"&MONTH($C166),MONTH($C166))&RIGHT(YEAR($C166),2)&\" BB \"&IF(DAY(VLOOKUP($C166-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C166-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C166-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C166,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C166,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C166,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C166,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 167,
-  "doc": "J241",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C167)<10,\"0\"&DAY($C167),DAY($C167))&IF(MONTH($C167)<10,\"0\"&MONTH($C167),MONTH($C167))&RIGHT(YEAR($C167),2)&\" BB \"&IF(DAY(VLOOKUP($C167-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C167-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C167-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C167,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C167,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C167,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C167,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 168,
-  "doc": "J242",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C168)<10,\"0\"&DAY($C168),DAY($C168))&IF(MONTH($C168)<10,\"0\"&MONTH($C168),MONTH($C168))&RIGHT(YEAR($C168),2)&\" BB \"&IF(DAY(VLOOKUP($C168-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C168-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C168-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C168,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C168,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C168,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C168,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 169,
-  "doc": "J243",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C169)<10,\"0\"&DAY($C169),DAY($C169))&IF(MONTH($C169)<10,\"0\"&MONTH($C169),MONTH($C169))&RIGHT(YEAR($C169),2)&\" BB \"&IF(DAY(VLOOKUP($C169-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C169-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C169-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C169,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C169,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C169,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C169,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 170,
-  "doc": "J244",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C170)<10,\"0\"&DAY($C170),DAY($C170))&IF(MONTH($C170)<10,\"0\"&MONTH($C170),MONTH($C170))&RIGHT(YEAR($C170),2)&\" BB \"&IF(DAY(VLOOKUP($C170-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C170-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C170-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C170,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C170,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C170,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C170,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 171,
-  "doc": "J245",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C171)<10,\"0\"&DAY($C171),DAY($C171))&IF(MONTH($C171)<10,\"0\"&MONTH($C171),MONTH($C171))&RIGHT(YEAR($C171),2)&\" BB \"&IF(DAY(VLOOKUP($C171-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C171-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C171-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C171,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C171,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C171,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C171,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 172,
-  "doc": "J245",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C172)<10,\"0\"&DAY($C172),DAY($C172))&IF(MONTH($C172)<10,\"0\"&MONTH($C172),MONTH($C172))&RIGHT(YEAR($C172),2)&\" BB \"&IF(DAY(VLOOKUP($C172-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C172-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C172-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C172,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C172,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C172,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C172,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 173,
-  "doc": "J246",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C173)<10,\"0\"&DAY($C173),DAY($C173))&IF(MONTH($C173)<10,\"0\"&MONTH($C173),MONTH($C173))&RIGHT(YEAR($C173),2)&\" BB \"&IF(DAY(VLOOKUP($C173-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C173-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C173-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C173,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C173,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C173,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C173,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 174,
-  "doc": "J246",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C174)<10,\"0\"&DAY($C174),DAY($C174))&IF(MONTH($C174)<10,\"0\"&MONTH($C174),MONTH($C174))&RIGHT(YEAR($C174),2)&\" BB \"&IF(DAY(VLOOKUP($C174-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C174-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C174-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C174,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C174,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C174,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C174,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 175,
-  "doc": "J247",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C175)<10,\"0\"&DAY($C175),DAY($C175))&IF(MONTH($C175)<10,\"0\"&MONTH($C175),MONTH($C175))&RIGHT(YEAR($C175),2)&\" BB \"&IF(DAY(VLOOKUP($C175-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C175-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C175-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C175,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C175,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C175,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C175,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 176,
-  "doc": "J247",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C176)<10,\"0\"&DAY($C176),DAY($C176))&IF(MONTH($C176)<10,\"0\"&MONTH($C176),MONTH($C176))&RIGHT(YEAR($C176),2)&\" BB \"&IF(DAY(VLOOKUP($C176-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C176-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C176-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C176,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C176,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C176,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C176,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 177,
-  "doc": "J248",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C177)<10,\"0\"&DAY($C177),DAY($C177))&IF(MONTH($C177)<10,\"0\"&MONTH($C177),MONTH($C177))&RIGHT(YEAR($C177),2)&\" BB \"&IF(DAY(VLOOKUP($C177-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C177-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C177-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C177,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C177,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C177,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C177,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 178,
-  "doc": "J248",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C178)<10,\"0\"&DAY($C178),DAY($C178))&IF(MONTH($C178)<10,\"0\"&MONTH($C178),MONTH($C178))&RIGHT(YEAR($C178),2)&\" BB \"&IF(DAY(VLOOKUP($C178-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C178-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C178-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C178,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C178,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C178,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C178,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
   "row": 179,
   "doc": "J251",
   "market": "Italy",
   "items": [
-   "J: =VLOOKUP($F179,Ref!$AF$72:$AG$79,2,0)",
-   "K: =\"BC \"&IF(DAY($C179)<10,\"0\"&DAY($C179),DAY($C179))&IF(MONTH($C179)<10,\"0\"&MONTH($C179),MONTH($C179))&RIGHT(YEAR($C179),2)&\" BB \"&IF(DAY(VLOOKUP($C179-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C179-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C179-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C179,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C179,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C179,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C179,Ref!$A$34:$J$398,10,0)),2)&\" \"&$P179&\" S\"&HLOOKUP(YEAR($C179),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C179),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C179),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E179,Ref!$G$11:$BB$15,2,0)"
+   "J: =VLOOKUP($F179,Ref!$AF$72:$AG$79,2,0)"
   ]
  },
  {
@@ -567,8 +77,7 @@
   "doc": "J252",
   "market": "Italy",
   "items": [
-   "J: =VLOOKUP($F181,Ref!$AF$72:$AG$79,2,0)",
-   "K: =\"BC \"&IF(DAY($C181)<10,\"0\"&DAY($C181),DAY($C181))&IF(MONTH($C181)<10,\"0\"&MONTH($C181),MONTH($C181))&RIGHT(YEAR($C181),2)&\" BB \"&IF(DAY(VLOOKUP($C181-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C181-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C181-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C181,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C181,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C181,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C181,Ref!$A$34:$J$398,10,0)),2)&\" \"&$P181&\" S\"&HLOOKUP(YEAR($C181),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C181),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C181),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E181,Ref!$G$11:$BB$15,2,0)"
+   "J: =VLOOKUP($F181,Ref!$AF$72:$AG$79,2,0)"
   ]
  },
  {
@@ -585,8 +94,7 @@
   "doc": "J253",
   "market": "Italy",
   "items": [
-   "J: =VLOOKUP($F183,Ref!$AF$72:$AG$79,2,0)",
-   "K: =\"BC \"&IF(DAY($C183)<10,\"0\"&DAY($C183),DAY($C183))&IF(MONTH($C183)<10,\"0\"&MONTH($C183),MONTH($C183))&RIGHT(YEAR($C183),2)&\" BB \"&IF(DAY(VLOOKUP($C183-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C183-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C183-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C183,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C183,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C183,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C183,Ref!$A$34:$J$398,10,0)),2)&\" \"&$P183&\" S\"&HLOOKUP(YEAR($C183),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C183),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C183),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E183,Ref!$G$11:$BB$15,2,0)"
+   "J: =VLOOKUP($F183,Ref!$AF$72:$AG$79,2,0)"
   ]
  },
  {
@@ -603,8 +111,7 @@
   "doc": "J254",
   "market": "Italy",
   "items": [
-   "J: =VLOOKUP($F185,Ref!$AF$72:$AG$79,2,0)",
-   "K: =\"BC \"&IF(DAY($C185)<10,\"0\"&DAY($C185),DAY($C185))&IF(MONTH($C185)<10,\"0\"&MONTH($C185),MONTH($C185))&RIGHT(YEAR($C185),2)&\" BB \"&IF(DAY(VLOOKUP($C185-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C185-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C185-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C185,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C185,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C185,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C185,Ref!$A$34:$J$398,10,0)),2)&\" \"&$P185&\" S\"&HLOOKUP(YEAR($C185),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C185),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C185),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E185,Ref!$G$11:$BB$15,2,0)"
+   "J: =VLOOKUP($F185,Ref!$AF$72:$AG$79,2,0)"
   ]
  },
  {
@@ -621,8 +128,7 @@
   "doc": "J255",
   "market": "Italy",
   "items": [
-   "J: =VLOOKUP($F187,Ref!$AF$72:$AG$79,2,0)",
-   "K: =\"BC \"&IF(DAY($C187)<10,\"0\"&DAY($C187),DAY($C187))&IF(MONTH($C187)<10,\"0\"&MONTH($C187),MONTH($C187))&RIGHT(YEAR($C187),2)&\" BB \"&IF(DAY(VLOOKUP($C187-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C187-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C187-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C187,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C187,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C187,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C187,Ref!$A$34:$J$398,10,0)),2)&\" \"&$P187&\" S\"&HLOOKUP(YEAR($C187),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C187),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C187),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E187,Ref!$G$11:$BB$15,2,0)"
+   "J: =VLOOKUP($F187,Ref!$AF$72:$AG$79,2,0)"
   ]
  },
  {
@@ -639,8 +145,7 @@
   "doc": "J256",
   "market": "Italy",
   "items": [
-   "J: =VLOOKUP($F189,Ref!$AF$72:$AG$79,2,0)",
-   "K: =\"BC \"&IF(DAY($C189)<10,\"0\"&DAY($C189),DAY($C189))&IF(MONTH($C189)<10,\"0\"&MONTH($C189),MONTH($C189))&RIGHT(YEAR($C189),2)&\" BB \"&IF(DAY(VLOOKUP($C189-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C189-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C189-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C189,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C189,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C189,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C189,Ref!$A$34:$J$398,10,0)),2)&\" \"&$P189&\" S\"&HLOOKUP(YEAR($C189),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C189),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C189),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E189,Ref!$G$11:$BB$15,2,0)"
+   "J: =VLOOKUP($F189,Ref!$AF$72:$AG$79,2,0)"
   ]
  },
  {
@@ -657,8 +162,7 @@
   "doc": "J257",
   "market": "Italy",
   "items": [
-   "J: =VLOOKUP($F191,Ref!$AF$72:$AG$79,2,0)",
-   "K: =\"BC \"&IF(DAY($C191)<10,\"0\"&DAY($C191),DAY($C191))&IF(MONTH($C191)<10,\"0\"&MONTH($C191),MONTH($C191))&RIGHT(YEAR($C191),2)&\" BB \"&IF(DAY(VLOOKUP($C191-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C191-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C191-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C191,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C191,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C191,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C191,Ref!$A$34:$J$398,10,0)),2)&\" \"&$P191&\" S\"&HLOOKUP(YEAR($C191),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C191),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C191),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP($E191,Ref!$G$11:$BB$15,2,0)"
+   "J: =VLOOKUP($F191,Ref!$AF$72:$AG$79,2,0)"
   ]
  },
  {
@@ -689,19 +193,10 @@
   ]
  },
  {
-  "row": 195,
-  "doc": "J270",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C195)<10,\"0\"&DAY($C195),DAY($C195))&IF(MONTH($C195)<10,\"0\"&MONTH($C195),MONTH($C195))&RIGHT(YEAR($C195),2)&\" BB \"&IF(DAY(VLOOKUP($C195-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C195-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C195-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C195,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C195,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C195,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C195,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
   "row": 211,
   "doc": "J456",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C211)<10,\"0\"&MONTH($C211),MONTH($C211))&IF(DAY($C211)<10,\"0\"&DAY($C211),DAY($C211))&RIGHT(YEAR($C211),2)&\" BB \"&IF(MONTH(VLOOKUP($C211,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C211,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C211,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C211-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C211-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C211-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C211,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P211&\" \"&VLOOKUP($E211&$D211,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -710,7 +205,6 @@
   "doc": "J457",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C212)<10,\"0\"&MONTH($C212),MONTH($C212))&IF(DAY($C212)<10,\"0\"&DAY($C212),DAY($C212))&RIGHT(YEAR($C212),2)&\" BB \"&IF(MONTH(VLOOKUP($C212,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C212,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C212,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C212-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C212-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C212-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C212,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P212&\" \"&VLOOKUP($E212&$D212,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -719,7 +213,6 @@
   "doc": "J458",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C213)<10,\"0\"&MONTH($C213),MONTH($C213))&IF(DAY($C213)<10,\"0\"&DAY($C213),DAY($C213))&RIGHT(YEAR($C213),2)&\" BB \"&IF(MONTH(VLOOKUP($C213,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C213,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C213,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C213-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C213-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C213-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C213,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P213&\" \"&VLOOKUP($E213&$D213,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -728,7 +221,6 @@
   "doc": "J459",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C214)<10,\"0\"&MONTH($C214),MONTH($C214))&IF(DAY($C214)<10,\"0\"&DAY($C214),DAY($C214))&RIGHT(YEAR($C214),2)&\" BB \"&IF(MONTH(VLOOKUP($C214,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C214,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C214,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C214-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C214-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C214-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C214,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P214&\" \"&VLOOKUP($E214&$D214,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -737,7 +229,6 @@
   "doc": "J460",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C215)<10,\"0\"&MONTH($C215),MONTH($C215))&IF(DAY($C215)<10,\"0\"&DAY($C215),DAY($C215))&RIGHT(YEAR($C215),2)&\" BB \"&IF(MONTH(VLOOKUP($C215,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C215,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C215,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C215-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C215-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C215-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C215,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P215&\" \"&VLOOKUP($E215&$D215,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -746,40 +237,7 @@
   "doc": "J461",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C216)<10,\"0\"&MONTH($C216),MONTH($C216))&IF(DAY($C216)<10,\"0\"&DAY($C216),DAY($C216))&RIGHT(YEAR($C216),2)&\" BB \"&IF(MONTH(VLOOKUP($C216,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C216,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C216,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C216-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C216-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C216-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C216,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P216&\" \"&VLOOKUP($E216&$D216,Ref!$Y$28:$Z$47,2,0)"
-  ]
- },
- {
-  "row": 242,
-  "doc": "J332",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C242-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C242-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C242-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C242,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C242,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C242,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C242,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 243,
-  "doc": "J333",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C243-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C243-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C243-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C243,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C243,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C243,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C243,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 244,
-  "doc": "J334",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C244-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C244-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C244-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C244,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C244,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C244,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C244,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
-  ]
- },
- {
-  "row": 245,
-  "doc": "J335",
-  "market": "Italy",
-  "items": [
-   "J: =\"BB \"&IF(DAY(VLOOKUP($C245-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C245-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C245-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C245,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C245,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C245,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C245,Ref!$A$34:$J$398,10,0)),2)&\" VCN.7\""
   ]
  },
  {
@@ -791,155 +249,10 @@
   ]
  },
  {
-  "row": 277,
-  "doc": "J357",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C277)<10,\"0\"&DAY($C277),DAY($C277))&IF(MONTH($C277)<10,\"0\"&MONTH($C277),MONTH($C277))&RIGHT(YEAR($C277),2)&\" BB \"&IF(DAY(VLOOKUP($C277-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C277-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C277-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C277,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C277,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C277,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C277,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 278,
-  "doc": "J357",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C278)<10,\"0\"&DAY($C278),DAY($C278))&IF(MONTH($C278)<10,\"0\"&MONTH($C278),MONTH($C278))&RIGHT(YEAR($C278),2)&\" BB \"&IF(DAY(VLOOKUP($C278-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C278-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C278-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C278,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C278,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C278,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C278,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 279,
-  "doc": "J358",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C279)<10,\"0\"&DAY($C279),DAY($C279))&IF(MONTH($C279)<10,\"0\"&MONTH($C279),MONTH($C279))&RIGHT(YEAR($C279),2)&\" BB \"&IF(DAY(VLOOKUP($C279-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C279-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C279-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C279,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C279,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C279,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C279,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 280,
-  "doc": "J358",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C280)<10,\"0\"&DAY($C280),DAY($C280))&IF(MONTH($C280)<10,\"0\"&MONTH($C280),MONTH($C280))&RIGHT(YEAR($C280),2)&\" BB \"&IF(DAY(VLOOKUP($C280-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C280-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C280-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C280,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C280,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C280,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C280,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 281,
-  "doc": "J359",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C281)<10,\"0\"&DAY($C281),DAY($C281))&IF(MONTH($C281)<10,\"0\"&MONTH($C281),MONTH($C281))&RIGHT(YEAR($C281),2)&\" BB \"&IF(DAY(VLOOKUP($C281-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C281-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C281-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C281,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C281,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C281,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C281,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 282,
-  "doc": "J360",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C282)<10,\"0\"&DAY($C282),DAY($C282))&IF(MONTH($C282)<10,\"0\"&MONTH($C282),MONTH($C282))&RIGHT(YEAR($C282),2)&\" BB \"&IF(DAY(VLOOKUP($C282-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C282-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C282-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C282,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C282,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C282,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C282,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 283,
-  "doc": "J360",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C283)<10,\"0\"&DAY($C283),DAY($C283))&IF(MONTH($C283)<10,\"0\"&MONTH($C283),MONTH($C283))&RIGHT(YEAR($C283),2)&\" BB \"&IF(DAY(VLOOKUP($C283-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C283-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C283-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C283,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C283,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C283,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C283,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 284,
-  "doc": "J361",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C284)<10,\"0\"&DAY($C284),DAY($C284))&IF(MONTH($C284)<10,\"0\"&MONTH($C284),MONTH($C284))&RIGHT(YEAR($C284),2)&\" BB \"&IF(DAY(VLOOKUP($C284-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C284-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C284-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C284,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C284,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C284,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C284,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 285,
-  "doc": "J362",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C285)<10,\"0\"&DAY($C285),DAY($C285))&IF(MONTH($C285)<10,\"0\"&MONTH($C285),MONTH($C285))&RIGHT(YEAR($C285),2)&\" BB \"&IF(DAY(VLOOKUP($C285-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C285-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C285-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C285,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C285,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C285,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C285,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 286,
-  "doc": "J363",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C286)<10,\"0\"&DAY($C286),DAY($C286))&IF(MONTH($C286)<10,\"0\"&MONTH($C286),MONTH($C286))&RIGHT(YEAR($C286),2)&\" BB \"&IF(DAY(VLOOKUP($C286-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C286-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C286-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C286,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C286,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C286,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C286,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 292,
-  "doc": "J369",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C292)<10,\"0\"&DAY($C292),DAY($C292))&IF(MONTH($C292)<10,\"0\"&MONTH($C292),MONTH($C292))&RIGHT(YEAR($C292),2)&\" BB \"&IF(DAY(VLOOKUP($C292-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C292-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C292-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C292,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C292,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C292,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C292,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 293,
-  "doc": "J369",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C293)<10,\"0\"&DAY($C293),DAY($C293))&IF(MONTH($C293)<10,\"0\"&MONTH($C293),MONTH($C293))&RIGHT(YEAR($C293),2)&\" BB \"&IF(DAY(VLOOKUP($C293-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C293-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C293-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C293,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C293,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C293,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C293,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 294,
-  "doc": "J370",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C294)<10,\"0\"&DAY($C294),DAY($C294))&IF(MONTH($C294)<10,\"0\"&MONTH($C294),MONTH($C294))&RIGHT(YEAR($C294),2)&\" BB \"&IF(DAY(VLOOKUP($C294-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C294-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C294-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C294,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C294,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C294,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C294,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 295,
-  "doc": "J370",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C295)<10,\"0\"&DAY($C295),DAY($C295))&IF(MONTH($C295)<10,\"0\"&MONTH($C295),MONTH($C295))&RIGHT(YEAR($C295),2)&\" BB \"&IF(DAY(VLOOKUP($C295-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C295-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C295-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C295,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C295,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C295,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C295,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 296,
-  "doc": "J371",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C296)<10,\"0\"&DAY($C296),DAY($C296))&IF(MONTH($C296)<10,\"0\"&MONTH($C296),MONTH($C296))&RIGHT(YEAR($C296),2)&\" BB \"&IF(DAY(VLOOKUP($C296-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C296-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C296-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C296,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C296,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C296,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C296,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 297,
-  "doc": "J371",
-  "market": "Russia",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C297)<10,\"0\"&DAY($C297),DAY($C297))&IF(MONTH($C297)<10,\"0\"&MONTH($C297),MONTH($C297))&RIGHT(YEAR($C297),2)&\" BB \"&IF(DAY(VLOOKUP($C297-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C297-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C297-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C297,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C297,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C297,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C297,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 298,
-  "doc": "J372",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C298)<10,\"0\"&DAY($C298),DAY($C298))&IF(MONTH($C298)<10,\"0\"&MONTH($C298),MONTH($C298))&RIGHT(YEAR($C298),2)&\" BB \"&IF(DAY(VLOOKUP($C298-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C298-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C298-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C298,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C298,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C298,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C298,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
-  "row": 299,
-  "doc": "J373",
-  "market": "Italy",
-  "items": [
-   "J: =\"BC \"&IF(DAY($C299)<10,\"0\"&DAY($C299),DAY($C299))&IF(MONTH($C299)<10,\"0\"&MONTH($C299),MONTH($C299))&RIGHT(YEAR($C299),2)&\" BB \"&IF(DAY(VLOOKUP($C299-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C299-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C299-1,Ref!$A$34:$J$398,10,0)))&IF(MONTH(VLOOKUP($C299,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C299,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C299,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C299,Ref!$A$34:$J$398,10,0)),2)"
-  ]
- },
- {
   "row": 337,
   "doc": "J392",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C337)<10,\"0\"&MONTH($C337),MONTH($C337))&IF(DAY($C337)<10,\"0\"&DAY($C337),DAY($C337))&RIGHT(YEAR($C337),2)&\" BB \"&IF(MONTH(VLOOKUP($C337,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C337,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C337,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C337-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C337-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C337-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C337,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P337&\" \"&VLOOKUP($E337&$D337,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -948,7 +261,6 @@
   "doc": "J393",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C338)<10,\"0\"&MONTH($C338),MONTH($C338))&IF(DAY($C338)<10,\"0\"&DAY($C338),DAY($C338))&RIGHT(YEAR($C338),2)&\" BB \"&IF(MONTH(VLOOKUP($C338,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C338,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C338,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C338-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C338-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C338-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C338,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P338&\" \"&VLOOKUP($E338&$D338,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -957,7 +269,6 @@
   "doc": "J394",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C339)<10,\"0\"&MONTH($C339),MONTH($C339))&IF(DAY($C339)<10,\"0\"&DAY($C339),DAY($C339))&RIGHT(YEAR($C339),2)&\" BB \"&IF(MONTH(VLOOKUP($C339,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C339,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C339,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C339-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C339-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C339-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C339,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P339&\" \"&VLOOKUP($E339&$D339,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -966,7 +277,6 @@
   "doc": "J395",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C340)<10,\"0\"&MONTH($C340),MONTH($C340))&IF(DAY($C340)<10,\"0\"&DAY($C340),DAY($C340))&RIGHT(YEAR($C340),2)&\" BB \"&IF(MONTH(VLOOKUP($C340,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C340,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C340,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C340-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C340-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C340-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C340,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P340&\" \"&VLOOKUP($E340&$D340,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -975,7 +285,6 @@
   "doc": "J396",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C341)<10,\"0\"&MONTH($C341),MONTH($C341))&IF(DAY($C341)<10,\"0\"&DAY($C341),DAY($C341))&RIGHT(YEAR($C341),2)&\" BB \"&IF(MONTH(VLOOKUP($C341,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C341,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C341,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C341-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C341-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C341-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C341,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P341&\" \"&VLOOKUP($E341&$D341,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -984,7 +293,6 @@
   "doc": "J397",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C342)<10,\"0\"&MONTH($C342),MONTH($C342))&IF(DAY($C342)<10,\"0\"&DAY($C342),DAY($C342))&RIGHT(YEAR($C342),2)&\" BB \"&IF(MONTH(VLOOKUP($C342,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C342,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C342,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C342-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C342-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C342-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C342,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P342&\" \"&VLOOKUP($E342&$D342,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -993,7 +301,6 @@
   "doc": "J456",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C396)<10,\"0\"&MONTH($C396),MONTH($C396))&IF(DAY($C396)<10,\"0\"&DAY($C396),DAY($C396))&RIGHT(YEAR($C396),2)&\" BB \"&IF(MONTH(VLOOKUP($C396,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C396,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C396,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C396-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C396-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C396-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C396,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P396&\" \"&VLOOKUP($E396&$D396,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -1002,7 +309,6 @@
   "doc": "J457",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C397)<10,\"0\"&MONTH($C397),MONTH($C397))&IF(DAY($C397)<10,\"0\"&DAY($C397),DAY($C397))&RIGHT(YEAR($C397),2)&\" BB \"&IF(MONTH(VLOOKUP($C397,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C397,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C397,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C397-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C397-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C397-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C397,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P397&\" \"&VLOOKUP($E397&$D397,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -1011,7 +317,6 @@
   "doc": "J458",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C398)<10,\"0\"&MONTH($C398),MONTH($C398))&IF(DAY($C398)<10,\"0\"&DAY($C398),DAY($C398))&RIGHT(YEAR($C398),2)&\" BB \"&IF(MONTH(VLOOKUP($C398,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C398,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C398,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C398-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C398-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C398-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C398,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P398&\" \"&VLOOKUP($E398&$D398,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -1020,7 +325,6 @@
   "doc": "J459",
   "market": "USA",
   "items": [
-   "J: =\"BC \"&IF(MONTH($C399)<10,\"0\"&MONTH($C399),MONTH($C399))&IF(DAY($C399)<10,\"0\"&DAY($C399),DAY($C399))&RIGHT(YEAR($C399),2)&\" BB \"&IF(MONTH(VLOOKUP($C399,Ref!$A$34:$J$398,10,0))<10,\"0\"&MONTH(VLOOKUP($C399,Ref!$A$34:$J$398,10,0)),MONTH(VLOOKUP($C399,Ref!$A$34:$J$398,10,0)))&IF(DAY(VLOOKUP($C399-1,Ref!$A$34:$J$398,10,0))<10,\"0\"&DAY(VLOOKUP($C399-1,Ref!$A$34:$J$398,10,0)),DAY(VLOOKUP($C399-1,Ref!$A$34:$J$398,10,0)))&RIGHT(YEAR(VLOOKUP($C399,Ref!$A$34:$J$398,10,0)),2)",
    "K: =$P399&\" \"&VLOOKUP($E399&$D399,Ref!$Y$28:$Z$47,2,0)"
   ]
  },
@@ -1049,35 +353,10 @@
   ]
  },
  {
-  "row": 492,
-  "doc": "B156",
-  "market": "USA",
-  "items": [
-   "J: =YEAR(VLOOKUP($C492,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C492,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C492,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C492,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C492,Ref!$A$34:$I$398,8,0)))"
-  ]
- },
- {
-  "row": 493,
-  "doc": "B157",
-  "market": "USA",
-  "items": [
-   "J: =YEAR(VLOOKUP($C493,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C493,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C493,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C493,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C493,Ref!$A$34:$I$398,8,0)))"
-  ]
- },
- {
-  "row": 494,
-  "doc": "B158",
-  "market": "USA",
-  "items": [
-   "J: =YEAR(VLOOKUP($C494,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C494,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C494,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C494,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C494,Ref!$A$34:$I$398,8,0)))"
-  ]
- },
- {
   "row": 500,
   "doc": "B103",
   "market": "USA",
   "items": [
-   "J: =YEAR(VLOOKUP($C500,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C500,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C500,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C500,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C500,Ref!$A$34:$I$398,8,0)))",
    "K: =HLOOKUP(YEAR($C500),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C500),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C500),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E500,'up date Ref2026'!AB51:AC53,2,0)&\" AX\"&\" HH:MM\""
   ]
  },
@@ -1086,7 +365,6 @@
   "doc": "B104",
   "market": "USA",
   "items": [
-   "J: =YEAR(VLOOKUP($C501,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C501,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C501,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C501,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C501,Ref!$A$34:$I$398,8,0)))",
    "K: =HLOOKUP(YEAR($C501),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C501),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C501),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E501,'up date Ref2026'!AB51:AC53,2,0)&\" AX\"&\" HH:MM\""
   ]
  },
@@ -1095,7 +373,6 @@
   "doc": "B105",
   "market": "USA",
   "items": [
-   "J: =YEAR(VLOOKUP($C502,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C502,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C502,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C502,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C502,Ref!$A$34:$I$398,8,0)))",
    "K: =HLOOKUP(YEAR($C502),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C502),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C502),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E502,'up date Ref2026'!AB51:AC53,2,0)&\" AX\"&\" HH:MM\""
   ]
  },
@@ -1104,56 +381,7 @@
   "doc": "B141",
   "market": "USA",
   "items": [
-   "J: =YEAR(VLOOKUP($C503,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C503,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C503,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C503,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C503,Ref!$A$34:$I$398,8,0)))",
    "K: =HLOOKUP(YEAR($C503),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C503),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C503),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E503,'up date Ref2026'!AB51:AC53,2,0)&\"AX\"&\" HH:MM\""
-  ]
- },
- {
-  "row": 504,
-  "doc": "B142",
-  "market": "USA",
-  "items": [
-   "J: =YEAR(VLOOKUP($C504,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C504,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C504,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C504,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C504,Ref!$A$34:$I$398,8,0)))"
-  ]
- },
- {
-  "row": 505,
-  "doc": "B143",
-  "market": "USA",
-  "items": [
-   "J: =YEAR(VLOOKUP($C505,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C505,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C505,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C505,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C505,Ref!$A$34:$I$398,8,0)))"
-  ]
- },
- {
-  "row": 506,
-  "doc": "B144",
-  "market": "USA",
-  "items": [
-   "J: =YEAR(VLOOKUP($C506,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C506,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C506,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C506,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C506,Ref!$A$34:$I$398,8,0)))"
-  ]
- },
- {
-  "row": 507,
-  "doc": "B129",
-  "market": "USA",
-  "items": [
-   "J: =\"\"&\"\"&YEAR(VLOOKUP($C507,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C507,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C507,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C507,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C507,Ref!$A$34:$I$398,8,0)))&\" AX\""
-  ]
- },
- {
-  "row": 508,
-  "doc": "B130",
-  "market": "USA",
-  "items": [
-   "J: =\"\"&\"\"&YEAR(VLOOKUP($C508,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C508,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C508,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C508,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C508,Ref!$A$34:$I$398,8,0)))&\" AX\""
-  ]
- },
- {
-  "row": 509,
-  "doc": "B131",
-  "market": "USA",
-  "items": [
-   "J: =\"\"&\"\"&YEAR(VLOOKUP($C509,Ref!$A$34:$I$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($C509,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY(VLOOKUP($C509,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C509,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C509,Ref!$A$34:$I$398,8,0)))&\" AX\""
   ]
  },
  {
@@ -1269,43 +497,10 @@
   ]
  },
  {
-  "row": 539,
-  "doc": "B034",
-  "market": "USA",
-  "items": [
-   "K: =\"BBD:\"&HLOOKUP(MONTH(VLOOKUP($C539,Ref!$A$34:$M$398,8,0)),Ref!$U$2:$AF$6,3,0)&\"/\"&IF(DAY(VLOOKUP($C539,Ref!$A$34:$M$398,8,0))<10,\"0\"&DAY(VLOOKUP($C539,Ref!$A$34:$M$398,8,0)),DAY(VLOOKUP($C539,Ref!$A$34:$M$398,8,0)))&\"/\"&YEAR(VLOOKUP($C539,Ref!$A$34:$M$398,8,0))"
-  ]
- },
- {
-  "row": 540,
-  "doc": "B035",
-  "market": "USA",
-  "items": [
-   "K: =\"BBD:\"&HLOOKUP(MONTH(VLOOKUP($C540,Ref!$A$34:$M$398,8,0)),Ref!$U$2:$AF$6,3,0)&\"/\"&IF(DAY(VLOOKUP($C540,Ref!$A$34:$M$398,8,0))<10,\"0\"&DAY(VLOOKUP($C540,Ref!$A$34:$M$398,8,0)),DAY(VLOOKUP($C540,Ref!$A$34:$M$398,8,0)))&\"/\"&YEAR(VLOOKUP($C540,Ref!$A$34:$M$398,8,0))"
-  ]
- },
- {
-  "row": 541,
-  "doc": "B036",
-  "market": "USA",
-  "items": [
-   "K: =\"BBD:\"&HLOOKUP(MONTH(VLOOKUP($C541,Ref!$A$34:$M$398,8,0)),Ref!$U$2:$AF$6,3,0)&\"/\"&IF(DAY(VLOOKUP($C541,Ref!$A$34:$M$398,8,0))<10,\"0\"&DAY(VLOOKUP($C541,Ref!$A$34:$M$398,8,0)),DAY(VLOOKUP($C541,Ref!$A$34:$M$398,8,0)))&\"/\"&YEAR(VLOOKUP($C541,Ref!$A$34:$M$398,8,0))"
-  ]
- },
- {
-  "row": 542,
-  "doc": "B037",
-  "market": "USA",
-  "items": [
-   "K: =\"BBD:\"&HLOOKUP(MONTH(VLOOKUP($C542,Ref!$A$34:$M$398,8,0)),Ref!$U$2:$AF$6,3,0)&\"/\"&IF(DAY(VLOOKUP($C542,Ref!$A$34:$M$398,8,0))<10,\"0\"&DAY(VLOOKUP($C542,Ref!$A$34:$M$398,8,0)),DAY(VLOOKUP($C542,Ref!$A$34:$M$398,8,0)))&\"/\"&YEAR(VLOOKUP($C542,Ref!$A$34:$M$398,8,0))"
-  ]
- },
- {
   "row": 549,
   "doc": "B111",
   "market": "USA",
   "items": [
-   "J: =\"BBE:\"&IF(DAY($C549)<10,\"0\"&DAY($C549),DAY($C549))&\" \"&HLOOKUP(MONTH($C549),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C549)+3)",
    "K: =MID(P549,1,5)&\" \"&HLOOKUP($D549,Ref!$A$8:$C$10,2,0)&HLOOKUP($E549,Ref!$G$11:$BA$13,2,0)"
   ]
  },
@@ -1314,7 +509,6 @@
   "doc": "B112",
   "market": "USA",
   "items": [
-   "J: =\"BBE:\"&IF(DAY($C550)<10,\"0\"&DAY($C550),DAY($C550))&\" \"&HLOOKUP(MONTH($C550),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C550)+3)",
    "K: =MID(P550,1,5)&\" \"&HLOOKUP($D550,Ref!$A$8:$C$10,2,0)&HLOOKUP($E550,Ref!$G$11:$BA$13,2,0)"
   ]
  },
@@ -1323,184 +517,7 @@
   "doc": "B113",
   "market": "USA",
   "items": [
-   "J: =\"BBE:\"&IF(DAY($C551)<10,\"0\"&DAY($C551),DAY($C551))&\" \"&HLOOKUP(MONTH($C551),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C551)+3)",
    "K: =MID(P551,1,5)&\" \"&HLOOKUP($D551,Ref!$A$8:$C$10,2,0)&HLOOKUP($E551,Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 557,
-  "doc": "C062",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAA S\"&HLOOKUP($D557,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E557,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 558,
-  "doc": "C063",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAB S\"&HLOOKUP($D558,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E558,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 559,
-  "doc": "C064",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAC S\"&HLOOKUP($D559,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E559,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 560,
-  "doc": "C065",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAD S\"&HLOOKUP($D560,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E560,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 561,
-  "doc": "C066",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAE S\"&HLOOKUP($D561,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E561,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 562,
-  "doc": "C067",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAF S\"&HLOOKUP($D562,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E562,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 563,
-  "doc": "C068",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAG S\"&HLOOKUP($D563,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E563,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 564,
-  "doc": "C069",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAH S\"&HLOOKUP($D564,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E564,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 565,
-  "doc": "C070",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAI S\"&HLOOKUP($D565,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E565,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 566,
-  "doc": "C071",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAJ S\"&HLOOKUP($D566,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E566,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 567,
-  "doc": "C072",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAK S\"&HLOOKUP($D567,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E567,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 568,
-  "doc": "C073",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAL S\"&HLOOKUP($D568,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E568,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 569,
-  "doc": "C074",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAM S\"&HLOOKUP($D569,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E569,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 570,
-  "doc": "C075",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAN S\"&HLOOKUP($D570,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E570,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 571,
-  "doc": "C076",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAO S\"&HLOOKUP($D571,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E571,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 572,
-  "doc": "C077",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAP S\"&HLOOKUP($D572,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E572,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 573,
-  "doc": "C078",
-  "market": "France",
-  "items": [
-   "J: =\"ACMAQ S\"&HLOOKUP($D573,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E573,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 574,
-  "doc": "C079",
-  "market": "France",
-  "items": [
-   "J: =\"CCMAR S\"&HLOOKUP($D574,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E574,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 575,
-  "doc": "C080",
-  "market": "France",
-  "items": [
-   "J: =\"CCMAS S\"&HLOOKUP($D575,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E575,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 576,
-  "doc": "C081",
-  "market": "France",
-  "items": [
-   "J: =\"CCMAT S\"&HLOOKUP($D576,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E576,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 577,
-  "doc": "C082",
-  "market": "France",
-  "items": [
-   "J: =\"CCMAU S\"&HLOOKUP($D577,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E577,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
-  ]
- },
- {
-  "row": 578,
-  "doc": "C083",
-  "market": "France",
-  "items": [
-   "J: =\"CCMAV S\"&HLOOKUP($D578,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP($E578,Ref!$G$11:$BA$13,2,0)&\" \"&\"VCN.7\""
   ]
  },
  {
@@ -1584,22 +601,6 @@
   ]
  },
  {
-  "row": 648,
-  "doc": "C042",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C648,Ref!$A$34:$M$398,8,0))<10,\"0\"&DAY(VLOOKUP($C648,Ref!$A$34:$M$398,8,0)),DAY(VLOOKUP($C648,Ref!$A$34:$M$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C648,Ref!$A$34:$M$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C648,Ref!$A$34:$M$398,8,0))"
-  ]
- },
- {
-  "row": 649,
-  "doc": "C043",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C649,Ref!$A$34:$M$398,8,0))<10,\"0\"&DAY(VLOOKUP($C649,Ref!$A$34:$M$398,8,0)),DAY(VLOOKUP($C649,Ref!$A$34:$M$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C649,Ref!$A$34:$M$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C649,Ref!$A$34:$M$398,8,0))"
-  ]
- },
- {
   "row": 657,
   "doc": "C048",
   "market": "USA",
@@ -1669,51 +670,6 @@
   "market": "Israel",
   "items": [
    "J: =RIGHT(YEAR($C665),1)&VLOOKUP($C665,Ref!$A$34:$I$398,3,0)&\"HHMM\"&VLOOKUP(E665,'up date Ref2026'!AB54:AC66,2,0)"
-  ]
- },
- {
-  "row": 767,
-  "doc": "A206",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C767,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C767,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C767,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C767,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C767,Ref!$A$34:$I$398,8,0))",
-   "K: =$P767&\" S\"&HLOOKUP(YEAR($C767),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C767),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C767),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E767,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 768,
-  "doc": "A207",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C768,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C768,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C768,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C768,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C768,Ref!$A$34:$I$398,8,0))",
-   "K: =$P768&\" S\"&HLOOKUP(YEAR($C768),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C768),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C768),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E768,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 769,
-  "doc": "A208",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C769,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C769,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C769,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C769,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C769,Ref!$A$34:$I$398,8,0))",
-   "K: =$P769&\" S\"&HLOOKUP(YEAR($C769),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C769),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C769),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E769,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 770,
-  "doc": "A209",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C770,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C770,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C770,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C770,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C770,Ref!$A$34:$I$398,8,0))",
-   "K: =$P770&\" S\"&HLOOKUP(YEAR($C770),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C770),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C770),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E770,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 771,
-  "doc": "A210",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C771,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C771,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C771,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C771,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C771,Ref!$A$34:$I$398,8,0))",
-   "K: =$P771&\" S\"&HLOOKUP(YEAR($C771),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C771),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C771),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E771,Ref!$G$11:$BC$15,2,0)"
   ]
  },
  {
@@ -1949,28 +905,11 @@
   ]
  },
  {
-  "row": 801,
-  "doc": "F117",
-  "market": "China",
-  "items": [
-   "J: =P801&\" S\"&HLOOKUP(D801,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP(E801,Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 802,
-  "doc": "F118",
-  "market": "Japan",
-  "items": [
-   "J: =P802&\" S\"&HLOOKUP(D802,Ref!$A$8:$C$10,3,0)&\"\"&HLOOKUP(E802,Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
   "row": 805,
   "doc": "Chicken Flakes",
   "market": "General",
   "items": [
-   "J: =R805",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C805,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C805,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C805,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C805,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C805,Ref!$A$34:$I$398,8,0))"
+   "J: =R805"
   ]
  },
  {
@@ -1978,8 +917,7 @@
   "doc": "Duck Flakes",
   "market": "General",
   "items": [
-   "J: =R806",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C806,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C806,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C806,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C806,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C806,Ref!$A$34:$I$398,8,0))"
+   "J: =R806"
   ]
  },
  {
@@ -1987,8 +925,7 @@
   "doc": "Tuna Flakes",
   "market": "General",
   "items": [
-   "J: =R807",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C807,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C807,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C807,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C807,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C807,Ref!$A$34:$I$398,8,0))"
+   "J: =R807"
   ]
  },
  {
@@ -1996,8 +933,7 @@
   "doc": "Chicken Flakes (China)",
   "market": "General",
   "items": [
-   "J: =R808",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C808,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C808,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C808,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C808,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C808,Ref!$A$34:$I$398,8,0))"
+   "J: =R808"
   ]
  },
  {
@@ -2005,8 +941,7 @@
   "doc": "Shrimp",
   "market": "General",
   "items": [
-   "J: =R809",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C809,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C809,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C809,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C809,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C809,Ref!$A$34:$I$398,8,0))"
+   "J: =R809"
   ]
  },
  {
@@ -2014,8 +949,7 @@
   "doc": "Salmon Flakes",
   "market": "General",
   "items": [
-   "J: =R810",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C810,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C810,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C810,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C810,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C810,Ref!$A$34:$I$398,8,0))"
+   "J: =R810"
   ]
  },
  {
@@ -2023,8 +957,7 @@
   "doc": "Kale Chop",
   "market": "General",
   "items": [
-   "J: =R811",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C811,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C811,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C811,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C811,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C811,Ref!$A$34:$I$398,8,0))"
+   "J: =R811"
   ]
  },
  {
@@ -2032,8 +965,7 @@
   "doc": "Purple Potato Dices",
   "market": "General",
   "items": [
-   "J: =R812",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C812,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C812,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C812,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C812,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C812,Ref!$A$34:$I$398,8,0))"
+   "J: =R812"
   ]
  },
  {
@@ -2041,8 +973,7 @@
   "doc": "Sweet Potato Dices",
   "market": "General",
   "items": [
-   "J: =R813",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C813,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C813,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C813,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C813,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C813,Ref!$A$34:$I$398,8,0))"
+   "J: =R813"
   ]
  },
  {
@@ -2050,8 +981,7 @@
   "doc": "Pumpkin Dices",
   "market": "General",
   "items": [
-   "J: =R814",
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C814,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C814,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C814,Ref!$A$34:$I$398,8,0)))&\".\"&HLOOKUP(MONTH(VLOOKUP($C814,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\".\"&YEAR(VLOOKUP($C814,Ref!$A$34:$I$398,8,0))"
+   "J: =R814"
   ]
  },
  {
@@ -2059,8 +989,7 @@
   "doc": "CHICKEN BREAST(1X1CM.)",
   "market": "General",
   "items": [
-   "J: =R815",
-   "K: =\"MFG:\"&IF(DAY($C815)<10,\"0\"&DAY($C815),DAY($C815))&\" \"&HLOOKUP(MONTH($C815),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C815)-2000"
+   "J: =R815"
   ]
  },
  {
@@ -2068,8 +997,7 @@
   "doc": "CHICKEN BREAST(2X2CM.)",
   "market": "General",
   "items": [
-   "J: =R816",
-   "K: =\"MFG:\"&IF(DAY($C816)<10,\"0\"&DAY($C816),DAY($C816))&\" \"&HLOOKUP(MONTH($C816),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C816)-2000"
+   "J: =R816"
   ]
  },
  {
@@ -2077,8 +1005,7 @@
   "doc": "SKIPJACK TUNA",
   "market": "General",
   "items": [
-   "J: =R817",
-   "K: =\"MFG:\"&IF(DAY($C817)<10,\"0\"&DAY($C817),DAY($C817))&\" \"&HLOOKUP(MONTH($C817),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C817)-2000"
+   "J: =R817"
   ]
  },
  {
@@ -2086,8 +1013,7 @@
   "doc": "WHOLE CHICKEN BREAST",
   "market": "General",
   "items": [
-   "J: =R818",
-   "K: =\"MFG:\"&IF(DAY($C818)<10,\"0\"&DAY($C818),DAY($C818))&\" \"&HLOOKUP(MONTH($C818),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C818)-2000"
+   "J: =R818"
   ]
  },
  {
@@ -2095,8 +1021,7 @@
   "doc": "WHOLE DUCK BREAST",
   "market": "General",
   "items": [
-   "J: =R819",
-   "K: =\"MFG:\"&IF(DAY($C819)<10,\"0\"&DAY($C819),DAY($C819))&\" \"&HLOOKUP(MONTH($C819),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C819)-2000"
+   "J: =R819"
   ]
  },
  {
@@ -2104,8 +1029,7 @@
   "doc": "WHOLE CHICKEN BREAST",
   "market": "General",
   "items": [
-   "J: =R820",
-   "K: =\"MFG:\"&IF(DAY($C820)<10,\"0\"&DAY($C820),DAY($C820))&\" \"&HLOOKUP(MONTH($C820),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C820)-2000"
+   "J: =R820"
   ]
  },
  {
@@ -2113,8 +1037,7 @@
   "doc": "WHOLE SHRIMP",
   "market": "General",
   "items": [
-   "J: =R821",
-   "K: =\"MFG:\"&IF(DAY($C821)<10,\"0\"&DAY($C821),DAY($C821))&\" \"&HLOOKUP(MONTH($C821),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C821)-2000"
+   "J: =R821"
   ]
  },
  {
@@ -2122,144 +1045,7 @@
   "doc": "SALMON",
   "market": "General",
   "items": [
-   "J: =R822",
-   "K: =\"MFG:\"&IF(DAY($C822)<10,\"0\"&DAY($C822),DAY($C822))&\" \"&HLOOKUP(MONTH($C822),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR($C822)-2000"
-  ]
- },
- {
-  "row": 825,
-  "doc": "G017",
-  "market": "Thailand",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP(C825,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP(C825,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP(C825,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP(C825,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP(C825,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 826,
-  "doc": "G018",
-  "market": "Thailand",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP(C826,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP(C826,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP(C826,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP(C826,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP(C826,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 827,
-  "doc": "G019",
-  "market": "Thailand",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP(C827,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP(C827,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP(C827,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP(C827,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP(C827,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 828,
-  "doc": "G020",
-  "market": "Thailand",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP(C828,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP(C828,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP(C828,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP(C828,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP(C828,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 829,
-  "doc": "G021",
-  "market": "Thailand",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP(C829,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP(C829,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP(C829,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP(C829,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP(C829,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 830,
-  "doc": "G022",
-  "market": "Thailand",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP(C830,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP(C830,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP(C830,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP(C830,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP(C830,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 836,
-  "doc": "G034",
-  "market": "Thailand",
-  "items": [
-   "K: =\"BBE:\"&IF(DAY(VLOOKUP($C836,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C836,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C836,Ref!$A$34:$I$398,8,0)))&\"/\"&HLOOKUP(MONTH(VLOOKUP($C836,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\"/\"&YEAR(VLOOKUP($C836,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 837,
-  "doc": "G035",
-  "market": "Thailand",
-  "items": [
-   "K: =\"BBE:\"&IF(DAY(VLOOKUP($C837,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C837,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C837,Ref!$A$34:$I$398,8,0)))&\"/\"&HLOOKUP(MONTH(VLOOKUP($C837,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\"/\"&YEAR(VLOOKUP($C837,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 838,
-  "doc": "G036",
-  "market": "Thailand",
-  "items": [
-   "K: =\"BBE:\"&IF(DAY(VLOOKUP($C838,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C838,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C838,Ref!$A$34:$I$398,8,0)))&\"/\"&HLOOKUP(MONTH(VLOOKUP($C838,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\"/\"&YEAR(VLOOKUP($C838,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 839,
-  "doc": "G009",
-  "market": "CND",
-  "items": [
-   "J: =$P839&\"\"&HLOOKUP(YEAR($C839),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C839),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C839),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D839,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2067,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 840,
-  "doc": "G010",
-  "market": "CND",
-  "items": [
-   "J: =$P840&\" \"&HLOOKUP(YEAR($C840),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C840),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C840),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D840,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2068,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 841,
-  "doc": "G011",
-  "market": "CND",
-  "items": [
-   "J: =$P841&\" \"&HLOOKUP(YEAR($C841),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C841),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C841),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D841,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2069,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 842,
-  "doc": "G012",
-  "market": "CND",
-  "items": [
-   "J: =$P842&\"\"&HLOOKUP(YEAR($C842),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C842),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C842),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D842,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2070,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 843,
-  "doc": "G013",
-  "market": "CND",
-  "items": [
-   "J: =$P843&\" \"&HLOOKUP(YEAR($C843),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C843),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C843),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D843,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2071,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 844,
-  "doc": "G014",
-  "market": "CND",
-  "items": [
-   "J: =$P844&\"\"&HLOOKUP(YEAR($C844),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C844),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C844),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D844,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2072,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 845,
-  "doc": "G015",
-  "market": "CND",
-  "items": [
-   "J: =$P845&\" \"&HLOOKUP(YEAR($C845),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C845),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C845),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D845,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2073,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
-  "row": 846,
-  "doc": "G016",
-  "market": "CND",
-  "items": [
-   "J: =$P846&\" \"&HLOOKUP(YEAR($C846),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C846),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C846),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D846,Ref!$A$8:$B$11,2,0)&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2074,Ref!$G$11:$BC$15,2,0)"
+   "J: =R822"
   ]
  },
  {
@@ -2716,22 +1502,6 @@
   ]
  },
  {
-  "row": 980,
-  "doc": "I031",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C980,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C980,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C980,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C980,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$5,3,0)&\" \"&YEAR(VLOOKUP($C980,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 981,
-  "doc": "I032",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&IF(DAY(VLOOKUP($C981,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C981,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C981,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C981,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$5,3,0)&\" \"&YEAR(VLOOKUP($C981,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
   "row": 988,
   "doc": "I049",
   "market": "USA",
@@ -2849,86 +1619,6 @@
   "items": [
    "J: =$P1157&\" \"&HLOOKUP(YEAR($C1157),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C1157),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C1157),Ref!$G$8:$AK$9,2,0)&HLOOKUP($E1157,Ref!$G$11:$BC$15,2,0)&HLOOKUP(MONTH($Y1157),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($Y1157),Ref!$G$8:$AK$9,2,0)",
    "K: =\"EXP:\"&DAY(VLOOKUP($Y1157,Ref!$A$34:$M$398,8,0))&\" \"&HLOOKUP(MONTH(VLOOKUP($Y1157,Ref!$A$34:$M$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($Y1157,Ref!$A$34:$M$398,8,0))"
-  ]
- },
- {
-  "row": 1163,
-  "doc": "P332",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1163)+3&\"/\"&IF(MONTH($C1163)<10,\"0\"&MONTH($C1163)&\"\",MONTH($C1163))&\"/\"&IF(DAY($C1163-1)<10,\"0\"&DAY($C1163-1),DAY($C1163-1))"
-  ]
- },
- {
-  "row": 1164,
-  "doc": "P337",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1164)+3&\"/\"&IF(MONTH($C1164)<10,\"0\"&MONTH($C1164)&\"\",MONTH($C1164))&\"/\"&IF(DAY($C1164-1)<10,\"0\"&DAY($C1164-1),DAY($C1164-1))"
-  ]
- },
- {
-  "row": 1165,
-  "doc": "P331",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1165)+3&\"/\"&IF(MONTH($C1165)<10,\"0\"&MONTH($C1165)&\"\",MONTH($C1165))&\"/\"&IF(DAY($C1165-1)<10,\"0\"&DAY($C1165-1),DAY($C1165-1))"
-  ]
- },
- {
-  "row": 1166,
-  "doc": "P333",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1166)+3&\"/\"&IF(MONTH($C1166)<10,\"0\"&MONTH($C1166)&\"\",MONTH($C1166))&\"/\"&IF(DAY($C1166-1)<10,\"0\"&DAY($C1166-1),DAY($C1166-1))"
-  ]
- },
- {
-  "row": 1167,
-  "doc": "P334",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1167)+3&\"/\"&IF(MONTH($C1167)<10,\"0\"&MONTH($C1167)&\"\",MONTH($C1167))&\"/\"&IF(DAY($C1167-1)<10,\"0\"&DAY($C1167-1),DAY($C1167-1))"
-  ]
- },
- {
-  "row": 1168,
-  "doc": "P335",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1168)+3&\"/\"&IF(MONTH($C1168)<10,\"0\"&MONTH($C1168)&\"\",MONTH($C1168))&\"/\"&IF(DAY($C1168-1)<10,\"0\"&DAY($C1168-1),DAY($C1168-1))"
-  ]
- },
- {
-  "row": 1169,
-  "doc": "P336",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1169)+3&\"/\"&IF(MONTH($C1169)<10,\"0\"&MONTH($C1169)&\"\",MONTH($C1169))&\"/\"&IF(DAY($C1169-1)<10,\"0\"&DAY($C1169-1),DAY($C1169-1))"
-  ]
- },
- {
-  "row": 1170,
-  "doc": "P338",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1170)+3&\"/\"&IF(MONTH($C1170)<10,\"0\"&MONTH($C1170)&\"\",MONTH($C1170))&\"/\"&IF(DAY($C1170-1)<10,\"0\"&DAY($C1170-1),DAY($C1170-1))"
-  ]
- },
- {
-  "row": 1171,
-  "doc": "P339",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1171)+3&\"/\"&IF(MONTH($C1171)<10,\"0\"&MONTH($C1171)&\"\",MONTH($C1171))&\"/\"&IF(DAY($C1171-1)<10,\"0\"&DAY($C1171-1),DAY($C1171-1))"
-  ]
- },
- {
-  "row": 1172,
-  "doc": "P340",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&YEAR($C1172)+3&\"/\"&IF(MONTH($C1172)<10,\"0\"&MONTH($C1172)&\"\",MONTH($C1172))&\"/\"&IF(DAY($C1172-1)<10,\"0\"&DAY($C1172-1),DAY($C1172-1))"
   ]
  },
  {
@@ -3793,14 +2483,6 @@
   ]
  },
  {
-  "row": 1560,
-  "doc": "N061",
-  "market": "USA",
-  "items": [
-   "J: =$P1560&\" \"&HLOOKUP(YEAR($C1560),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C1560),Ref!$U$2:$AF$5,2,0)&HLOOKUP(DAY($C1560),Ref!$G$8:$AK$9,2,0)&\"S\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E1907,Ref!$G$11:$BC$15,2,0)"
-  ]
- },
- {
   "row": 1574,
   "doc": "J467",
   "market": "Thailand",
@@ -4305,7 +2987,6 @@
   "doc": "P173",
   "market": "CND",
   "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1869,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1869,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1869,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1869,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1869,Ref!$A$34:$I$398,8,0))",
    "K: =\"SS\"&VLOOKUP(E1869,'up date Ref2026'!AB51:AC52,2,0)"
   ]
  },
@@ -4314,7 +2995,6 @@
   "doc": "P173",
   "market": "USA",
   "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1870,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1870,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1870,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1870,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1870,Ref!$A$34:$I$398,8,0))",
    "K: =\"SS\"&VLOOKUP(E1870,'up date Ref2026'!AB51:AC52,2,0)"
   ]
  },
@@ -4323,7 +3003,6 @@
   "doc": "P174",
   "market": "CND",
   "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1871,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1871,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1871,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1871,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1871,Ref!$A$34:$I$398,8,0))",
    "K: =\"SS\"&VLOOKUP(E1871,'up date Ref2026'!AB51:AC52,2,0)"
   ]
  },
@@ -4332,304 +3011,7 @@
   "doc": "P174",
   "market": "USA",
   "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1872,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1872,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1872,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1872,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1872,Ref!$A$34:$I$398,8,0))",
    "K: =\"SS\"&VLOOKUP(E1872,'up date Ref2026'!AB51:AC52,2,0)"
-  ]
- },
- {
-  "row": 1893,
-  "doc": "P155",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1893,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1893,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1893,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1893,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1893,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1894,
-  "doc": "P155",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1894,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1894,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1894,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1894,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1894,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1895,
-  "doc": "P156",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1895,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1895,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1895,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1895,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1895,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1896,
-  "doc": "P156",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1896,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1896,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1896,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1896,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1896,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1897,
-  "doc": "P157",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1897,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1897,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1897,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1897,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1897,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1898,
-  "doc": "P158",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1898,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1898,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1898,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1898,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1898,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1899,
-  "doc": "P158",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1899,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1899,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1899,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1899,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1899,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1900,
-  "doc": "P159",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1900,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1900,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1900,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1900,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1900,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1901,
-  "doc": "P159",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1901,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1901,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1901,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1901,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1901,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1902,
-  "doc": "P160",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1902,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1902,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1902,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1902,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1902,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1903,
-  "doc": "P160",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1903,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1903,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1903,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1903,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1903,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1904,
-  "doc": "P161",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1904,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1904,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1904,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1904,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1904,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1905,
-  "doc": "P162",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1905,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1905,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1905,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1905,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1905,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1906,
-  "doc": "P162",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1906,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1906,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1906,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1906,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1906,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1907,
-  "doc": "P163",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1907,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1907,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1907,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1907,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1907,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1908,
-  "doc": "P163",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1908,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1908,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1908,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1908,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1908,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1909,
-  "doc": "P164",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1909,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1909,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1909,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1909,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1909,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1910,
-  "doc": "P164",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1910,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1910,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1910,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1910,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1910,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1912,
-  "doc": "P175",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1912,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1912,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1912,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1912,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1912,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1913,
-  "doc": "P176",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1913,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1913,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1913,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1913,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1913,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1914,
-  "doc": "P176",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1914,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1914,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1914,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1914,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1914,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1915,
-  "doc": "P176",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1915,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1915,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1915,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1915,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1915,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1916,
-  "doc": "P177",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1916,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1916,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1916,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1916,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1916,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1917,
-  "doc": "P177",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1917,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1917,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1917,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1917,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1917,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1918,
-  "doc": "P178",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1918,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1918,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1918,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1918,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1918,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1919,
-  "doc": "P178",
-  "market": "CND",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1919,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1919,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1919,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1919,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1919,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1920,
-  "doc": "P178",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1920,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1920,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1920,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1920,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1920,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1928,
-  "doc": "P358",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1928,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1928,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1928,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1928,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1928,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1929,
-  "doc": "P359",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1929,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1929,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1929,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1929,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1929,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1930,
-  "doc": "P360",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1930,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1930,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1930,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1930,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1930,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1931,
-  "doc": "P361",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1931,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1931,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1931,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1931,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1931,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1936,
-  "doc": "P380",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1936,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1936,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1936,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1936,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1936,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1937,
-  "doc": "P381",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1937,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1937,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1937,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1937,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1937,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1938,
-  "doc": "P382",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1938,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1938,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1938,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1938,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1938,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1939,
-  "doc": "P383",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1939,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1939,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1939,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1939,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1939,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1940,
-  "doc": "P384",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1940,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1940,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1940,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1940,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1940,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1941,
-  "doc": "P385",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1941,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1941,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1941,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1941,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1941,Ref!$A$34:$I$398,8,0))"
   ]
  },
  {
@@ -4637,7 +3019,6 @@
   "doc": "P412",
   "market": "USA",
   "items": [
-   "J: =IF(DAY(VLOOKUP($C1953,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1953,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1953,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1953,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1953,Ref!$A$34:$I$398,8,0))",
    "K: =\"S\"&HLOOKUP(YEAR($C1953),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C1953),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C1953),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E1953,'up date Ref2026'!AB51:AC53,2,0)&\" HH:MM\""
   ]
  },
@@ -4646,72 +3027,7 @@
   "doc": "P413",
   "market": "USA",
   "items": [
-   "J: =IF(DAY(VLOOKUP($C1954,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1954,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1954,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1954,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1954,Ref!$A$34:$I$398,8,0))",
    "K: =\"S\"&HLOOKUP(YEAR($C1954),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C1954),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C1954),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E1954,'up date Ref2026'!AB51:AC53,2,0)&\" HH:MM\""
-  ]
- },
- {
-  "row": 1956,
-  "doc": "P415",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1956,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1956,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1956,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1956,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1956,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1957,
-  "doc": "P416",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1957,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1957,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1957,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1957,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1957,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1958,
-  "doc": "P605",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1958,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1958,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1958,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1958,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1958,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1959,
-  "doc": "P421",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1959,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1959,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1959,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1959,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1959,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1960,
-  "doc": "P422",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1960,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1960,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1960,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1960,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1960,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1961,
-  "doc": "P423",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1961,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1961,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1961,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1961,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1961,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1962,
-  "doc": "P424",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1962,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1962,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1962,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1962,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1962,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1963,
-  "doc": "P425",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1963,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1963,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1963,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1963,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1963,Ref!$A$34:$I$398,8,0))"
   ]
  },
  {
@@ -4719,40 +3035,7 @@
   "doc": "P426",
   "market": "USA",
   "items": [
-   "J: =IF(DAY(VLOOKUP($C1964,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1964,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1964,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1964,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1964,Ref!$A$34:$I$398,8,0))",
    "K: =\"S\"&HLOOKUP(YEAR($C1964),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C1964),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C1964),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E1964,'up date Ref2026'!AB51:AC53,2,0)&\" HH:MM\""
-  ]
- },
- {
-  "row": 1965,
-  "doc": "P497",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1965,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1965,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1965,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1965,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1965,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1966,
-  "doc": "P498",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1966,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1966,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1966,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1966,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1966,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1967,
-  "doc": "P499",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C1967,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1967,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1967,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1967,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1967,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 1975,
-  "doc": "P517",
-  "market": "USA",
-  "items": [
-   "J: =\"BBD:\"&IF(DAY(VLOOKUP($C1975,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C1975,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C1975,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C1975,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C1975,Ref!$A$34:$I$398,8,0))"
   ]
  },
  {
@@ -4844,43 +3127,10 @@
   ]
  },
  {
-  "row": 2018,
-  "doc": "P619",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C2018,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2018,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2018,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2018,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2018,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 2019,
-  "doc": "P620",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C2019,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2019,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2019,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2019,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2019,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 2020,
-  "doc": "P621",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C2020,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2020,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2020,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2020,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2020,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
-  "row": 2021,
-  "doc": "P622",
-  "market": "USA",
-  "items": [
-   "J: =IF(DAY(VLOOKUP($C2021,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2021,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2021,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2021,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2021,Ref!$A$34:$I$398,8,0))"
-  ]
- },
- {
   "row": 2022,
   "doc": "P623",
   "market": "USA",
   "items": [
-   "J: =IF(DAY(VLOOKUP($C2022,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2022,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2022,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2022,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2022,Ref!$A$34:$I$398,8,0))",
    "K: =\"S\"&HLOOKUP(YEAR($C2022),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C2022),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C2022),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E2022,'up date Ref2026'!AB51:AC53,2,0)&\"HH:MM\""
   ]
  },
@@ -4889,7 +3139,6 @@
   "doc": "P624",
   "market": "USA",
   "items": [
-   "J: =IF(DAY(VLOOKUP($C2023,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2023,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2023,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2023,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2023,Ref!$A$34:$I$398,8,0))",
    "K: =\"S\"&HLOOKUP(YEAR($C2023),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C2023),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C2023),Ref!$G$8:$AK$9,2,0)&\"S\"&VLOOKUP(E2023,'up date Ref2026'!AB51:AC53,2,0)&\"HH:MM\""
   ]
  },
@@ -5102,54 +3351,6 @@
   ]
  },
  {
-  "row": 2084,
-  "doc": "P308",
-  "market": "Korea",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2084),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2084,Ref!$A$34:$M$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E449,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2084"
-  ]
- },
- {
-  "row": 2085,
-  "doc": "P309",
-  "market": "Korea",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2085),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2085,Ref!$A$34:$M$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E450,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2085"
-  ]
- },
- {
-  "row": 2086,
-  "doc": "P310",
-  "market": "Korea",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2086),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2086,Ref!$A$34:$M$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E451,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2086"
-  ]
- },
- {
-  "row": 2087,
-  "doc": "P311",
-  "market": "Korea",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2087),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2087,Ref!$A$34:$M$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E452,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2087"
-  ]
- },
- {
-  "row": 2088,
-  "doc": "P312",
-  "market": "Korea",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2088),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2088,Ref!$A$34:$M$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E458,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2088"
-  ]
- },
- {
-  "row": 2089,
-  "doc": "P313",
-  "market": "Korea",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2089),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2089,Ref!$A$34:$M$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E459,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2089"
-  ]
- },
- {
   "row": 2093,
   "doc": "R086",
   "market": "China",
@@ -5195,54 +3396,6 @@
   "market": "China",
   "items": [
    "L: =\"EXP:\"&YEAR(VLOOKUP($C2098,Ref!$A$34:$I$398,8,0))&\"/\"&IF(MONTH(VLOOKUP($C2098,Ref!$A$34:$M$398,13,0))<10,\"0\"&MONTH(VLOOKUP($C2098,Ref!$A$34:$M$398,13,0)),MONTH(VLOOKUP($C2098,Ref!$A$34:$M$398,13,0)))&\"/\"&IF(DAY(VLOOKUP($C2098,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2098,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2098,Ref!$A$34:$I$398,8,0)))"
-  ]
- },
- {
-  "row": 2099,
-  "doc": "R081",
-  "market": "China-EU",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2099),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2099,Ref!$A$34:$M$398,3,0)&\"HHmm\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E1845,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2099"
-  ]
- },
- {
-  "row": 2100,
-  "doc": "R081",
-  "market": "Singapore-EU",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2100),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2100,Ref!$A$34:$M$398,3,0)&\"HHmm\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E1846,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2100"
-  ]
- },
- {
-  "row": 2101,
-  "doc": "R081",
-  "market": "Australia",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2101),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2101,Ref!$A$34:$M$398,3,0)&\"HHmm\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E1847,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2101"
-  ]
- },
- {
-  "row": 2102,
-  "doc": "R085 ",
-  "market": "China-EU",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2102),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2102,Ref!$A$34:$M$398,3,0)&\"HHmm\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E1851,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2102"
-  ]
- },
- {
-  "row": 2103,
-  "doc": "R085 ",
-  "market": "Singapore-EU",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2103),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2103,Ref!$A$34:$M$398,3,0)&\"HHmm\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E1852,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2103"
-  ]
- },
- {
-  "row": 2104,
-  "doc": "R085 ",
-  "market": "Australia",
-  "items": [
-   "J: =HLOOKUP(YEAR($C2104),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2104,Ref!$A$34:$M$398,3,0)&\"HHmm\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E1853,Ref!$G$11:$BC$15,2,0)&\"-\"&$P2104"
   ]
  },
  {
@@ -5316,95 +3469,6 @@
   "market": "Taiwan",
   "items": [
    "K: =\"EXP:\"&YEAR($C2152-1)+3&\".\"&IF(MONTH($C2152-1)<10,\"0\"&MONTH($C2152-1),MONTH($C2152-1))&\".\"&IF(DAY($C2152-1)<10,\"0\"&DAY($C2152-1),DAY($C2152-1))&\" \"&$P2152"
-  ]
- },
- {
-  "row": 2153,
-  "doc": "S074",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2153,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2153),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2153,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2153,Ref!$G$11:$BA$13,2,0)&\" \"&P2153"
-  ]
- },
- {
-  "row": 2154,
-  "doc": "S100",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2154)<10,\"0\"&DAY($C2154),DAY($C2154))&\" \"&HLOOKUP(MONTH($C2154),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2154)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2154),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2154,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2154,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2154,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2154"
-  ]
- },
- {
-  "row": 2155,
-  "doc": "S101",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2155)<10,\"0\"&DAY($C2155),DAY($C2155))&\" \"&HLOOKUP(MONTH($C2155),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2155)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2155),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2155,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2155,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2155,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2155"
-  ]
- },
- {
-  "row": 2156,
-  "doc": "S102",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2156)<10,\"0\"&DAY($C2156),DAY($C2156))&\" \"&HLOOKUP(MONTH($C2156),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2156)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2156),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2156,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2156,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2156,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2156"
-  ]
- },
- {
-  "row": 2157,
-  "doc": "S103",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2157)<10,\"0\"&DAY($C2157),DAY($C2157))&\" \"&HLOOKUP(MONTH($C2157),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2157)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2157),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2157,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2157,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2157,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2157"
-  ]
- },
- {
-  "row": 2158,
-  "doc": "S118",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2158)<10,\"0\"&DAY($C2158),DAY($C2158))&\" \"&HLOOKUP(MONTH($C2158),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2158)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2158),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2158,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2158,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2158,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2158"
-  ]
- },
- {
-  "row": 2159,
-  "doc": "S119",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2159)<10,\"0\"&DAY($C2159),DAY($C2159))&\" \"&HLOOKUP(MONTH($C2159),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2159)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2159),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2159,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2159,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2159,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2159"
-  ]
- },
- {
-  "row": 2160,
-  "doc": "S120",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2160)<10,\"0\"&DAY($C2160),DAY($C2160))&\" \"&HLOOKUP(MONTH($C2160),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2160)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2160),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2160,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2160,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2160,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2160"
-  ]
- },
- {
-  "row": 2161,
-  "doc": "S121",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2161)<10,\"0\"&DAY($C2161),DAY($C2161))&\" \"&HLOOKUP(MONTH($C2161),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2161)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2161),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2161,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2161,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2161,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2161"
-  ]
- },
- {
-  "row": 2162,
-  "doc": "S122",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2162)<10,\"0\"&DAY($C2162),DAY($C2162))&\" \"&HLOOKUP(MONTH($C2162),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2162)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2162),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2162,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2162,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2162,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2162"
   ]
  },
  {
@@ -5622,70 +3686,6 @@
   ]
  },
  {
-  "row": 2188,
-  "doc": "S094",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2188,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2188),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2188,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2188,Ref!$G$11:$BA$13,2,0)&\" \"&P2188"
-  ]
- },
- {
-  "row": 2189,
-  "doc": "S095",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2189,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2189),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2189,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2189,Ref!$G$11:$BA$13,2,0)&\" \"&P2189"
-  ]
- },
- {
-  "row": 2202,
-  "doc": "S129",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2202,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2202),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2202,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2202,Ref!$G$11:$BA$13,2,0)&\" \"&P2202"
-  ]
- },
- {
-  "row": 2203,
-  "doc": "S130",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2203,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2203),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2203,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2203,Ref!$G$11:$BA$13,2,0)&\" \"&P2203"
-  ]
- },
- {
-  "row": 2204,
-  "doc": "S131",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2204,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2204),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2204,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2204,Ref!$G$11:$BA$13,2,0)&\" \"&P2204"
-  ]
- },
- {
-  "row": 2205,
-  "doc": "S132",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2205,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2205),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2205,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2205,Ref!$G$11:$BA$13,2,0)&\" \"&P2205"
-  ]
- },
- {
-  "row": 2206,
-  "doc": "S133",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2206,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2206),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2206,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2206,Ref!$G$11:$BA$13,2,0)&\" \"&P2206"
-  ]
- },
- {
-  "row": 2207,
-  "doc": "S134",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2207,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2207),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2207,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2207,Ref!$G$11:$BA$13,2,0)&\" \"&P2207"
-  ]
- },
- {
   "row": 2212,
   "doc": "S150",
   "market": "China",
@@ -5755,68 +3755,6 @@
   "items": [
    "J: =Q2219&\" S\"&HLOOKUP(YEAR($C2219),Ref!$M$2:$R$5,3,0)&HLOOKUP(MONTH($C2219),Ref!$U$2:$AF$6,2,0)&HLOOKUP(DAY($C2219),Ref!$G$8:$AK$9,2,0)&HLOOKUP($D2219,Ref!$A$8:$B$11,2,0)&HLOOKUP($E2219,Ref!$G$11:$BC$15,2,0)",
    "L: =\"BEST BY:\"&YEAR($C2219)+3&\" \"&HLOOKUP(MONTH($C2219),Ref!$U$2:$AF$4,3,0)&\" \"&IF((DAY(C2219)-1)<10,\"0\"&(DAY(C2219)-1),(DAY(C2219)-1))"
-  ]
- },
- {
-  "row": 2233,
-  "doc": "S253",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2233)<10,\"0\"&DAY($C2233),DAY($C2233))&\" \"&HLOOKUP(MONTH($C2233),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2233)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2233),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2233,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2233,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2233,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2233"
-  ]
- },
- {
-  "row": 2234,
-  "doc": "S254",
-  "market": "USA",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2234)<10,\"0\"&DAY($C2234),DAY($C2234))&\" \"&HLOOKUP(MONTH($C2234),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2234)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2234),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2234,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2234,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2234,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2234"
-  ]
- },
- {
-  "row": 2235,
-  "doc": "S255",
-  "market": "USA",
-  "items": [
-   "K: =VLOOKUP($C2235,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2235),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2235,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2235,Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2236,
-  "doc": "S256",
-  "market": "USA",
-  "items": [
-   "J: =\"\"&IF(DAY(VLOOKUP($C2236,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2236,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2236,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2236,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2236,Ref!$A$34:$I$398,8,0))&\" TA\"",
-   "K: =VLOOKUP($C2236,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2236),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2236,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2236,Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2237,
-  "doc": "S257",
-  "market": "USA",
-  "items": [
-   "J: =\"\"&IF(DAY(VLOOKUP($C2237,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2237,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2237,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2237,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2237,Ref!$A$34:$I$398,8,0))&\" TA\"",
-   "K: =VLOOKUP($C2237,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2237),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2237,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2237,Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2238,
-  "doc": "S291",
-  "market": "USA",
-  "items": [
-   "J: =\"\"&IF(DAY(VLOOKUP($C2238,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2238,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2238,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2238,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2238,Ref!$A$34:$I$398,8,0))&\" TA\"",
-   "K: =VLOOKUP($C2238,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2238),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2238,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2238,Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2239,
-  "doc": "S292",
-  "market": "USA",
-  "items": [
-   "J: =\"\"&IF(DAY(VLOOKUP($C2239,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2239,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2239,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2239,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2239,Ref!$A$34:$I$398,8,0))&\" TA\"",
-   "K: =VLOOKUP($C2239,Ref!$A$33:$G$399,3,0)&HLOOKUP(YEAR(C2239),Ref!$M$2:$R$5,4,0)&\" \"&HLOOKUP($D2239,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2239,Ref!$G$11:$BA$13,2,0)"
   ]
  },
  {
@@ -5900,69 +3838,6 @@
   ]
  },
  {
-  "row": 2250,
-  "doc": "S344",
-  "market": "Saudi Arabia",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2250)<10,\"0\"&DAY($C2250),DAY($C2250))&\" \"&HLOOKUP(MONTH($C2250),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2250)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2250),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2250,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2250,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2250,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2250"
-  ]
- },
- {
-  "row": 2251,
-  "doc": "S345",
-  "market": "Saudi Arabia",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2251)<10,\"0\"&DAY($C2251),DAY($C2251))&\" \"&HLOOKUP(MONTH($C2251),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2251)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2251),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2251,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2251,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2251,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2251"
-  ]
- },
- {
-  "row": 2252,
-  "doc": "S346",
-  "market": "Saudi Arabia",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2252)<10,\"0\"&DAY($C2252),DAY($C2252))&\" \"&HLOOKUP(MONTH($C2252),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2252)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2252),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2252,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2252,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2252,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2252"
-  ]
- },
- {
-  "row": 2253,
-  "doc": "S347",
-  "market": "Saudi Arabia",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2253)<10,\"0\"&DAY($C2253),DAY($C2253))&\" \"&HLOOKUP(MONTH($C2253),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2253)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2253),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2253,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2253,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2253,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2253"
-  ]
- },
- {
-  "row": 2254,
-  "doc": "S348",
-  "market": "Saudi Arabia",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2254)<10,\"0\"&DAY($C2254),DAY($C2254))&\" \"&HLOOKUP(MONTH($C2254),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2254)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2254),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2254,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2254,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2254,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2254"
-  ]
- },
- {
-  "row": 2255,
-  "doc": "S349",
-  "market": "Saudi Arabia",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2255)<10,\"0\"&DAY($C2255),DAY($C2255))&\" \"&HLOOKUP(MONTH($C2255),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2255)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2255),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2255,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2255,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2255,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2255"
-  ]
- },
- {
-  "row": 2256,
-  "doc": "S350",
-  "market": "Saudi Arabia",
-  "items": [
-   "J: =\"Best By \"&IF(DAY($C2256)<10,\"0\"&DAY($C2256),DAY($C2256))&\" \"&HLOOKUP(MONTH($C2256),Ref!$U$2:$AF$4,3,0)&\" \"&(YEAR($C2256)+3)&\" TA\"",
-   "K: =HLOOKUP(YEAR(C2256),Ref!$M$2:$R$5,4,0)&VLOOKUP($C2256,Ref!$A$33:$G$399,3,0)&\" \"&HLOOKUP($D2256,Ref!$A$8:$C$10,2,0)&\" \"&HLOOKUP($E2256,Ref!$G$11:$BA$13,2,0)&\" HH:MM \"&P2256"
-  ]
- },
- {
   "row": 2257,
   "doc": "Z138",
   "market": "USA",
@@ -6024,198 +3899,6 @@
   "market": "USA",
   "items": [
    "J: =RIGHT(YEAR($C2295),1)&VLOOKUP($C2295,Ref!$A$34:$I$398,3,0)&VLOOKUP(E2295,'up date Ref2026'!AB29:AC40,2,0)&\"HHMM\""
-  ]
- },
- {
-  "row": 2377,
-  "doc": "S298",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2377&\" \"&HLOOKUP($D2377,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2377,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2378,
-  "doc": "S299",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2378&\" \"&HLOOKUP($D2378,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2378,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2379,
-  "doc": "S300",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2379&\"\"&HLOOKUP($D2379,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2379,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2380,
-  "doc": "S301",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2380&\" \"&HLOOKUP($D2380,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2380,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2381,
-  "doc": "S302",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2381&\" \"&HLOOKUP($D2381,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2381,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2382,
-  "doc": "S303",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2382&\" \"&HLOOKUP($D2382,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2382,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2383,
-  "doc": "S304",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2383&\" \"&HLOOKUP($D2383,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2383,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2384,
-  "doc": "S305",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2384&\" \"&HLOOKUP($D2384,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2384,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2385,
-  "doc": "S306",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2385&\" \"&HLOOKUP($D2385,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2385,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2386,
-  "doc": "S307",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2386&\" \"&HLOOKUP($D2386,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2386,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2387,
-  "doc": "S308",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2387&\" \"&HLOOKUP($D2387,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2387,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2388,
-  "doc": "S309",
-  "market": "Chile",
-  "items": [
-   "K: =\"\"&P2388&\" \"&HLOOKUP($D2388,[4]Ref!$A$8:$C$10,2,0)&\"\"&HLOOKUP($E2388,[4]Ref!$G$11:$BA$13,2,0)"
-  ]
- },
- {
-  "row": 2401,
-  "doc": "T080",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C2401,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2401,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2401,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2401,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2401,Ref!$A$34:$I$398,8,0))&\" \"&P2401"
-  ]
- },
- {
-  "row": 2402,
-  "doc": "T081",
-  "market": "Taiwan",
-  "items": [
-   "L: =\"EXP:\"&IF(DAY(VLOOKUP($C2402,Ref!$A$34:$I$398,8,0))<10,\"0\"&DAY(VLOOKUP($C2402,Ref!$A$34:$I$398,8,0)),DAY(VLOOKUP($C2402,Ref!$A$34:$I$398,8,0)))&\" \"&HLOOKUP(MONTH(VLOOKUP($C2402,Ref!$A$34:$I$398,8,0)),Ref!$U$2:$AF$6,3,0)&\" \"&YEAR(VLOOKUP($C2402,Ref!$A$34:$I$398,8,0))&\" \"&P2402"
-  ]
- },
- {
-  "row": 2512,
-  "doc": "V081",
-  "market": " Dubai",
-  "items": [
-   "J: =RIGHT(YEAR($C2512),1)&VLOOKUP($C2512,Ref!$A$34:$I$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2512,Ref!$G$11:$BC$12,2,0)&P2512"
-  ]
- },
- {
-  "row": 2513,
-  "doc": "V082",
-  "market": " Dubai",
-  "items": [
-   "J: =RIGHT(YEAR($C2513),1)&VLOOKUP($C2513,Ref!$A$34:$I$398,3,0)&\"HHMM\"&HLOOKUP('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$E2513,Ref!$G$11:$BC$12,2,0)&P2513"
-  ]
- },
- {
-  "row": 2547,
-  "doc": "W383",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2547),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2547)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2547),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2547))&\", \"&YEAR($C2547)+2"
-  ]
- },
- {
-  "row": 2548,
-  "doc": "W385",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2548),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2548)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2548),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2548))&\", \"&YEAR($C2548)+2"
-  ]
- },
- {
-  "row": 2549,
-  "doc": "W386",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2549),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2549)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2549),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2549))&\", \"&YEAR($C2549)+2"
-  ]
- },
- {
-  "row": 2550,
-  "doc": "W218",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2550),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2550)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2550),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2550))&\", \"&YEAR($C2550)+2"
-  ]
- },
- {
-  "row": 2551,
-  "doc": "W219",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2551),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2551)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2551),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2551))&\", \"&YEAR($C2551)+2"
-  ]
- },
- {
-  "row": 2552,
-  "doc": "W221",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2552),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2552)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2552),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2552))&\", \"&YEAR($C2552)+2"
-  ]
- },
- {
-  "row": 2553,
-  "doc": "W236",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2553),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2553)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2553),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2553))&\", \"&YEAR($C2553)+2"
-  ]
- },
- {
-  "row": 2556,
-  "doc": "W235",
-  "market": "USA",
-  "items": [
-   "J: =\"BBE:\"&HLOOKUP(MONTH($C2556),Ref!$U$2:$AF$6,3,0)&\" \"&IF(DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2556)<10,\"0\"&DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2556),DAY('3.) DATABASE-ห้ามพิมพ์ลงหน้านี้'!$C2556))&\", \"&YEAR($C2556)+2"
   ]
  },
  {
