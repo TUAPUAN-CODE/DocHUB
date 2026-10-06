@@ -103,4 +103,4 @@ async function main() {
   const r = await api('POST', `/folders/${tree}/pdf-master`, { masterFileId: master.id });
   console.log(`\nเสร็จ — สร้างไฟล์รายเดือนใหม่ ${made} ไฟล์ (มีอยู่แล้ว ${skipped}) · ตั้งรูปแบบ PDF กลางให้ ${r.files} ไฟล์ (แก้ที่ "${MASTER_FILE}" ที่เดียว ทุกไฟล์เปลี่ยนตาม)`);
 }
-main().catch((e) => { console.error('\n✗', e.message); process.exit(1); });
+main().catch((e) => { console.error('\n✗', e.message); process.exitCode = 1; });

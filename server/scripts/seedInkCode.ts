@@ -130,4 +130,4 @@ async function main() {
   const review: any[] = read('needs_review.json');
   console.log(`\nเสร็จ. ผลิตภัณฑ์ ${products.length} แถว · แถวที่แปลงสูตรโค้ดอัตโนมัติไม่ได้ ${review.length} แถว (ดูคอลัมน์ "สูตรเดิมที่ต้องตรวจ" ใน InkCode - Master Database)`);
 }
-main().catch((e) => { console.error('✗', e.message); process.exit(1); });
+main().catch((e) => { console.error('✗', e.message); process.exitCode = 1; });
