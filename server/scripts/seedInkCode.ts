@@ -5,6 +5,7 @@
  *   2) npx ts-node --transpile-only scripts/seedInkCode.ts
  *        env: DOCHUB_URL=http://172.48.0.116:4000/api  DOCHUB_USER=<admin or master>  DOCHUB_PASSWORD=...
  *        add  --dry   to only print what would be created
+ *        add  --replace   when "InkCode" already exists: rename it to "InkCode (เก่า …)" first and build everything new (nothing is deleted)
  *
  * It talks to the normal HTTP API (same validation / permissions / audit as the screens), so it needs no SQL access.
  * Nothing is deleted or overwritten: if a file of the same name already exists in the folder it is skipped.
@@ -15,6 +16,7 @@ import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLU
 
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const DRY = process.argv.includes('--dry');
+const REPLACE = process.argv.includes('--replace');   // rename an existing "InkCode" folder to "InkCode (เก่า …)" and build a new one (nothing is deleted)
 const DATA = path.resolve(__dirname, '../../scripts/inkcode/data');
 const read = (f: string) => JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));
 
@@ -49,7 +51,12 @@ async function findOrCreateFolder(name: string): Promise<string> {
   if (DRY) { console.log(`[dry] โฟลเดอร์ "${name}"`); return 'dry-folder'; }
   const tree: any[] = await api('GET', '/folders/tree');
   const hit = tree.find((f) => f.name === name && !f.parentId);
-  if (hit) { console.log(`• โฟลเดอร์ "${name}" มีอยู่แล้ว — ใช้ต่อ`); return hit.id; }
+  if (hit && REPLACE) {
+    const d = new Date(); const p2 = (n: number) => String(n).padStart(2, '0');
+    const old = `${name} (เก่า ${p2(d.getDate())}${p2(d.getMonth() + 1)}${String(d.getFullYear()).slice(2)}-${p2(d.getHours())}${p2(d.getMinutes())})`;
+    await api('PUT', `/folders/${hit.id}`, { name: old });
+    console.log(`✓ เปลี่ยนชื่อโฟลเดอร์เดิม "${name}" → "${old}" (ข้อมูลเดิมยังอยู่)`);
+  } else if (hit) { console.log(`• โฟลเดอร์ "${name}" มีอยู่แล้ว — ใช้ต่อ`); return hit.id; }
   const f = await api('POST', '/folders', { name, description: 'ระบบออกโค้ด Ink (ใบออกโค้ดนอกแผน)', color: '#1552F0' });
   console.log(`✓ สร้างโฟลเดอร์ "${name}"`);
   return f.id;
