@@ -10,6 +10,7 @@ import { createRowTx } from '../../services/rowCreate';
 import { queryRows } from '../../services/rowQuery';
 import { emitToSheet } from '../../socket';
 import type { PlanItem } from './plan';
+import { normalizePlant } from './model';
 
 export const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
 
@@ -41,7 +42,7 @@ export async function linePlants(lineLookup: { sheetId: string; columnId: string
     const r = await queryRows(lineLookup.sheetId, cols, { page: p, pageSize: 1000 });
     for (const row of r.rows) {
       const v = row.values as Record<string, unknown>;
-      const plant = String(v[plantCol.column_id] ?? '').trim().toUpperCase();
+      const plant = normalizePlant(v[plantCol.column_id]);
       if (plant) out.set(norm(v[lineLookup.columnId]), plant);
     }
     if (r.rows.length < 1000) break;

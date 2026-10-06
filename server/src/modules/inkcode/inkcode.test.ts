@@ -153,3 +153,8 @@ test('plan drop folder: only settled .xlsx in <year>/<month>, not lock files or 
   assert.deepEqual(waitingFiles(dir), [a]);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('plant values of the line table map to the PF folders', async () => {
+  const { normalizePlant } = await import('./model');
+  for (const [a, b] of [['2', 'PF2'], [2, 'PF2'], ['PF1', 'PF1'], ['pf 2', 'PF2'], [' pf1 ', 'PF1'], ['', ''], ['X', 'X']] as const) assert.equal(normalizePlant(a), b);
+});

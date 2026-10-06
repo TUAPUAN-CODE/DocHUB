@@ -266,3 +266,10 @@ export function areaOf(line: string, product = ''): (typeof AREAS)[number] {
 }
 /** Plant written inside a line name of the plan, e.g. "Pouch PF2 ชั้นบน" → PF2 */
 export const plantInText = (s: string): string | null => { const m = /\bPF\s*(\d)\b/i.exec(s); return m ? `PF${m[1]}` : null; };
+
+/** Plant as written in the line table ("2", "PF2", "pf 2") → the folder name PF2; anything else is kept upper-case */
+export function normalizePlant(v: unknown): string {
+  const t = String(v ?? '').trim();
+  const d = /^(?:pf\s*)?(\d)$/i.exec(t);
+  return d ? `PF${d[1]}` : t.toUpperCase();
+}

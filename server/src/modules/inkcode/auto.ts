@@ -5,7 +5,7 @@ import { AuthUser, isBasicRole } from '../../middleware/auth';
 import { getFileRow, invalidateFolders } from '../../shared/permissions';
 import { duplicateFile } from '../../routes/files';
 import { annotate, context, dbPairs, insertItems, InsertResult, linePlants, norm } from './core';
-import { areaOf, AREAS, dayPath, plantInText, TREE } from './model';
+import { areaOf, AREAS, dayPath, normalizePlant, plantInText, TREE } from './model';
 import { withTx } from '../../config/db';
 import { insertColumn } from '../../services/structure';
 import { createRowTx } from '../../services/rowCreate';
@@ -48,7 +48,7 @@ export const sheetsOf = async (fileId: string) => (await q(`SELECT sheet_id, she
 export async function dayFile(user: AuthUser, plant: string, date: string, create: boolean, req?: Request): Promise<{ id: string | null; folderPath: string; created: boolean }> {
   const { tree, templateFileId } = await roots();
   const plantId = await folderChild(tree, plant);
-  if (!plantId) throw badRequest(`ไม่มีโฟลเดอร์ ${plant} ใน ${TREE.tree}`);
+  if (!plantId) throw badRequest(`ไม่มีโฟลเดอร์โรงงาน "${plant}" ใน ${TREE.tree} (มีเฉพาะ ${TREE.plants.join(', ')}) — ตรวจคอลัมน์ Plant ของไลน์ในตาราง ไลน์ หรือเลือกโรงงานเองในเมนู นำเข้าแผนผลิต`);
   const p = dayPath(date);
   const path = `${TREE.tree} / ${plant} / ${p.year} / ${p.month}`;
   let yearId = await folderChild(plantId, p.year);
@@ -80,7 +80,9 @@ async function prepare(user: AuthUser, buf: Buffer, o: AutoOptions) {
   const lineMap = o.lineMap ?? {}, plantMap = o.plantMap ?? {};
   const items = annotate(plan.items, pairs, known, plants, null).map((i) => {
     const line = lineMap[i.line] ?? i.line;
-    const plant = (plantMap[i.lineRaw] ?? plants.get(norm(line)) ?? plantInText(i.lineRaw) ?? plantInText(line) ?? null)?.toUpperCase() ?? null;
+    const found = plantMap[i.lineRaw] ?? plants.get(norm(line)) ?? plantInText(i.lineRaw) ?? plantInText(line) ?? null;
+    const np = found ? normalizePlant(found) : null;
+    const plant = np && (TREE.plants as readonly string[]).includes(np) ? np : null;   // a plant without a folder is listed as "unknown" instead of stopping the import
     return { ...i, line, plant, area: areaOf(line, i.product), otherPlant: false };
   });
   return { plan, date, items, ctx, known: ctx.knownLines };
