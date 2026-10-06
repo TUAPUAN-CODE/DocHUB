@@ -1,7 +1,7 @@
 /**
  * Builds the working tree of InkCode inside the existing "InkCode" folder:
  *
- *   InkCode / InkCode - ใบออกโค้ด / PF1 | PF2 / <ปี> / <เดือน> (โฟลเดอร์)  →  <YYYY-MM-DD> (1 ไฟล์ต่อวัน)  →  ชีต Pouch | Can | Cup | อื่นๆ
+ *   InkCode / InkCode - ใบออกโค้ด / PF1 | PF2 / <ปี> / <เดือน> (โฟลเดอร์)  →  <YYYY-MM-DD> (1 ไฟล์ต่อวัน)  →  ชีต Pouch DS | Pouch NS | Can DS | Can NS | Cup DS | Cup NS | อื่นๆ
  *   InkCode / InkCode - ใบออกโค้ด / แม่แบบ / แม่แบบรายวัน   (ไฟล์ต้นแบบของไฟล์รายวัน)
  *   InkCode / InkCode - ใบออกโค้ด / แผนผลิต / <ปี> / <เดือน>   (โฟลเดอร์ใน DocHUB สำหรับวางไฟล์แผนผลิต .xlsx — วางแล้วนำเข้าอัตโนมัติ)
  *
@@ -18,7 +18,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { AREAS, monthFolderName, TREE } from '../src/modules/inkcode/model';
+import { AREAS, DAY_SHEETS, monthFolderName, TREE } from '../src/modules/inkcode/model';
 
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const arg = (n: string, d: string) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
@@ -52,16 +52,31 @@ async function folder(parentId: string | null, name: string, desc?: string): Pro
   return f.id;
 }
 
-/** Day template: a copy of the Worksheet file whose sheet is renamed to the first area and copied (structure only) for the others */
+/**
+ * Day template: a copy of the Worksheet file whose sheets are DAY_SHEETS (every area split by shift). A template made before the split
+ * (sheets "Pouch", "Can", "Cup") is brought up to date: the old sheets are renamed "<area> DS" and the missing ones are copied from them.
+ * Day files that already exist are not touched (a missing sheet is added to them by the import).
+ */
 async function dayTemplate(folderId: string, masterFileId: string): Promise<string> {
-  const have = (await contents(folderId)).files.find((f) => f.name === TREE.dayTemplate);
-  if (have) return have.id;
-  const { id } = await api('POST', `/files/${masterFileId}/duplicate`, { name: TREE.dayTemplate, folderId, includeData: false });
-  const f = await api('GET', `/files/${id}`);
-  const first = f.sheets.find((s: any) => s.name === MASTER_SHEET) ?? f.sheets[0];
-  await api('PUT', `/sheets/${first.id}`, { name: AREAS[0] });
-  for (const area of AREAS.slice(1)) await api('POST', `/files/${id}/sheets`, { name: area, copyStructureFrom: first.id });
-  console.log(`✓ ไฟล์แม่แบบ "${TREE.dayTemplate}" (ชีต ${AREAS.join(', ')})`);
+  let id = (await contents(folderId)).files.find((f) => f.name === TREE.dayTemplate)?.id as string | undefined;
+  if (!id) {
+    id = (await api('POST', `/files/${masterFileId}/duplicate`, { name: TREE.dayTemplate, folderId, includeData: false })).id as string;
+    const first = (await api('GET', `/files/${id}`)).sheets.find((s: any) => s.name === MASTER_SHEET);
+    if (first) await api('PUT', `/sheets/${first.id}`, { name: DAY_SHEETS[0] });
+    console.log(`✓ ไฟล์แม่แบบ "${TREE.dayTemplate}"`);
+  }
+  let sheets = (await api('GET', `/files/${id}`)).sheets as { id: string; name: string }[];
+  for (const area of AREAS.filter((a) => a !== 'อื่นๆ')) {
+    const old = sheets.find((s) => s.name === area);
+    if (old && !sheets.some((s) => s.name === `${area} DS`)) { await api('PUT', `/sheets/${old.id}`, { name: `${area} DS` }); old.name = `${area} DS`; console.log(`✓ เปลี่ยนชื่อชีต ${area} → ${area} DS`); }
+  }
+  const src = sheets[0];
+  for (const name of DAY_SHEETS) {
+    if (sheets.some((s) => s.name === name)) continue;
+    await api('POST', `/files/${id}/sheets`, { name, copyStructureFrom: src.id });
+    console.log(`✓ เพิ่มชีต ${name} ในแม่แบบ`);
+  }
+  sheets = (await api('GET', `/files/${id}`)).sheets;
   return id;
 }
 
@@ -71,7 +86,7 @@ async function main() {
   const nFolders = PLANTS.length * (TO - FROM + 1) * 13;
   if (DRY) {
     console.log(`[dry] ${PLANTS.join(', ')} × ปี ${FROM}–${TO} = ${nFolders} โฟลเดอร์ (ปี + 12 เดือน) · ไฟล์รายวันสร้างเมื่อนำเข้าแผน${PRE ? ` · สร้างล่วงหน้าเดือน ${PRE}` : ''}`);
-    console.log(`[dry] ตัวอย่าง: ${TREE.tree} / ${PLANTS[0]} / ${FROM} / ${monthFolderName(10)} / ${FROM}-10-03 › ชีต ${AREAS.join(' | ')}`);
+    console.log(`[dry] ตัวอย่าง: ${TREE.tree} / ${PLANTS[0]} / ${FROM} / ${monthFolderName(10)} / ${FROM}-10-03 › ชีต ${DAY_SHEETS.join(' | ')}`);
     if (PLAN_DIR) console.log(`[dry] โฟลเดอร์วางแผน: ${PLAN_DIR}\\${FROM}\\${monthFolderName(1)} …`);
     return;
   }

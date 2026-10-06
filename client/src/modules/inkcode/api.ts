@@ -21,7 +21,7 @@ export const inkcodeApi = {
     post<PlanImportResult>('/inkcode/plan/import', form(file, sheetId, { date: o.date, onlyMatched: o.onlyMatched ? '1' : '0', onlyPlant: o.onlyPlant ? '1' : '0', allowOtherDate: o.allowOtherDate ? '1' : '0', lineMap: JSON.stringify(o.lineMap) }), { timeout: 300_000 }),
 };
 
-export interface AutoItem extends PlanItem { plant: string | null; area: string }
+export interface AutoItem extends PlanItem { plant: string | null; area: string; sheet: string }
 export interface AutoPreview { date: string; sheetName: string; warnings: string[]; knownLines: string[]; plants: string[]; areas: string[]; items: AutoItem[]; files: { plant: string; folderPath: string; fileName: string; exists: boolean; fileId: string | null }[] }
 export interface AutoTarget { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: { created: number; duplicate: number; skippedNotInDb: number; skippedOtherPlant: number; failed: { doc: string; line: string; reason: string }[] } }
 export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string }

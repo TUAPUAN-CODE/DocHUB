@@ -1,15 +1,15 @@
 /**
- * Sets the plant (PF1 / PF2) and the area (Pouch / Can / Cup / …) of every production line in the line table
- * ("InkCode - รหัสอ้างอิง" › ไลน์) from the factory's rule (LINE_SPEC in src/modules/inkcode/model.ts), and adds the lines that are missing
- * (Can A, Spout 1-3, Pouch PF2 ชั้นบน). It adds the columns "โรงงาน" and "พื้นที่" when the sheet does not have them and writes only those
- * two columns — the old "Plant" / "รหัสไลน์" columns (they feed the code text) are not touched.
+ * Puts the factory's rule "which plant (PF1 / PF2) and which area (Pouch / Can / Cup) is each production line" into the sheet
+ * "ตั้งค่าไลน์" of "InkCode - รหัสอ้างอิง" (made here when it does not exist) and adds the lines that are missing from the sheet "ไลน์"
+ * (Can A, Spout 1-3, Pouch PF2 ชั้นบน) so they appear in the drop-downs. The plan import reads the plant / area from "ตั้งค่าไลน์".
+ * The rule is LINE_SPEC in src/modules/inkcode/model.ts. Existing columns of "ไลน์" (Plant, รหัสไลน์ …, they feed the code text) are not touched.
  *
  *   npx ts-node --transpile-only scripts/fixInkCodeLines.ts [--dry]
  *        env: DOCHUB_URL=http://host:4000/api  DOCHUB_USER=<admin or master>  DOCHUB_PASSWORD=...
  *
  * Safe to run again (only differences are written). Goes through the normal API: validation and the audit log apply.
  */
-import { LINE_SPEC, SHEETS } from '../src/modules/inkcode/model';
+import { LINE_SPEC, REF_SHEETS, SHEETS } from '../src/modules/inkcode/model';
 
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const DRY = process.argv.includes('--dry');
@@ -24,6 +24,16 @@ async function api<T = any>(method: string, url: string, body?: unknown): Promis
     return j.data as T;
   }
 }
+const colMap = async (sheetId: string): Promise<Map<string, string>> => new Map((await api('GET', `/sheets/${sheetId}`)).columns.map((c: any) => [c.name, c.id]));
+async function allRows(sheetId: string) {
+  const rows: { id: string; values: Record<string, unknown> }[] = [];
+  for (let p = 1; p <= 20; p++) {
+    const r = await api('POST', `/sheets/${sheetId}/rows/query`, { page: p, pageSize: 1000, sorts: [], filters: [] });
+    rows.push(...r.rows);
+    if (r.rows.length < 1000) break;
+  }
+  return rows;
+}
 
 async function main() {
   const user = process.env.DOCHUB_USER, password = process.env.DOCHUB_PASSWORD;
@@ -33,46 +43,48 @@ async function main() {
   if (!root) throw new Error(`ไม่พบโฟลเดอร์ ${ROOT}`);
   const file = (await api('GET', `/folders/${root.id}/contents`)).files.find((f: any) => f.name === REF_FILE);
   if (!file) throw new Error(`ไม่พบไฟล์ "${REF_FILE}"`);
-  const sheet = (await api('GET', `/files/${file.id}`)).sheets.find((s: any) => s.name === SHEETS.line);
-  if (!sheet) throw new Error(`ไม่พบชีต "${SHEETS.line}"`);
+  let sheets = (await api('GET', `/files/${file.id}`)).sheets as { id: string; name: string }[];
+  const lineSheet = sheets.find((s) => s.name === SHEETS.line);
+  if (!lineSheet) throw new Error(`ไม่พบชีต "${SHEETS.line}"`);
 
-  let cols: Map<string, string> = new Map((await api('GET', `/sheets/${sheet.id}`)).columns.map((c: any) => [c.name, c.id]));
-  if (!cols.has('ไลน์')) throw new Error('ชีตไลน์ไม่มีคอลัมน์ "ไลน์"');
-  for (const name of ['โรงงาน', 'พื้นที่']) {
-    if (cols.has(name)) continue;
-    console.log(`${DRY ? '[dry] ' : '+ '}เพิ่มคอลัมน์ "${name}"`);
-    if (!DRY) await api('POST', `/sheets/${sheet.id}/columns`, { name, dataType: 'varchar', width: 100, isRequired: false });
+  // 1) the sheet "ตั้งค่าไลน์"
+  let setup = sheets.find((s) => s.name === SHEETS.lineSetup);
+  if (!setup) {
+    console.log(`${DRY ? '[dry] ' : '+ '}สร้างชีต "${SHEETS.lineSetup}" ในไฟล์ ${REF_FILE}`);
+    if (!DRY) {
+      const def = REF_SHEETS.find((s) => s.name === SHEETS.lineSetup)!;
+      const columns = def.columns.map((c) => ({ name: c.name, dataType: c.type, width: c.width ?? 140, isRequired: !!c.required, ...(c.options ? { options: c.options.map((o) => ({ value: o, label: o })) } : {}) }));
+      setup = await api('POST', `/files/${file.id}/sheets`, { name: SHEETS.lineSetup, columns });
+    }
   }
-  if (!DRY) cols = new Map((await api('GET', `/sheets/${sheet.id}`)).columns.map((c: any) => [c.name, c.id]));
-  const cLine = cols.get('ไลน์')!, cPlant = cols.get('โรงงาน'), cArea = cols.get('พื้นที่');
-
-  const rows: { id: string; values: Record<string, unknown> }[] = [];
-  for (let p = 1; p <= 20; p++) {
-    const r = await api('POST', `/sheets/${sheet.id}/rows/query`, { page: p, pageSize: 1000, sorts: [], filters: [] });
-    rows.push(...r.rows);
-    if (r.rows.length < 1000) break;
-  }
-  const byLine = new Map(rows.map((r) => [String(r.values[cLine] ?? '').trim().toLowerCase(), r]));
+  const setupCols = setup ? await colMap(setup.id) : new Map<string, string>();
+  const setupRows = setup ? await allRows(setup.id) : [];
+  const cl = setupCols.get('ไลน์'), cp = setupCols.get('โรงงาน'), ca = setupCols.get('พื้นที่');
+  const byLine = new Map(setupRows.map((r) => [String(r.values[cl ?? ''] ?? '').trim().toLowerCase(), r]));
   const updates: { rowId: string; columnId: string; value: string }[] = [];
-  const adds: string[] = [];
+  const addSetup: typeof LINE_SPEC = [];
   for (const sp of LINE_SPEC) {
     const row = byLine.get(sp.line.toLowerCase());
-    if (!row) { adds.push(sp.line); continue; }
-    if (cPlant && row.values[cPlant] !== sp.plant) updates.push({ rowId: row.id, columnId: cPlant, value: sp.plant });
-    if (cArea && row.values[cArea] !== sp.area) updates.push({ rowId: row.id, columnId: cArea, value: sp.area });
+    if (!row) { addSetup.push(sp); continue; }
+    if (cp && row.values[cp] !== sp.plant) updates.push({ rowId: row.id, columnId: cp, value: sp.plant });
+    if (ca && row.values[ca] !== sp.area) updates.push({ rowId: row.id, columnId: ca, value: sp.area });
   }
-  console.log(`ไลน์ในตาราง ${rows.length} · ตามกติกา ${LINE_SPEC.length} · ต้องเพิ่ม ${adds.length}${adds.length ? ` (${adds.join(', ')})` : ''} · เซลล์ที่ต้องแก้ ${updates.length}`);
+
+  // 2) lines missing from the "ไลน์" sheet (names only — the code letters of the old table are not invented)
+  const lcols = await colMap(lineSheet.id);
+  const lineRows = await allRows(lineSheet.id);
+  const have = new Set(lineRows.map((r) => String(r.values[lcols.get('ไลน์')!] ?? '').trim().toLowerCase()));
+  const addLines = LINE_SPEC.filter((s) => !have.has(s.line.toLowerCase()));
+
+  console.log(`ตั้งค่าไลน์: เพิ่ม ${addSetup.length} แถว แก้ ${updates.length} เซลล์ · ชีตไลน์: เพิ่ม ${addLines.length} ไลน์${addLines.length ? ` (${addLines.map((l) => l.line).join(', ')})` : ''}`);
   const known = new Set(LINE_SPEC.map((s) => s.line.toLowerCase()));
-  const left = rows.map((r) => String(r.values[cLine] ?? '').trim()).filter((n) => n && !known.has(n.toLowerCase()));
-  if (left.length) console.log(`! ไลน์ที่ไม่อยู่ในกติกา (ไม่แตะ): ${left.join(', ')}`);
+  const left = lineRows.map((r) => String(r.values[lcols.get('ไลน์')!] ?? '').trim()).filter((n) => n && !known.has(n.toLowerCase()));
+  if (left.length) console.log(`! ไลน์ในตารางที่ไม่อยู่ในกติกา (ไม่แตะ — ระบบเดาพื้นที่จากชื่อ และข้ามแถวถ้าไม่ทราบโรงงาน): ${left.join(', ')}`);
   if (DRY) return;
 
-  for (const name of adds) {
-    const sp = LINE_SPEC.find((s) => s.line === name)!;
-    await api('POST', `/sheets/${sheet.id}/rows`, { values: { [cLine]: sp.line, ...(cPlant ? { [cPlant]: sp.plant } : {}), ...(cArea ? { [cArea]: sp.area } : {}) } });
-    console.log(`+ เพิ่มไลน์ ${name} (${sp.plant} / ${sp.area})`);
-  }
-  for (let i = 0; i < updates.length; i += 500) await api('POST', `/sheets/${sheet.id}/cells/bulk`, { updates: updates.slice(i, i + 500), source: 'edit' });
-  console.log(`✓ เสร็จ — เพิ่ม ${adds.length} ไลน์ แก้ ${updates.length} เซลล์`);
+  for (const sp of addSetup) await api('POST', `/sheets/${setup!.id}/rows`, { values: { [cl!]: sp.line, [cp!]: sp.plant, [ca!]: sp.area } });
+  for (let i = 0; i < updates.length; i += 500) await api('POST', `/sheets/${setup!.id}/cells/bulk`, { updates: updates.slice(i, i + 500), source: 'edit' });
+  for (const l of addLines) { await api('POST', `/sheets/${lineSheet.id}/rows`, { values: { [lcols.get('ไลน์')!]: l.line } }); console.log(`+ ไลน์ ${l.line}`); }
+  console.log(`✓ เสร็จ — ตั้งค่าไลน์ +${addSetup.length}/แก้ ${updates.length} · ไลน์ใหม่ ${addLines.length}`);
 }
 main().catch((e) => { console.error('\n✗', e.message); process.exitCode = 1; });

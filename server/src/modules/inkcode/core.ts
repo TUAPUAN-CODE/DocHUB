@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { withTx } from '../../config/db';
+import { q1, T, withTx } from '../../config/db';
 import { audit } from '../../shared/audit';
 import { toColumnDef } from '../../shared/cellValue';
 import { badRequest } from '../../shared/http';
@@ -31,22 +31,34 @@ export function placeOf(ctx: { index: { map: Map<string, { name: string; parentI
   return { plant, sheetDate: m && d ? `${m[1]}-${m[2]}-${d[0].padStart(2, '0')}` : null };
 }
 
-/** line name → plant and area from the line table: the columns "โรงงาน" / "พื้นที่" (the old "Plant" column is the fallback for the plant) */
+/**
+ * line name → plant and area. Read from the sheet "ตั้งค่าไลน์" next to the line sheet (columns ไลน์ / โรงงาน / พื้นที่);
+ * a line that is not there falls back to the "Plant" column of the line sheet itself.
+ */
 export async function lineInfo(lineLookup: { sheetId: string; columnId: string } | null): Promise<Map<string, { plant?: string; area?: string }>> {
   const out = new Map<string, { plant?: string; area?: string }>();
   if (!lineLookup) return out;
-  const cols = await loadColumns(lineLookup.sheetId);
-  const byName = (n: string) => cols.find((c: any) => c.column_name === n);
-  const plantCol = byName('โรงงาน') ?? byName('Plant'), oldPlant = byName('Plant'), areaCol = byName('พื้นที่');
-  for (let p = 1; p <= 10; p++) {
-    const r = await queryRows(lineLookup.sheetId, cols, { page: p, pageSize: 1000 });
-    for (const row of r.rows) {
-      const v = row.values as Record<string, unknown>;
-      const plant = normalizePlant(plantCol ? v[plantCol.column_id] : '') || (oldPlant ? normalizePlant(v[oldPlant.column_id]) : '');
-      const area = areaCol ? String(v[areaCol.column_id] ?? '').trim() : '';
-      if (plant || area) out.set(norm(v[lineLookup.columnId]), { ...(plant ? { plant } : {}), ...(area ? { area } : {}) });
+  const readAll = async (sheetId: string, cols: any[]) => {
+    const rows: Record<string, unknown>[] = [];
+    for (let p = 1; p <= 10; p++) {
+      const r = await queryRows(sheetId, cols, { page: p, pageSize: 1000 });
+      rows.push(...r.rows.map((x) => x.values as Record<string, unknown>));
+      if (r.rows.length < 1000) break;
     }
-    if (r.rows.length < 1000) break;
+    return rows;
+  };
+  const lineCols = await loadColumns(lineLookup.sheetId);
+  const oldPlant = lineCols.find((c: any) => c.column_name === 'Plant');
+  if (oldPlant) for (const v of await readAll(lineLookup.sheetId, lineCols)) { const plant = normalizePlant(v[oldPlant.column_id]); if (plant) out.set(norm(v[lineLookup.columnId]), { plant }); }
+  const setup = await q1(`SELECT s2.sheet_id FROM Sheets s1 JOIN Sheets s2 ON s2.file_id = s1.file_id AND s2.is_deleted = 0 AND s2.sheet_name = N'ตั้งค่าไลน์' WHERE s1.sheet_id = @s`, { s: T.uuid(lineLookup.sheetId) });
+  if (setup) {
+    const cols = await loadColumns(setup.sheet_id);
+    const c = (n: string) => cols.find((x: any) => x.column_name === n)?.column_id as string | undefined;
+    const cl = c('ไลน์'), cp = c('โรงงาน'), ca = c('พื้นที่');
+    if (cl) for (const v of await readAll(setup.sheet_id, cols)) {
+      const plant = cp ? normalizePlant(v[cp]) : '', area = ca ? String(v[ca] ?? '').trim() : '';
+      if (plant || area) out.set(norm(v[cl]), { ...(out.get(norm(v[cl])) ?? {}), ...(plant ? { plant } : {}), ...(area ? { area } : {}) });
+    }
   }
   return out;
 }

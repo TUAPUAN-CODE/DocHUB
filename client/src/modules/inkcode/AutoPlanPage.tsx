@@ -46,7 +46,7 @@ export default function AutoPlanPage() {
   const willImport = pv ? pv.items.filter((i) => i.plant && !(onlyMatched && i.inDb === false)).length : 0;
   const groups = useMemo(() => {
     const m = new Map<string, number>();
-    pv?.items.forEach((i) => { if (i.plant && !(onlyMatched && i.inDb === false)) m.set(`${i.plant} › ${i.area}`, (m.get(`${i.plant} › ${i.area}`) ?? 0) + 1); });
+    pv?.items.forEach((i) => { if (i.plant && !(onlyMatched && i.inDb === false)) m.set(`${i.plant} › ${i.sheet}`, (m.get(`${i.plant} › ${i.sheet}`) ?? 0) + 1); });
     return [...m.entries()].sort();
   }, [pv, onlyMatched]);
 
@@ -59,7 +59,7 @@ export default function AutoPlanPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-3 pb-10 sm:px-6">
-      <PageHeader icon={<FileSpreadsheet className="h-6 w-6" />} title="นำเข้าแผนผลิต (อัตโนมัติ)" subtitle="วางไฟล์แผนผลิตประจำวัน — ระบบดูวันที่ โรงงาน (PF1/PF2) และพื้นที่ (Pouch/Can/Cup) แล้วสร้างไฟล์รายวันและใส่ข้อมูลให้เอง โค้ด 40 ตัว 4 แถวสร้างให้อัตโนมัติ" />
+      <PageHeader icon={<FileSpreadsheet className="h-6 w-6" />} title="นำเข้าแผนผลิต (อัตโนมัติ)" subtitle="วางไฟล์แผนผลิตประจำวัน — ระบบดูวันที่ โรงงาน (PF1/PF2) และพื้นที่ (Pouch/Can/Cup) และกะ (DS/NS จากเวลาผลิต) แล้วสร้างไฟล์รายวันและใส่ข้อมูลให้เอง โค้ด 40 ตัว 4 แถวสร้างให้อัตโนมัติ" />
       {!pv && (
         <div onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); load(e.dataTransfer.files?.[0]); }}
           className={cn('ds-card flex cursor-pointer flex-col items-center gap-2 border-2 border-dashed px-6 py-16 text-center text-sm text-muted hover:border-primary/50', drag && 'border-primary bg-primary/5')} onClick={() => input.current?.click()} role="button" tabIndex={0}>
@@ -100,10 +100,10 @@ export default function AutoPlanPage() {
             </div>
           )}
           <div className="max-h-[44vh] overflow-auto rounded-xl border border-line text-xs">
-            <table className="w-full"><thead className="sticky top-0 bg-surface"><tr className="text-left">{['เวลา', 'กะ', 'ไลน์', 'โรงงาน', 'พื้นที่', 'Doc.No', 'ประเทศ', 'ยอด', 'ฐานข้อมูล'].map((h) => <th key={h} className="px-2 py-1.5 font-semibold">{h}</th>)}</tr></thead>
+            <table className="w-full"><thead className="sticky top-0 bg-surface"><tr className="text-left">{['เวลา', 'กะ', 'ไลน์', 'โรงงาน', 'ชีต', 'Doc.No', 'ประเทศ', 'ยอด', 'ฐานข้อมูล'].map((h) => <th key={h} className="px-2 py-1.5 font-semibold">{h}</th>)}</tr></thead>
               <tbody>{pv.items.map((i, k) => (
                 <tr key={k} className="border-t border-line"><td className="px-2 py-1">{i.time}</td><td className="px-2 py-1">{i.shift}</td><td className="px-2 py-1">{i.line}</td>
-                  <td className={cn('px-2 py-1', !i.plant && 'text-danger')}>{i.plant ?? 'ไม่ทราบ'}</td><td className="px-2 py-1">{i.area}</td><td className="px-2 py-1 font-mono">{i.doc}</td><td className="px-2 py-1">{i.country}</td><td className="px-2 py-1 text-right">{i.qty?.toLocaleString() ?? ''}</td>
+                  <td className={cn('px-2 py-1', !i.plant && 'text-danger')}>{i.plant ?? 'ไม่ทราบ'}</td><td className="px-2 py-1">{i.sheet}</td><td className="px-2 py-1 font-mono">{i.doc}</td><td className="px-2 py-1">{i.country}</td><td className="px-2 py-1 text-right">{i.qty?.toLocaleString() ?? ''}</td>
                   <td className={cn('px-2 py-1', i.inDb === false ? 'text-danger' : 'text-emerald-600')}>{i.inDb === null ? '—' : i.inDb ? '✓ พบ' : i.docInDb ? `ไม่พบประเทศนี้ (มี: ${i.dbMarkets.join(', ')})` : 'ไม่พบรหัสเอกสาร'}</td></tr>
               ))}</tbody></table>
           </div>

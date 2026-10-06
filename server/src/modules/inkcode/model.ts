@@ -13,19 +13,23 @@ export interface ColDef {
   name: string; type: ColType | 'select'; width?: number; formula?: { expr: string; sources: { alias: string; sheet: string }[] }; required?: boolean; description?: string;
   /** drop-down whose choices are the values of a column of another sheet (sheet = sheet name inside the same seed, file = which seeded file) */
   lookup?: { sheet: string; column: string };
+  /** fixed drop-down list (type 'select' without lookup) */
+  options?: string[];
 }
 export interface SheetDef { name: string; columns: ColDef[]; tab?: string }
 
 const v = (name: string, width = 140): ColDef => ({ name, type: 'varchar', width });
 const t = (name: string, width = 320): ColDef => ({ name, type: 'text', width });
 
-export const SHEETS = { year: 'ปี', month: 'เดือน', day: 'วัน', line: 'ไลน์', shift: 'กะ', calendar: 'ปฏิทิน', sample: 'ตัวอย่าง', db: 'ฐานข้อมูล', help: 'คู่มือตัวแปร', ws: 'Worksheet' } as const;
+export const SHEETS = { year: 'ปี', month: 'เดือน', day: 'วัน', line: 'ไลน์', shift: 'กะ', calendar: 'ปฏิทิน', sample: 'ตัวอย่าง', lineSetup: 'ตั้งค่าไลน์', db: 'ฐานข้อมูล', help: 'คู่มือตัวแปร', ws: 'Worksheet' } as const;
 
 export const REF_SHEETS: SheetDef[] = [
   { name: SHEETS.year, columns: [v('ปี'), v('ปี_พศ'), v('รหัสปี'), v('รหัสปี2')] },
   { name: SHEETS.month, columns: [v('เดือน'), v('ตัวอักษร'), v('ชื่อย่อ'), v('เลข2หลัก'), v('อักษร2')] },
   { name: SHEETS.day, columns: [v('วัน'), v('รหัสวัน')] },
-  { name: SHEETS.line, columns: [v('ไลน์'), v('รหัสไลน์'), v('รหัสไลน์2'), v('Plant'), v('อื่นๆ'), v('โรงงาน', 100), v('พื้นที่', 100)] },
+  { name: SHEETS.line, columns: [v('ไลน์'), v('รหัสไลน์'), v('รหัสไลน์2'), v('Plant'), v('อื่นๆ')] },
+  // which plant / area each line belongs to — read by the plan import (edit here, or run scripts/fixInkCodeLines.ts)
+  { name: SHEETS.lineSetup, columns: [{ ...v('ไลน์', 200), required: true }, { name: 'โรงงาน', type: 'select', width: 110, options: ['PF1', 'PF2'] }, { name: 'พื้นที่', type: 'select', width: 120, options: ['Pouch', 'Can', 'Cup', 'อื่นๆ'] }] },
   { name: SHEETS.shift, columns: [v('กะ'), v('SC2'), v('SC3'), v('SC4')] },
   { name: SHEETS.sample, columns: [v('ชื่อ', 100), { name: 'วันที่ผลิต', type: 'date', width: 130 }, v('ไลน์'), v('กะ', 70)] },
   { name: SHEETS.calendar, columns: [{ name: 'วันที่ผลิต', type: 'date', width: 130 }, ...[2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => v(`K${i}`, 120))] },
@@ -244,7 +248,7 @@ export function printTemplateByCustomer(worksheetSheetId: string) {
 
 /* ---------- working tree: PF1 | PF2 › year › month (folder) › day (file) › area (sheet) ---------- */
 export const TREE = { root: 'InkCode', tree: 'InkCode - ใบออกโค้ด', templateFolder: 'แม่แบบ', plans: 'แผนผลิต', dayTemplate: 'แม่แบบรายวัน', plants: ['PF1', 'PF2'] } as const;
-/** sheets of a day file — one per production area; the last one catches lines that belong to none of the others */
+/** production areas — each becomes a pair of sheets (DS / NS) in a day file; "อื่นๆ" catches lines that belong to none of the others */
 export const AREAS = ['Pouch', 'Can', 'Cup', 'อื่นๆ'] as const;
 export const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 export const monthFolderName = (m: number) => `${String(m).padStart(2, '0')} ${THAI_MONTHS[m - 1]}`;
@@ -291,12 +295,10 @@ export const LINE_SPEC: LineSpec[] = (() => {
   return out;
 })();
 
-/** Rows of the line table (keyed by column name) with the plant / area of LINE_SPEC filled in; lines of the spec that are missing are added */
-export function applyLineSpec(rows: Record<string, unknown>[]): Record<string, unknown>[] {
-  const out = rows.map((r) => ({ ...r }));
-  for (const sp of LINE_SPEC) {
-    const hit = out.find((r) => String(r['ไลน์']).trim().toLowerCase() === sp.line.toLowerCase());
-    if (hit) { hit['โรงงาน'] = sp.plant; hit['พื้นที่'] = sp.area; } else out.push({ ไลน์: sp.line, โรงงาน: sp.plant, พื้นที่: sp.area });
-  }
-  return out;
-}
+/** Rows of the "ตั้งค่าไลน์" sheet */
+export const lineSetupRows = () => LINE_SPEC.map((s) => ({ ไลน์: s.line, โรงงาน: s.plant, พื้นที่: s.area }));
+
+/** Sheets of a day file: every area split by shift (DS / NS, from the start time in the plan); "อื่นๆ" is not split */
+export const SHIFTS = ['DS', 'NS'] as const;
+export const sheetFor = (area: string, shift: string) => (area === 'อื่นๆ' ? 'อื่นๆ' : `${area} ${shift}`);
+export const DAY_SHEETS: string[] = [...AREAS.filter((a) => a !== 'อื่นๆ').flatMap((a) => SHIFTS.map((sh) => sheetFor(a, sh))), 'อื่นๆ'];

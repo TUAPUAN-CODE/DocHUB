@@ -5,7 +5,8 @@ import { AuthUser, isBasicRole } from '../../middleware/auth';
 import { getFileRow, invalidateFolders } from '../../shared/permissions';
 import { duplicateFile } from '../../routes/files';
 import { annotate, context, dbPairs, insertItems, InsertResult, lineInfo, norm } from './core';
-import { areaOf, AREAS, dayPath, normalizePlant, plantInText, TREE } from './model';
+import { areaOf, AREAS, dayPath, normalizePlant, plantInText, sheetFor, TREE } from './model';
+import { copySheet } from '../../routes/files';
 import { withTx } from '../../config/db';
 import { insertColumn } from '../../services/structure';
 import { createRowTx } from '../../services/rowCreate';
@@ -86,7 +87,7 @@ async function prepare(user: AuthUser, buf: Buffer, o: AutoOptions) {
     const plant = np && (TREE.plants as readonly string[]).includes(np) ? np : null;   // a plant without a folder is listed as "unknown" instead of stopping the import
     const tableArea = info.get(norm(line))?.area;   // the line table's own "พื้นที่" first, the name of the line only when it is empty
     const area = tableArea && (AREAS as readonly string[]).includes(tableArea) ? tableArea : areaOf(line, i.product);
-    return { ...i, line, plant, area, otherPlant: false };
+    return { ...i, line, plant, area, sheet: sheetFor(area, i.shift), otherPlant: false };
   });
   return { plan, date, items, ctx, known: ctx.knownLines };
 }
@@ -99,13 +100,23 @@ export async function previewAuto(user: AuthUser, buf: Buffer, o: AutoOptions) {
   return { date: p.date, sheetName: p.plan.sheetName, warnings: p.plan.warnings, knownLines: p.known, plants: TREE.plants, areas: AREAS, items: p.items, files };
 }
 
+/** Sheet `name` of a day file; a file made before the DS / NS split (or from an older template) gets it as a structure copy of its first sheet */
+async function ensureSheet(user: AuthUser, fileId: string, name: string, sheets: { sheet_id: string; sheet_name: string }[]): Promise<string | null> {
+  const have = sheets.find((s) => s.sheet_name === name);
+  if (have) return have.sheet_id.toLowerCase();
+  if (!sheets.length) return null;
+  const id = await withTx(async (tx) => copySheet(tx, sheets[0].sheet_id, fileId, sheets.length, user.id, false, name));
+  sheets.push({ sheet_id: id, sheet_name: name });
+  return id.toLowerCase();
+}
+
 export interface AutoResult { date: string; total: number; skippedNoPlant: number; items?: { time: string | null; line: string; plant: string | null; area: string; doc: string; country: string; qty: number | null; status: string }[]; targets: { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: InsertResult }[] }
 
 export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, req?: Request): Promise<AutoResult> {
   const p = await prepare(user, buf, o);
   const out: AutoResult = {
     date: p.date, total: p.items.length, skippedNoPlant: 0, targets: [],
-    items: p.items.map((i) => ({ time: i.time, line: i.line, plant: i.plant, area: i.area, doc: i.doc, country: i.country, qty: i.qty,
+    items: p.items.map((i) => ({ time: i.time, line: i.line, plant: i.plant, area: i.area, sheet: i.sheet, doc: i.doc, country: i.country, qty: i.qty,
       status: !i.plant ? 'ข้าม: ไม่ทราบโรงงาน' : o.onlyMatched !== false && i.inDb === false ? 'ข้าม: ไม่พบในฐานข้อมูล' : 'นำเข้า (แถวที่มีอยู่แล้วไม่ซ้ำ)' })),
   };
   const byPlant = new Map<string, typeof p.items>();
@@ -115,19 +126,17 @@ export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, re
   }
   for (const [plant, list] of byPlant) {
     const live = list.filter((i) => !(o.onlyMatched !== false && i.inDb === false));
-    if (!live.length) { for (const area of new Set(list.map((i) => i.area))) out.targets.push({ plant, area, fileId: '', fileName: p.date, folderPath: '', fileCreated: false, result: { created: 0, duplicate: 0, skippedNotInDb: list.filter((i) => i.area === area).length, skippedOtherPlant: 0, failed: [] } }); continue; }
+    if (!live.length) { for (const area of new Set(list.map((i) => i.sheet))) out.targets.push({ plant, area, fileId: '', fileName: p.date, folderPath: '', fileCreated: false, result: { created: 0, duplicate: 0, skippedNotInDb: list.filter((i) => i.sheet === area).length, skippedOtherPlant: 0, failed: [] } }); continue; }
     const d = await dayFile(user, plant, p.date, true, req);
     const sheets = await sheetsOf(d.id!);
-    for (const area of AREAS) {
-      const part = list.filter((i) => i.area === area);
-      if (!part.length) continue;
-      const sh = sheets.find((s) => s.sheet_name === area) ?? sheets.find((s) => s.sheet_name === 'อื่นๆ');
-      if (!sh) { out.targets.push({ plant, area, fileId: d.id!, fileName: p.date, folderPath: d.folderPath, fileCreated: d.created, result: { created: 0, duplicate: 0, skippedNotInDb: 0, skippedOtherPlant: 0, failed: part.slice(0, 50).map((i) => ({ doc: i.doc, line: i.line, reason: `ไม่มีชีต ${area} ในไฟล์วัน` })) } }); continue; }
-      const sid = sh.sheet_id.toLowerCase();
+    for (const area of [...new Set(list.map((i) => i.sheet))].sort()) {
+      const part = list.filter((i) => i.sheet === area);
+      const sid = await ensureSheet(user, d.id!, area, sheets);
+      if (!sid) { out.targets.push({ plant, area, fileId: d.id!, fileName: p.date, folderPath: d.folderPath, fileCreated: d.created, result: { created: 0, duplicate: 0, skippedNotInDb: 0, skippedOtherPlant: 0, failed: part.slice(0, 50).map((i) => ({ doc: i.doc, line: i.line, reason: `ไม่มีชีต ${area} ในไฟล์วัน` })) } }); continue; }
       const sheet = { ...(await q1(`SELECT s.*, f.folder_id, f.file_name FROM Sheets s JOIN Files f ON f.file_id = s.file_id WHERE s.sheet_id = @s`, { s: T.uuid(sid) })) };
       const ctx = await context(user, sid);
       const result = await insertItems(user, sheet, sid, ctx, part as any, p.date, { onlyMatched: o.onlyMatched !== false, onlyPlant: false }, req);
-      out.targets.push({ plant, area: sh.sheet_name, fileId: d.id!, fileName: p.date, folderPath: d.folderPath, fileCreated: d.created, result });
+      out.targets.push({ plant, area, fileId: d.id!, fileName: p.date, folderPath: d.folderPath, fileCreated: d.created, result });
     }
   }
   return out;

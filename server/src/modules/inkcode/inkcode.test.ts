@@ -160,15 +160,16 @@ test('plant values of the line table map to the PF folders', async () => {
 });
 
 test('line spec: every line has one plant + area, no duplicates, the factory rules hold', async () => {
-  const { LINE_SPEC, applyLineSpec } = await import('./model');
+  const { LINE_SPEC, lineSetupRows, DAY_SHEETS, sheetFor } = await import('./model');
   const m = new Map(LINE_SPEC.map((s) => [s.line, s]));
   assert.equal(m.size, LINE_SPEC.length);
   const p = (l: string) => m.get(l)?.plant;
   for (const l of ['Cup 1', 'Cup 12', 'Cup 13', 'Can A', 'Can K', 'Auto B', 'Auto C', 'Auto D', 'Spout 1', 'Spout 3', 'Pouch VS', 'Sachet', 'Pouch TN', 'Can 1']) assert.equal(p(l), 'PF1', l);
   for (const l of ['Cup 6', 'Cup 7', 'Can R', 'Can Z', 'Auto A', 'Auto E', 'Auto F', 'Pouch PF3', 'Pouch PF2 ชั้นบน', 'Jerky', 'Extruder', 'Freeze dried']) assert.equal(p(l), 'PF2', l);
   assert.equal(m.get('Cup 3')!.area, 'Cup'); assert.equal(m.get('Can 2')!.area, 'Can'); assert.equal(m.get('Jerky')!.area, 'Pouch');
-  const rows = applyLineSpec([{ ไลน์: 'Can B', Plant: null }, { ไลน์: 'ไลน์เก่า' }]);
-  assert.equal(rows.find((r) => r['ไลน์'] === 'Can B')!['โรงงาน'], 'PF1');
-  assert.equal(rows.find((r) => r['ไลน์'] === 'ไลน์เก่า')!['โรงงาน'], undefined);
-  assert.ok(rows.some((r) => r['ไลน์'] === 'Can A' && r['พื้นที่'] === 'Can'));
+  const rows = lineSetupRows();
+  assert.equal(rows.length, LINE_SPEC.length);
+  assert.deepEqual(rows.find((r) => r['ไลน์'] === 'Can A'), { ไลน์: 'Can A', โรงงาน: 'PF1', พื้นที่: 'Can' });
+  assert.deepEqual(DAY_SHEETS, ['Pouch DS', 'Pouch NS', 'Can DS', 'Can NS', 'Cup DS', 'Cup NS', 'อื่นๆ']);
+  assert.equal(sheetFor('Cup', 'NS'), 'Cup NS'); assert.equal(sheetFor('อื่นๆ', 'DS'), 'อื่นๆ');
 });

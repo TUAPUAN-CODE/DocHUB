@@ -34,7 +34,7 @@ export function PlanDropZone({ folderId, onDone }: { folderId: string; onDone: (
         <UploadCloud className="h-8 w-8 shrink-0 text-primary" />
         <div>
           <p className="text-base font-medium text-ink">{busy ? 'กำลังนำเข้าแผน…' : 'วางไฟล์แผนผลิต (.xlsx) ที่นี่ หรือคลิกเลือกไฟล์'}</p>
-          <p>ระบบดูวันที่ผลิต โรงงาน (PF1/PF2) และพื้นที่ (Pouch/Can/Cup) แล้วสร้างไฟล์รายวันและโค้ด 40 ตัว 4 แถวให้อัตโนมัติ</p>
+          <p>ระบบดูวันที่ผลิต โรงงาน (PF1/PF2) พื้นที่ (Pouch/Can/Cup) และกะ (DS/NS จากเวลาผลิต) แล้วสร้างไฟล์รายวันและโค้ด 40 ตัว 4 แถวให้อัตโนมัติ</p>
         </div>
         <input ref={input} type="file" multiple accept=".xlsx,.xls" className="hidden" onChange={(e) => { void send(e.target.files); e.target.value = ''; }} />
       </div>
