@@ -4,7 +4,7 @@ import { badRequest } from '../../shared/http';
 import { AuthUser, isBasicRole } from '../../middleware/auth';
 import { getFileRow, invalidateFolders } from '../../shared/permissions';
 import { duplicateFile } from '../../routes/files';
-import { annotate, context, dbPairs, insertItems, InsertResult, linePlants, norm } from './core';
+import { annotate, context, dbPairs, insertItems, InsertResult, lineInfo, norm } from './core';
 import { areaOf, AREAS, dayPath, normalizePlant, plantInText, TREE } from './model';
 import { withTx } from '../../config/db';
 import { insertColumn } from '../../services/structure';
@@ -75,7 +75,8 @@ async function prepare(user: AuthUser, buf: Buffer, o: AutoOptions) {
   const date = o.date ?? plan.date;
   if (!date) throw badRequest('ไม่พบวันที่ในแผน กรุณาระบุวันที่ผลิต');
   dayPath(date);
-  const plants = await linePlants(ctx.lineLookup);
+  const info = await lineInfo(ctx.lineLookup);
+  const plants = new Map([...info].filter(([, v]) => v.plant).map(([k, v]) => [k, v.plant!]));
   const { pairs, known } = await dbPairs(plan.items.map((i) => i.doc), ctx.docLookup, ctx.mktLookup);
   const lineMap = o.lineMap ?? {}, plantMap = o.plantMap ?? {};
   const items = annotate(plan.items, pairs, known, plants, null).map((i) => {
@@ -83,7 +84,9 @@ async function prepare(user: AuthUser, buf: Buffer, o: AutoOptions) {
     const found = plantMap[i.lineRaw] ?? plants.get(norm(line)) ?? plantInText(i.lineRaw) ?? plantInText(line) ?? null;
     const np = found ? normalizePlant(found) : null;
     const plant = np && (TREE.plants as readonly string[]).includes(np) ? np : null;   // a plant without a folder is listed as "unknown" instead of stopping the import
-    return { ...i, line, plant, area: areaOf(line, i.product), otherPlant: false };
+    const tableArea = info.get(norm(line))?.area;   // the line table's own "พื้นที่" first, the name of the line only when it is empty
+    const area = tableArea && (AREAS as readonly string[]).includes(tableArea) ? tableArea : areaOf(line, i.product);
+    return { ...i, line, plant, area, otherPlant: false };
   });
   return { plan, date, items, ctx, known: ctx.knownLines };
 }

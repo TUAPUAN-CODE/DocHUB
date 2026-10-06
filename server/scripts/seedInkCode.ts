@@ -11,7 +11,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLUMNS, HELP_ROWS, printTemplate, printTemplateByCustomer, REF_SHEETS, SAMPLE_ROW, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
+import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLUMNS, HELP_ROWS, printTemplate, printTemplateByCustomer, applyLineSpec, REF_SHEETS, SAMPLE_ROW, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
 
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const DRY = process.argv.includes('--dry');
@@ -104,7 +104,7 @@ async function main() {
   // 1) reference tables (+ the sample date / line used to preview the codes in the database)
   const refFile = await createFile(folder, 'InkCode - รหัสอ้างอิง', REF_SHEETS);
   if (refFile) {
-    const sets: [string, Record<string, unknown>[]][] = [[SHEETS.year, ref.years], [SHEETS.month, ref.months], [SHEETS.day, ref.days], [SHEETS.line, ref.lines], [SHEETS.shift, ref.shifts], [SHEETS.sample, [SAMPLE_ROW]], [SHEETS.calendar, ref.calendar]];
+    const sets: [string, Record<string, unknown>[]][] = [[SHEETS.year, ref.years], [SHEETS.month, ref.months], [SHEETS.day, ref.days], [SHEETS.line, applyLineSpec(ref.lines)], [SHEETS.shift, ref.shifts], [SHEETS.sample, [SAMPLE_ROW]], [SHEETS.calendar, ref.calendar]];
     for (const [name, rows] of sets) { await remember(name, idOf(refFile.sheets, name)); await importRows(idOf(refFile.sheets, name), rows, name); }
   }
   // 2) database (+ help sheet + preview columns that show the real codes for the sample date / line)

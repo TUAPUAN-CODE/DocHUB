@@ -31,23 +31,27 @@ export function placeOf(ctx: { index: { map: Map<string, { name: string; parentI
   return { plant, sheetDate: m && d ? `${m[1]}-${m[2]}-${d[0].padStart(2, '0')}` : null };
 }
 
-/** line name → its Plant in the reference table (the "Plant" column of the line sheet) */
-export async function linePlants(lineLookup: { sheetId: string; columnId: string } | null): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
+/** line name → plant and area from the line table: the columns "โรงงาน" / "พื้นที่" (the old "Plant" column is the fallback for the plant) */
+export async function lineInfo(lineLookup: { sheetId: string; columnId: string } | null): Promise<Map<string, { plant?: string; area?: string }>> {
+  const out = new Map<string, { plant?: string; area?: string }>();
   if (!lineLookup) return out;
   const cols = await loadColumns(lineLookup.sheetId);
-  const plantCol = cols.find((c: any) => c.column_name === 'Plant');
-  if (!plantCol) return out;
+  const byName = (n: string) => cols.find((c: any) => c.column_name === n);
+  const plantCol = byName('โรงงาน') ?? byName('Plant'), oldPlant = byName('Plant'), areaCol = byName('พื้นที่');
   for (let p = 1; p <= 10; p++) {
     const r = await queryRows(lineLookup.sheetId, cols, { page: p, pageSize: 1000 });
     for (const row of r.rows) {
       const v = row.values as Record<string, unknown>;
-      const plant = normalizePlant(v[plantCol.column_id]);
-      if (plant) out.set(norm(v[lineLookup.columnId]), plant);
+      const plant = normalizePlant(plantCol ? v[plantCol.column_id] : '') || (oldPlant ? normalizePlant(v[oldPlant.column_id]) : '');
+      const area = areaCol ? String(v[areaCol.column_id] ?? '').trim() : '';
+      if (plant || area) out.set(norm(v[lineLookup.columnId]), { ...(plant ? { plant } : {}), ...(area ? { area } : {}) });
     }
     if (r.rows.length < 1000) break;
   }
   return out;
+}
+export async function linePlants(lineLookup: { sheetId: string; columnId: string } | null): Promise<Map<string, string>> {
+  return new Map([...(await lineInfo(lineLookup))].filter(([, v]) => v.plant).map(([k, v]) => [k, v.plant!]));
 }
 
 export async function context(user: any, sheetId: string) {

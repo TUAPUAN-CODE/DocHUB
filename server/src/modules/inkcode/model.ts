@@ -25,7 +25,7 @@ export const REF_SHEETS: SheetDef[] = [
   { name: SHEETS.year, columns: [v('ปี'), v('ปี_พศ'), v('รหัสปี'), v('รหัสปี2')] },
   { name: SHEETS.month, columns: [v('เดือน'), v('ตัวอักษร'), v('ชื่อย่อ'), v('เลข2หลัก'), v('อักษร2')] },
   { name: SHEETS.day, columns: [v('วัน'), v('รหัสวัน')] },
-  { name: SHEETS.line, columns: [v('ไลน์'), v('รหัสไลน์'), v('รหัสไลน์2'), v('Plant'), v('อื่นๆ')] },
+  { name: SHEETS.line, columns: [v('ไลน์'), v('รหัสไลน์'), v('รหัสไลน์2'), v('Plant'), v('อื่นๆ'), v('โรงงาน', 100), v('พื้นที่', 100)] },
   { name: SHEETS.shift, columns: [v('กะ'), v('SC2'), v('SC3'), v('SC4')] },
   { name: SHEETS.sample, columns: [v('ชื่อ', 100), { name: 'วันที่ผลิต', type: 'date', width: 130 }, v('ไลน์'), v('กะ', 70)] },
   { name: SHEETS.calendar, columns: [{ name: 'วันที่ผลิต', type: 'date', width: 130 }, ...[2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => v(`K${i}`, 120))] },
@@ -272,4 +272,31 @@ export function normalizePlant(v: unknown): string {
   const t = String(v ?? '').trim();
   const d = /^(?:pf\s*)?(\d)$/i.exec(t);
   return d ? `PF${d[1]}` : t.toUpperCase();
+}
+
+/**
+ * Which plant (folder PF1 / PF2) and which area (sheet of the day file) each production line belongs to — the factory's own rule,
+ * kept in the line table as the columns "โรงงาน" and "พื้นที่" (the old "Plant" column feeds the code text and is left alone).
+ */
+export type LineSpec = { line: string; plant: 'PF1' | 'PF2'; area: (typeof AREAS)[number] };
+export const LINE_SPEC: LineSpec[] = (() => {
+  const out: LineSpec[] = [];
+  const add = (names: string[], plant: 'PF1' | 'PF2', area: LineSpec['area']) => names.forEach((line) => out.push({ line, plant, area }));
+  add([1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13].map((n) => `Cup ${n}`), 'PF1', 'Cup');
+  add([6, 7].map((n) => `Cup ${n}`), 'PF2', 'Cup');
+  add([...'ABCDEFGHJK'].map((c) => `Can ${c}`).concat(['Can 1', 'Can 2', 'Can 3']), 'PF1', 'Can');
+  add([...'RPTUYZ'].map((c) => `Can ${c}`), 'PF2', 'Can');
+  add(['Auto B', 'Auto C', 'Auto D', 'Spout', 'Spout 1', 'Spout 2', 'Spout 3', 'Pouch VS', 'Pouch TN', 'Sachet'], 'PF1', 'Pouch');
+  add(['Auto A', 'Auto E', 'Auto F', 'Pouch PF3', 'Pouch PF2 ชั้นบน', 'Jerky', 'Extruder', 'Freeze dried'], 'PF2', 'Pouch');
+  return out;
+})();
+
+/** Rows of the line table (keyed by column name) with the plant / area of LINE_SPEC filled in; lines of the spec that are missing are added */
+export function applyLineSpec(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  const out = rows.map((r) => ({ ...r }));
+  for (const sp of LINE_SPEC) {
+    const hit = out.find((r) => String(r['ไลน์']).trim().toLowerCase() === sp.line.toLowerCase());
+    if (hit) { hit['โรงงาน'] = sp.plant; hit['พื้นที่'] = sp.area; } else out.push({ ไลน์: sp.line, โรงงาน: sp.plant, พื้นที่: sp.area });
+  }
+  return out;
 }
