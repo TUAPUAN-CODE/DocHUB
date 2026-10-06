@@ -39,7 +39,7 @@ import { shareManageRouter, sharePublicRouter } from './routes/share';
 import formulaModule from './modules/formula/module';
 import exportArchiveModule from './modules/exportArchive/module';
 import approvalsModule from './modules/approvals/module';
-import inkcodeModule from './modules/inkcode/module';
+import inkcodeModule, { startPlanFolderWatcher } from './modules/inkcode/module';
 import aiModule from './modules/ai/module';
 import connectorsModule, { startConnectorScheduler } from './modules/connectors/module';
 import './modules/alerts/module';
@@ -111,6 +111,7 @@ getPool()
     leaderTask('line-alerts', startLineWorker);
     leaderTask('connectors', startConnectorScheduler);
     leaderTask('rfid-gateway', startGateway);
+    leaderTask('inkcode-plan-folder', startPlanFolderWatcher);
     for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => void releaseLeases().finally(() => process.exit(0)));
   })
   .catch((err) => {

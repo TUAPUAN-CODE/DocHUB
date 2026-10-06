@@ -127,3 +127,29 @@ test('worksheet drop-down columns are valid DocHUB column definitions', () => {
   }
   assert.ok(WS_INPUTS.filter((c) => c.lookup).length >= 4);
 });
+
+test('auto routing: area of a line, plant in a line text, day path', async () => {
+  const m = await import('./model');
+  assert.equal(m.areaOf('Cup 1', 'Cup'), 'Cup');
+  assert.equal(m.areaOf('Can R'), 'Can');
+  assert.equal(m.areaOf('Auto B', 'Pouch'), 'Pouch');
+  assert.equal(m.areaOf('Spout'), 'Pouch');
+  assert.equal(m.areaOf('Pouch PF2 ชั้นบน'), 'Pouch');
+  assert.equal(m.areaOf('Cancel x'), 'อื่นๆ');
+  assert.equal(m.areaOf('ไลน์พิเศษ', 'Can'), 'Can');
+  assert.equal(m.plantInText('Pouch PF2 ชั้นบน'), 'PF2');
+  assert.equal(m.plantInText('Auto B'), null);
+  assert.deepEqual(m.dayPath('2026-10-03'), { year: '2026', month: '10 ตุลาคม', file: '2026-10-03' });
+  assert.throws(() => m.dayPath('3/10/2026'));
+});
+
+test('plan drop folder: only settled .xlsx in <year>/<month>, not lock files or handled folders', async () => {
+  const fs = await import('fs'), os = await import('os'), path = await import('path');
+  const { waitingFiles } = await import('./watcher');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'plans-'));
+  const mk = (rel: string) => { const f = path.join(dir, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, 'x'); fs.utimesSync(f, new Date(Date.now() - 60_000), new Date(Date.now() - 60_000)); return f; };
+  const a = mk('2026/10 ตุลาคม/แผน 03-10.xlsx'); mk('2026/10 ตุลาคม/~$แผน.xlsx'); mk('2026/10 ตุลาคม/เสร็จแล้ว/old.xlsx'); mk('2026/10 ตุลาคม/note.txt'); mk('top.xlsx');
+  const fresh = path.join(dir, '2026/10 ตุลาคม/new.xlsx'); fs.writeFileSync(fresh, 'x');
+  assert.deepEqual(waitingFiles(dir), [a]);
+  fs.rmSync(dir, { recursive: true, force: true });
+});

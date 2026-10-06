@@ -241,3 +241,28 @@ export function printTemplateByCustomer(worksheetSheetId: string) {
     blocks: [{ ...company, groupOnce: 'start' }, { ...title, groupOnce: 'start' }, { ...dept, groupOnce: 'start' }, codeSheet, { ...signature, marginTop: 2, groupOnce: 'end' }],
   };
 }
+
+/* ---------- working tree: PF1 | PF2 › year › month (folder) › day (file) › area (sheet) ---------- */
+export const TREE = { root: 'InkCode', tree: 'InkCode - ใบออกโค้ด', templateFolder: 'แม่แบบ', dayTemplate: 'แม่แบบรายวัน', plants: ['PF1', 'PF2'] } as const;
+/** sheets of a day file — one per production area; the last one catches lines that belong to none of the others */
+export const AREAS = ['Pouch', 'Can', 'Cup', 'อื่นๆ'] as const;
+export const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+export const monthFolderName = (m: number) => `${String(m).padStart(2, '0')} ${THAI_MONTHS[m - 1]}`;
+/** "2026-10-03" → { year: "2026", month: "10 ตุลาคม", file: "2026-10-03" } */
+export function dayPath(date: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) throw new Error(`วันที่ไม่ถูกต้อง: ${date}`);
+  return { year: m[1], month: monthFolderName(Number(m[2])), file: date };
+}
+/** Area (sheet of the day file) of a production line: Cup / Can by the line name, Pouch also for Spout / Auto lines */
+export function areaOf(line: string, product = ''): (typeof AREAS)[number] {
+  for (const text of [line, product]) {
+    const t = ` ${text.toLowerCase()} `;
+    if (/\bcup\b/.test(t)) return 'Cup';
+    if (/\bcan\b/.test(t)) return 'Can';
+    if (/\b(pouch|spout|auto)\b/.test(t)) return 'Pouch';
+  }
+  return 'อื่นๆ';
+}
+/** Plant written inside a line name of the plan, e.g. "Pouch PF2 ชั้นบน" → PF2 */
+export const plantInText = (s: string): string | null => { const m = /\bPF\s*(\d)\b/i.exec(s); return m ? `PF${m[1]}` : null; };

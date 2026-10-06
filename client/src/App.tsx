@@ -23,6 +23,7 @@ const PdfDesignerPage = lazy(() => import('@/pages/PdfDesignerPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const ApprovalsPage = lazy(() => import('@/modules/approvals/ApprovalsPage'));
 const ConnectorsPage = lazy(() => import('@/modules/connectors/ConnectorsPage'));
+const AutoPlanPage = lazy(() => import('@/modules/inkcode/AutoPlanPage'));
 const TracebackPage = lazy(() => import('@/pages/TracebackPage'));
 const DevicesPage = lazy(() => import('@/pages/DevicesPage'));
 
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="trash" element={<TrashPage />} />
           <Route path="dashboards" element={<DashboardsPage />} />
           <Route path="approvals" element={<ApprovalsPage />} />
+          <Route path="inkcode/plan" element={<RequireRole roles={['master', 'admin']}><AutoPlanPage /></RequireRole>} />
           <Route path="connectors" element={<RequireRole roles={['master', 'admin']}><ConnectorsPage /></RequireRole>} />
           <Route path="traceback" element={<TracebackPage />} />
           <Route path="devices" element={<RequireRole roles={['master', 'admin']}><DevicesPage /></RequireRole>} />

@@ -1,7 +1,7 @@
 import { isBasicRole } from '@/types';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Cpu, Database, FolderOpen, GitFork, History, Home, KeyRound, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings, Trash2, Users, X } from 'lucide-react';
+import { CheckCircle2, Cpu, FileSpreadsheet, Database, FolderOpen, GitFork, History, Home, KeyRound, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings, Trash2, Users, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
@@ -26,6 +26,7 @@ function SidebarBody({ onNavigate, scope, collapsed = false }: { onNavigate?: ()
     { to: '/trash', label: t('ถังขยะ'), icon: <Trash2 className="h-[18px] w-[18px]" /> },
     ...(!isBasicRole(user.role) ? [{ to: '/devices', label: t('อุปกรณ์ (RFID/IoT)'), icon: <Cpu className="h-[18px] w-[18px]" /> }] : []),
     ...(!isBasicRole(user.role) ? [{ to: '/connectors', label: t('ดึงข้อมูลจากลิงก์/API'), icon: <Database className="h-[18px] w-[18px]" /> }] : []),
+    ...(!isBasicRole(user.role) ? [{ to: '/inkcode/plan', label: t('นำเข้าแผนผลิต'), icon: <FileSpreadsheet className="h-[18px] w-[18px]" /> }] : []),
     { to: '/approvals', label: t('อนุมัติเอกสาร'), icon: <CheckCircle2 className="h-[18px] w-[18px]" /> },
     { to: '/traceback', label: t('ย้อนรอย (Traceback)'), icon: <GitFork className="h-[18px] w-[18px]" /> },
     { to: '/dashboards', label: t('แดชบอร์ด'), icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },

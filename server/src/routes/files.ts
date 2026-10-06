@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Router } from 'express';
+import { Request, Router } from 'express';
 import { isBasicRole } from '../middleware/auth';
 import { z } from 'zod';
 import { q, q1, T, withTx, Tx } from '../config/db';
@@ -211,6 +211,30 @@ async function copySheet(tx: Tx, oldSheetId: string, newFileId: string, order: n
   return newSheetId;
 }
 
+/** Copies a file (sheets with columns / formulas / settings, PDF layouts) into `folderId`; permissions of the caller are checked by the caller */
+export async function duplicateFile(u: { id: string }, file: any, folderId: string, name: string, includeData: boolean, req?: Request): Promise<string> {
+  const id = file.file_id as string;
+  return withTx(async (tx) => {
+    const f = await q1(
+      `INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id
+       VALUES (@n, @fo, @d, @c, @i, @u)`,
+      { n: name, fo: T.uuid(folderId), d: T.text(file.description), c: file.color, i: file.icon, u: T.uuid(u.id) },
+      tx,
+    );
+    const sheets = await q(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: T.uuid(id) }, tx);
+    for (const [i, s] of sheets.entries()) await copySheet(tx, s.sheet_id, f!.file_id, i, u.id, includeData);
+    // PDF layouts travel with the file (a file that follows a master keeps following it)
+    if (file.pdf_master_id) await q(`UPDATE Files SET pdf_master_id = @m WHERE file_id = @f`, { m: T.uuid(file.pdf_master_id), f: T.uuid(f!.file_id) }, tx);
+    const tpls = parseTemplates(file.pdf_templates);
+    if (tpls.length) {
+      const mapped = remapTemplates(tpls, await sheetsOfFile(id, tx), await sheetsOfFile(f!.file_id, tx), false);
+      await q(`UPDATE Files SET pdf_templates = @t WHERE file_id = @f`, { t: T.text(JSON.stringify(mapped)), f: T.uuid(f!.file_id) }, tx);
+    }
+    await audit({ userId: u.id, action: 'file_duplicate', entityType: 'file', entityId: f!.file_id, fileId: f!.file_id, newValue: { sourceFileId: id, includeData } }, req, tx);
+    return f!.file_id as string;
+  });
+}
+
 router.post(
   '/files/:id/duplicate',
   ah(async (req, res) => {
@@ -221,26 +245,7 @@ router.post(
     const body = parse(z.object({ name: z.string().trim().min(1).max(300).optional(), folderId: zId.optional(), includeData: z.boolean().default(false) }), req.body);
     const folderId = body.folderId ?? file.folder_id;
     await requireFolder(u, folderId, LV.write);
-    const newId = await withTx(async (tx) => {
-      const f = await q1(
-        `INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id
-         VALUES (@n, @fo, @d, @c, @i, @u)`,
-        { n: body.name ?? `${file.file_name} (สำเนา)`, fo: T.uuid(folderId), d: T.text(file.description), c: file.color, i: file.icon, u: T.uuid(u.id) },
-        tx,
-      );
-      const sheets = await q(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: T.uuid(id) }, tx);
-      for (const [i, s] of sheets.entries()) await copySheet(tx, s.sheet_id, f!.file_id, i, u.id, body.includeData);
-      // PDF layouts travel with the file (a file that follows a master keeps following it)
-      if (file.pdf_master_id) await q(`UPDATE Files SET pdf_master_id = @m WHERE file_id = @f`, { m: T.uuid(file.pdf_master_id), f: T.uuid(f!.file_id) }, tx);
-      const tpls = parseTemplates(file.pdf_templates);
-      if (tpls.length) {
-        const mapped = remapTemplates(tpls, await sheetsOfFile(id, tx), await sheetsOfFile(f!.file_id, tx), false);
-        await q(`UPDATE Files SET pdf_templates = @t WHERE file_id = @f`, { t: T.text(JSON.stringify(mapped)), f: T.uuid(f!.file_id) }, tx);
-      }
-      await audit({ userId: u.id, action: 'file_duplicate', entityType: 'file', entityId: f!.file_id, fileId: f!.file_id,
-        newValue: { sourceFileId: id, includeData: body.includeData } }, req, tx);
-      return f!.file_id as string;
-    });
+    const newId = await duplicateFile(u, file, folderId, body.name ?? `${file.file_name} (สำเนา)`, body.includeData, req);
     ok(res, { id: newId }, 201);
   }),
 );

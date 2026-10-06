@@ -1,28 +1,34 @@
 /**
  * Builds the working tree of InkCode inside the existing "InkCode" folder:
  *
- *   InkCode / InkCode - ใบออกโค้ด / PF1 | PF2 / <ปี> / "<ปี>-<เดือน> <ชื่อเดือน>" (1 ไฟล์ต่อเดือน)  →  ชีต "01" … "31" (1 ชีตต่อวัน)
+ *   InkCode / InkCode - ใบออกโค้ด / PF1 | PF2 / <ปี> / <เดือน> (โฟลเดอร์)  →  <YYYY-MM-DD> (1 ไฟล์ต่อวัน)  →  ชีต Pouch | Can | Cup | อื่นๆ
+ *   InkCode / InkCode - ใบออกโค้ด / แม่แบบ / แม่แบบรายวัน   (ไฟล์ต้นแบบของไฟล์รายวัน)
  *
- * Every day sheet is a copy of the Worksheet of "InkCode - ใบออกโค้ดนอกแผน" (same columns, formulas and drop-downs, no rows).
- * All files of the tree then use the PDF layouts of that file (master) — edit the layout there once and every file follows.
+ * The day files are NOT all made up front: the first plan imported for a date creates its day file from the template (see
+ * "นำเข้าแผนผลิต" in the menu, or the drop folder below). `--pre YYYY-MM` makes every day file of that month now.
+ * Every file of the tree uses the PDF layouts of "InkCode - ใบออกโค้ดนอกแผน" (edit them there once).
  *
- *   npx ts-node --transpile-only scripts/seedInkCodeTree.ts [--from 2026] [--to 2036] [--plants PF1,PF2] [--dry]
+ *   npx ts-node --transpile-only scripts/seedInkCodeTree.ts [--from 2026] [--to 2036] [--plants PF1,PF2] [--pre 2026-10] [--plan-dir D:\InkCodePlans] [--dry]
  *        env: DOCHUB_URL=http://host:4000/api  DOCHUB_USER=<admin or master>  DOCHUB_PASSWORD=...
  *
- * Needs the files made by seedInkCode.ts first. Safe to run again: folders / files that exist are skipped, so a run that was
- * stopped half way continues where it ended (and a later `--to` adds more years). Nothing is deleted or overwritten.
- * The month files are made from 4 templates (28 / 29 / 30 / 31 days) kept in "InkCode - ใบออกโค้ด / แม่แบบรายเดือน".
+ * `--plan-dir` also makes the drop folders  <plan-dir>\<ปี>\<เดือน>  on this computer for the plan files (set INKCODE_PLAN_DIR /
+ * INKCODE_PLAN_USER in the server .env to import what is dropped there by itself).
+ * Needs the files made by seedInkCode.ts first. Safe to run again: what exists is skipped, nothing is deleted or overwritten.
  */
+import fs from 'fs';
+import path from 'path';
+import { AREAS, monthFolderName, TREE } from '../src/modules/inkcode/model';
+
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const arg = (n: string, d: string) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 const DRY = process.argv.includes('--dry');
 const FROM = Number(arg('from', '2026')), TO = Number(arg('to', '2036'));
 const PLANTS = arg('plants', 'PF1,PF2').split(',').map((s) => s.trim()).filter(Boolean);
-const ROOT = 'InkCode', TREE = 'InkCode - ใบออกโค้ด', TEMPLATES = 'แม่แบบรายเดือน', MASTER_FILE = 'InkCode - ใบออกโค้ดนอกแผน', MASTER_SHEET = 'Worksheet';
-const MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const PRE = arg('pre', '');
+const PLAN_DIR = arg('plan-dir', '');
+const MASTER_FILE = 'InkCode - ใบออกโค้ดนอกแผน', MASTER_SHEET = 'Worksheet';
 const pad = (n: number) => String(n).padStart(2, '0');
-export const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
-export const monthFileName = (y: number, m: number) => `${y}-${pad(m)} ${MONTHS[m - 1]}`;
+const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
 
 let token = '';
 async function api<T = any>(method: string, url: string, body?: unknown): Promise<T> {
@@ -37,7 +43,6 @@ async function api<T = any>(method: string, url: string, body?: unknown): Promis
 
 const contents = (folderId: string) => api<{ subfolders: { id: string; name: string }[]; files: { id: string; name: string }[] }>('GET', `/folders/${folderId}/contents`);
 async function folder(parentId: string | null, name: string, desc?: string): Promise<string> {
-  if (DRY) { console.log(`[dry] โฟลเดอร์ ${name}`); return `dry-${name}`; }
   const siblings = parentId ? (await contents(parentId)).subfolders : (await api<any[]>('GET', '/folders/tree')).filter((f) => !f.parentId);
   const hit = siblings.find((f) => f.name === name);
   if (hit) return hit.id;
@@ -46,61 +51,79 @@ async function folder(parentId: string | null, name: string, desc?: string): Pro
   return f.id;
 }
 
-/** Month template with `days` sheets named "01" … : a copy of the Worksheet file, its sheet renamed and copied (structure only) */
-async function monthTemplate(folderId: string, masterFileId: string, days: number): Promise<string> {
-  const name = `แม่แบบ ${days} วัน`;
-  const have = (await contents(folderId)).files.find((f) => f.name === name);
+/** Day template: a copy of the Worksheet file whose sheet is renamed to the first area and copied (structure only) for the others */
+async function dayTemplate(folderId: string, masterFileId: string): Promise<string> {
+  const have = (await contents(folderId)).files.find((f) => f.name === TREE.dayTemplate);
   if (have) return have.id;
-  const { id } = await api('POST', `/files/${masterFileId}/duplicate`, { name, folderId, includeData: false });
+  const { id } = await api('POST', `/files/${masterFileId}/duplicate`, { name: TREE.dayTemplate, folderId, includeData: false });
   const f = await api('GET', `/files/${id}`);
   const first = f.sheets.find((s: any) => s.name === MASTER_SHEET) ?? f.sheets[0];
-  await api('PUT', `/sheets/${first.id}`, { name: '01' });
-  for (let d = 2; d <= days; d++) await api('POST', `/files/${id}/sheets`, { name: pad(d), copyStructureFrom: first.id });
-  console.log(`✓ แม่แบบ ${days} วัน`);
+  await api('PUT', `/sheets/${first.id}`, { name: AREAS[0] });
+  for (const area of AREAS.slice(1)) await api('POST', `/files/${id}/sheets`, { name: area, copyStructureFrom: first.id });
+  console.log(`✓ ไฟล์แม่แบบ "${TREE.dayTemplate}" (ชีต ${AREAS.join(', ')})`);
   return id;
 }
 
 async function main() {
   if (!Number.isInteger(FROM) || !Number.isInteger(TO) || FROM > TO || FROM < 2000 || TO > 2100) throw new Error('--from / --to ไม่ถูกต้อง');
-  const nMonths = (TO - FROM + 1) * 12 * PLANTS.length;
+  if (PRE && !/^\d{4}-\d{2}$/.test(PRE)) throw new Error('--pre ต้องเป็น YYYY-MM เช่น 2026-10');
+  const nFolders = PLANTS.length * (TO - FROM + 1) * 13;
   if (DRY) {
-    console.log(`[dry] ${PLANTS.join(', ')} × ปี ${FROM}–${TO} = ${nMonths} ไฟล์รายเดือน (ชีตรายวันรวมประมาณ ${Math.round(nMonths * 30.4).toLocaleString()} ชีต)`);
-    console.log(`[dry] ตัวอย่างชื่อไฟล์: ${monthFileName(FROM, 1)} … ${monthFileName(TO, 12)} · กุมภาพันธ์ ${FROM}: ${daysIn(FROM, 2)} วัน`);
+    console.log(`[dry] ${PLANTS.join(', ')} × ปี ${FROM}–${TO} = ${nFolders} โฟลเดอร์ (ปี + 12 เดือน) · ไฟล์รายวันสร้างเมื่อนำเข้าแผน${PRE ? ` · สร้างล่วงหน้าเดือน ${PRE}` : ''}`);
+    console.log(`[dry] ตัวอย่าง: ${TREE.tree} / ${PLANTS[0]} / ${FROM} / ${monthFolderName(10)} / ${FROM}-10-03 › ชีต ${AREAS.join(' | ')}`);
+    if (PLAN_DIR) console.log(`[dry] โฟลเดอร์วางแผน: ${PLAN_DIR}\\${FROM}\\${monthFolderName(1)} …`);
     return;
   }
   const user = process.env.DOCHUB_USER, password = process.env.DOCHUB_PASSWORD;
   if (!user || !password) throw new Error('ตั้ง DOCHUB_USER และ DOCHUB_PASSWORD (บัญชี master/admin)');
   token = (await api('POST', '/auth/login', { username: user, password })).accessToken;
 
-  const root = await folder(null, ROOT);
+  const root = await folder(null, TREE.root);
   const master = (await contents(root)).files.find((f) => f.name === MASTER_FILE);
-  if (!master) throw new Error(`ไม่พบไฟล์ "${MASTER_FILE}" ในโฟลเดอร์ ${ROOT} — รัน seedInkCode.ts ก่อน`);
+  if (!master) throw new Error(`ไม่พบไฟล์ "${MASTER_FILE}" ในโฟลเดอร์ ${TREE.root} — รัน seedInkCode.ts ก่อน`);
   const masterSheets = (await api('GET', `/files/${master.id}`)).sheets as { id: string; name: string }[];
   if (!masterSheets.some((s) => s.name === MASTER_SHEET)) throw new Error(`ไฟล์ "${MASTER_FILE}" ไม่มีชีต "${MASTER_SHEET}"`);
 
-  const tree = await folder(root, TREE, 'ใบออกโค้ดนอกแผน แยกโรงงาน › ปี › เดือน (1 ไฟล์) › วัน (1 ชีต)');
-  const tplFolder = await folder(tree, TEMPLATES, 'แม่แบบที่ใช้สร้างไฟล์รายเดือน — ห้ามลบ (ใช้สร้างปีถัดไป)');
-  const tpl = new Map<number, string>();
-  let made = 0, skipped = 0;
+  const tree = await folder(root, TREE.tree, 'ใบออกโค้ดนอกแผน แยกโรงงาน › ปี › เดือน › วัน (1 ไฟล์) › พื้นที่ (1 ชีต)');
+  const tplFolder = await folder(tree, TREE.templateFolder, 'ไฟล์แม่แบบของไฟล์รายวัน — ห้ามลบ');
+  const tpl = await dayTemplate(tplFolder, master.id);
+  // the template (and so every day file made from it) follows the PDF layouts of the Worksheet file
+  await api('POST', `/files/${tpl}/pdf-templates/master`, { masterFileId: master.id });
+
+  const monthIds = new Map<string, string>();   // "PF1/2026/10" → folder id
   for (const plant of PLANTS) {
     const pf = await folder(tree, plant);
     for (let y = FROM; y <= TO; y++) {
       const yf = await folder(pf, String(y));
-      const existing = new Set((await contents(yf)).files.map((f) => f.name));
-      for (let m = 1; m <= 12; m++) {
-        const name = monthFileName(y, m);
-        if (existing.has(name)) { skipped++; continue; }
-        const days = daysIn(y, m);
-        if (!tpl.has(days)) tpl.set(days, await monthTemplate(tplFolder, master.id, days));
-        await api('POST', `/files/${tpl.get(days)}/duplicate`, { name, folderId: yf, includeData: false });
-        made++;
-        process.stdout.write(`\r  ${plant} ${y}: ${name} (${made} ไฟล์ใหม่)   `);
+      for (let m = 1; m <= 12; m++) monthIds.set(`${plant}/${y}/${m}`, await folder(yf, monthFolderName(m)));
+    }
+    console.log(`✓ ${plant}: โฟลเดอร์ปี/เดือน ${FROM}–${TO}`);
+  }
+
+  if (PRE) {
+    const [y, m] = PRE.split('-').map(Number);
+    let made = 0;
+    for (const plant of PLANTS) {
+      const mf = monthIds.get(`${plant}/${y}/${m}`);
+      if (!mf) { console.log(`• ข้าม ${plant} ${PRE} (นอกช่วง --from/--to)`); continue; }
+      const have = new Set((await contents(mf)).files.map((f) => f.name));
+      for (let d = 1; d <= daysIn(y, m); d++) {
+        const name = `${y}-${pad(m)}-${pad(d)}`;
+        if (have.has(name)) continue;
+        await api('POST', `/files/${tpl}/duplicate`, { name, folderId: mf, includeData: false });
+        made++; process.stdout.write(`\r  ${plant} ${name} (${made} ไฟล์ใหม่)   `);
       }
     }
-    console.log(`\n✓ ${plant} เสร็จ`);
+    console.log(`\n✓ สร้างไฟล์รายวันล่วงหน้า ${made} ไฟล์`);
   }
-  // one layout for the whole tree: the PDF layouts of the Worksheet file
+
+  if (PLAN_DIR) {
+    let dirs = 0;
+    for (let y = FROM; y <= TO; y++) for (let m = 1; m <= 12; m++) { const d = path.join(PLAN_DIR, String(y), monthFolderName(m)); if (!fs.existsSync(d)) { fs.mkdirSync(d, { recursive: true }); dirs++; } }
+    console.log(`✓ โฟลเดอร์วางไฟล์แผนผลิต ${PLAN_DIR} (สร้างใหม่ ${dirs} โฟลเดอร์)`);
+  }
+
   const r = await api('POST', `/folders/${tree}/pdf-master`, { masterFileId: master.id });
-  console.log(`\nเสร็จ — สร้างไฟล์รายเดือนใหม่ ${made} ไฟล์ (มีอยู่แล้ว ${skipped}) · ตั้งรูปแบบ PDF กลางให้ ${r.files} ไฟล์ (แก้ที่ "${MASTER_FILE}" ที่เดียว ทุกไฟล์เปลี่ยนตาม)`);
+  console.log(`\nเสร็จ — รูปแบบ PDF กลางตั้งให้ ${r.files} ไฟล์ (แก้ที่ "${MASTER_FILE}" ที่เดียว ทุกไฟล์เปลี่ยนตาม)`);
 }
 main().catch((e) => { console.error('\n✗', e.message); process.exitCode = 1; });
