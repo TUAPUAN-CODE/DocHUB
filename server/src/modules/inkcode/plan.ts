@@ -12,8 +12,14 @@ export interface PlanResult { date: string | null; sheetName: string; items: Pla
 const txt = (v: unknown): string => (v === null || v === undefined ? '' : v instanceof Date ? v.toISOString() : String(v).trim());
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 
+/**
+ * SheetJS builds Date cells a few seconds BEFORE the exact instant (e.g. 2026-10-03 00:00 arrives as 23:59:56 of the 2nd in a
+ * server running in Asia/Bangkok), so reading the local day gave the previous day. Rounding to the nearest minute removes it.
+ */
+const settle = (d: Date): Date => new Date(Math.round(d.getTime() / 60000) * 60000);
+
 export function isoDate(v: unknown): string | null {
-  if (v instanceof Date && !Number.isNaN(v.getTime())) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;
+  if (v instanceof Date && !Number.isNaN(v.getTime())) { const d = settle(v); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
   const s = txt(v);
   let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
@@ -23,7 +29,7 @@ export function isoDate(v: unknown): string | null {
 }
 /** "07:00", a time cell (Excel stores it as a fraction of a day → Date 1899/1900) or a Date → "HH:MM" */
 export function timeText(v: unknown): string | null {
-  if (v instanceof Date && !Number.isNaN(v.getTime())) return `${String(v.getHours()).padStart(2, '0')}:${String(v.getMinutes()).padStart(2, '0')}`;
+  if (v instanceof Date && !Number.isNaN(v.getTime())) { const d = settle(v); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
   if (typeof v === 'number' && v >= 0 && v < 1) { const mins = Math.round(v * 1440); return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`; }
   const m = /^(\d{1,2})[:.](\d{2})/.exec(txt(v));
   return m ? `${m[1].padStart(2, '0')}:${m[2]}` : null;

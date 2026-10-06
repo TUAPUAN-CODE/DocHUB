@@ -2,6 +2,7 @@ import qrEncModule from 'pdfmake/js/qrEnc.js';
 import { fillTokens } from '../variables';
 import type { BuildCtx } from '../build';
 import { MM } from '../types';
+import { charCell } from './charCell';
 import type { BlockBase } from '../types';
 
 /**
@@ -151,7 +152,7 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
     const first = ri === 0;
     body.push([
       ...b.left.map((x) => (first ? { ...stack(x), alignment: x.header === 'ลำดับ' || x.header === 'ไลน์' ? 'center' : 'left' } : span(x, 1))),
-      ...Array.from({ length: n }, (_v, i) => ({ text: cs[i] ?? ' ', fontSize: fs, bold: true, alignment: 'center', margin: [0, Math.max(0, (cellH - fs * 1.2) / 2 - 1), 0, 0] })),
+      ...Array.from({ length: n }, (_v, i) => charCell(cs[i] ?? ' ', fs, cw, cellH, Math.max(0, (cellH - fs * 1.2) / 2 - 1))),
       ...b.right.map((x) => (first ? stack(x) : span(x, 1))),
     ]);
   });

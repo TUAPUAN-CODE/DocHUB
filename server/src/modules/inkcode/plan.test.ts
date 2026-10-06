@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as XLSX from 'xlsx';
-import { parsePlan, resolveLine, shiftOf, timeText } from './plan';
+import { isoDate, parsePlan, resolveLine, shiftOf, timeText } from './plan';
 
 const sheet = (rows: unknown[][]) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows, { cellDates: true }), 'Sheet2'); return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })); };
 
@@ -32,4 +32,10 @@ test('plan: helpers', () => {
   assert.deepEqual(resolveLine('Pouch', 'Auto A', ['Auto A']), { line: 'Auto A', known: true });
   assert.equal(resolveLine('Pouch', 'ไม่รู้จัก', ['Auto A']).known, false);
   assert.throws(() => parsePlan(sheet([['a', 'b']])), /ไม่พบตารางแผนผลิต/);
+});
+
+test('Date cells built a few seconds early by SheetJS keep their day (server in a UTC+7 zone)', () => {
+  assert.equal(isoDate(new Date(2026, 9, 2, 23, 59, 56)), '2026-10-03');   // local 23:59:56 of the 2nd = 00:00 of the 3rd
+  assert.equal(isoDate(new Date(2026, 9, 3, 0, 0, 0)), '2026-10-03');
+  assert.equal(timeText(new Date(1899, 11, 30, 6, 59, 56)), '07:00');
 });

@@ -22,6 +22,8 @@ export interface BlockBase {
   name?: string;
   marginTop?: number; marginBottom?: number; marginLeft?: number; marginRight?: number; // mm
   pageBreakBefore?: boolean; pageBreakAfter?: boolean;
+  /** form-per-row layouts with "group by": print this block once at the start / end of each group (e.g. the title, or one signature block per customer) instead of with every row */
+  groupOnce?: 'start' | 'end';
   /** absolute position in mm from the page corner (text / image / line); null = flows with the content */
   position?: { x: number; y: number } | null;
 }
@@ -76,7 +78,7 @@ export interface PdfTemplate {
   name: string;
   /** table = one report with tables; perRow = one form page per row (fields + {{Column}} tokens) */
   mode: 'table' | 'perRow';
-  perRow?: { sheetId: string; sheetName: string; onlySelected: boolean; /** forms (rows) on one page, default 1 */ rowsPerPage?: number };
+  perRow?: { sheetId: string; sheetName: string; onlySelected: boolean; /** forms (rows) on one page, default 1 */ rowsPerPage?: number; /** column name: rows with the same value are printed together, every group starts on a new page ({{group}} = the value) */ groupBy?: string };
   page: { size: PageSize; orientation: 'portrait' | 'landscape'; margins: { top: number; right: number; bottom: number; left: number } };
   base: { font: PdfFont; fontSize: number; color: string };
   header: { enabled: boolean; blocks: (TextBlock | ImageBlock | ColumnsBlock | LineBlock | SpacerBlock)[] };
@@ -88,6 +90,8 @@ export interface PdfTemplate {
   settings?: { shift?: ShiftSettings };
   /** perRow only: print every form N times in a row, each copy with its own label ({{copy}} = number, {{copyLabel}} = label) */
   copies?: { labels: string[]; separator: 'line' | 'pageBreak' | 'none' };
+  /** use the sheet the user is exporting from instead of the sheet saved in the layout (one layout for every daily sheet / month file) */
+  followSheet?: boolean;
   /** always show the export dialog (e.g. to save the document into the archive) */
   askOnExport?: boolean;
   /** disable copying / editing in PDF viewers (open with no password) */

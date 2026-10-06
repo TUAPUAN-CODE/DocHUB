@@ -11,7 +11,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLUMNS, HELP_ROWS, printTemplate, REF_SHEETS, SAMPLE_ROW, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
+import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLUMNS, HELP_ROWS, printTemplate, printTemplateByCustomer, REF_SHEETS, SAMPLE_ROW, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
 
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const DRY = process.argv.includes('--dry');
@@ -122,8 +122,8 @@ async function main() {
     if (wsFile) {
       const wsId = idOf(wsFile.sheets, SHEETS.ws);
       await addFormulas(wsId, worksheetFormulas(tokens), sheetIds);
-      await api('PUT', `/files/${wsFile.id}/pdf-templates`, { templates: [printTemplate(wsId)] });
-      console.log('  + รูปแบบ PDF "ใบออกโค้ดนอกแผน 4 ส่วน"');
+      await api('PUT', `/files/${wsFile.id}/pdf-templates`, { templates: [printTemplate(wsId), printTemplateByCustomer(wsId)] });
+      console.log('  + รูปแบบ PDF "ใบออกโค้ดนอกแผน 4 ส่วน" และ "แยกตามลูกค้า"');
     }
   } else if (!DRY) console.log('• ข้ามไฟล์ใบออกโค้ดนอกแผน เพราะไฟล์รหัสอ้างอิง/Master Database มีอยู่เดิม — ลบแล้วรันใหม่ถ้าต้องการสร้างทั้งชุด');
 

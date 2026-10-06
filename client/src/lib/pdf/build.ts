@@ -1,7 +1,7 @@
 import { alertColor } from '@/modules/alerts/level';
 import { displayValue } from '@/lib/format';
 import type { Column, Row } from '@/types';
-import { collectData, CurrentView, resolveColumns, SheetData } from './data';
+import { bindToCurrent, collectData, CurrentView, resolveColumns, SheetData } from './data';
 import { loadPdfMake } from './fonts';
 import { preloadImages } from './images';
 import './blocks';
@@ -240,7 +240,8 @@ function imageUrlsNeeded(t: PdfTemplate, tables: Map<string, SheetData>): string
 export interface ExportValues { prompts?: Record<string, string>; signers?: Record<string, string> }
 export interface PdfRunOptions { fileName: string; user: string; current: CurrentView | null; previewLimit?: number; onProgress?: (m: string) => void; values?: ExportValues }
 
-export async function buildDocDefinition(t: PdfTemplate, o: PdfRunOptions) {
+export async function buildDocDefinition(template: PdfTemplate, o: PdfRunOptions) {
+  const t = bindToCurrent(template, o.current);
   const tables = await collectData(t, o.current, { limit: o.previewLimit, onProgress: o.onProgress });
   o.onProgress?.('กำลังโหลดรูปภาพ…');
   const images = await preloadImages(imageUrlsNeeded(t, tables));
@@ -263,24 +264,55 @@ export function assembleDoc(t: PdfTemplate, o: PdfRunOptions, tables: Map<string
   const content: any[] = [];
   if (t.mode === 'perRow' && t.perRow) {
     const sd = tables.get(t.perRow.sheetId);
-    if (!sd || !sd.rows.length) content.push({ text: 'ไม่มีแถวที่จะพิมพ์', italics: true, color: '#9CA3AF' });
-    else sd.rows.forEach((row, ri) => {
+    const rowVarsOf = (row: Row): Vars => {
       const rv: Vars = { '#': String(row.order) };
-      for (const col of sd.columns) rv[col.name] = col.dataType === 'image' ? '' : displayValue(col, row.values[col.id] ?? null);
+      for (const col of sd!.columns) rv[col.name] = col.dataType === 'image' ? '' : displayValue(col, row.values[col.id] ?? null);
+      return rv;
+    };
+    const dash = () => ({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 2, 0, 3] });
+    if (!sd || !sd.rows.length) content.push({ text: 'ไม่มีแถวที่จะพิมพ์', italics: true, color: '#9CA3AF' });
+    else {
+      // rows with the same "group by" value are printed together (customer by customer); no group column = one group
+      const gcol = t.perRow.groupBy ? sd.columns.find((c) => c.name.trim().toLowerCase() === t.perRow!.groupBy!.trim().toLowerCase()) : undefined;
+      const groups: { key: string; rows: Row[] }[] = [];
+      if (gcol) {
+        const idx = new Map<string, { key: string; rows: Row[] }>();
+        for (const row of sd.rows) {
+          const key = displayValue(gcol, row.values[gcol.id] ?? null) || '(ไม่ระบุ)';
+          let g = idx.get(key);
+          if (!g) { g = { key, rows: [] }; idx.set(key, g); groups.push(g); }
+          g.rows.push(row);
+        }
+      } else groups.push({ key: '', rows: sd.rows });
+      const per = Math.max(1, Math.floor(t.perRow.rowsPerPage ?? 1));
       const labels = t.copies?.labels?.length ? t.copies.labels : [''];
       const sep = t.copies?.separator ?? 'line';
-      labels.forEach((label, ci) => {
-        const cv: Vars = t.copies?.labels?.length ? { ...rv, copy: String(ci + 1), copyLabel: label } : rv;
-        const nodes = t.blocks.map((b) => blockToNode(b, { ...ctx, rowVars: cv }, row, sd)).filter(Boolean);
-        if (!nodes.length) return;
-        const per = Math.max(1, Math.floor(t.perRow?.rowsPerPage ?? 1));
-        if (ci === 0 && ri > 0 && ri % per === 0) nodes[0].pageBreak = 'before';
-        else if (ci === 0 && ri > 0) content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 2, 0, 3] });
-        else if (ci > 0 && sep === 'pageBreak') nodes[0].pageBreak = 'before';
-        else if (ci > 0 && sep === 'line') content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.6, dash: { length: 4 }, lineColor: '#9CA3AF' }], margin: [0, 2, 0, 3] });
-        content.push(...nodes);
+      groups.forEach((g, gi) => {
+        const gv: Vars = { ...rowVarsOf(g.rows[0]), group: g.key };
+        const once = (when: 'start' | 'end') => t.blocks.filter((b) => b.groupOnce === when).map((b) => blockToNode(b, { ...ctx, rowVars: gv }, g.rows[0], sd)).filter(Boolean);
+        const head = once('start');
+        if (head.length && gi > 0) head[0].pageBreak = 'before';
+        content.push(...head);
+        let firstOfGroup = gi > 0 && !head.length;
+        g.rows.forEach((row, ri) => {
+          const rv: Vars = { ...rowVarsOf(row), group: g.key };
+          labels.forEach((label, ci) => {
+            const cv: Vars = t.copies?.labels?.length ? { ...rv, copy: String(ci + 1), copyLabel: label } : rv;
+            const nodes = t.blocks.filter((b) => !b.groupOnce).map((b) => blockToNode(b, { ...ctx, rowVars: cv }, row, sd)).filter(Boolean);
+            if (!nodes.length) return;
+            if (ci === 0 && firstOfGroup) nodes[0].pageBreak = 'before';
+            else if (ci === 0 && ri > 0 && ri % per === 0) nodes[0].pageBreak = 'before';
+            else if (ci === 0 && ri > 0) content.push(dash());
+            else if (ci > 0 && sep === 'pageBreak') nodes[0].pageBreak = 'before';
+            else if (ci > 0 && sep === 'line') content.push(dash());
+            firstOfGroup = false;
+            content.push(...nodes);
+          });
+        });
+        // blocks marked "once per group" close it (e.g. the signatures of this customer)
+        content.push(...once('end'));
       });
-    });
+    }
   } else content.push(...t.blocks.map((b) => blockToNode(b, ctx)).filter(Boolean));
   if (!content.length) content.push({ text: 'เอกสารว่าง — เพิ่มบล็อกในหน้าออกแบบ', italics: true, color: '#9CA3AF' });
 

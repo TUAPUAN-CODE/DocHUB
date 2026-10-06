@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowDown, ArrowLeft, ArrowUp, Copy, Download, FileDown, FileJson, FilePlus2, FileUp, Files, Loader2, Plus, RefreshCw, Save, Settings2, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, Copy, Download, FileDown, FileJson, FilePlus2, FileUp, Files, Loader2, Share2, Plus, RefreshCw, Save, Settings2, Trash2 } from 'lucide-react';
 import { apiError } from '@/api/client';
-import { filesApi, pdfApi } from '@/api/endpoints';
+import { filesApi, foldersApi, pdfApi } from '@/api/endpoints';
 import { FilePicker } from '@/components/files/FilePicker';
 import { BLOCK_TYPES_BODY, BLOCK_TYPES_SIDE, ColumnsForm, FieldsForm, Group, ImageForm, LineForm, Num, PDF_SWATCHES, SpacerForm, SpacingForm, TableForm, TextForm } from '@/components/pdf/BlockForms';
 import { WatermarkImage } from '@/components/pdf/WatermarkImage';
@@ -56,6 +56,32 @@ export default function PdfDesignerPage() {
   const [add, setAdd] = useState(false);
   const addBtn = useRef<HTMLButtonElement>(null);
   const [copyOpen, setCopyOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareFolder, setShareFolder] = useState('');
+  const [folders, setFolders] = useState<{ id: string; label: string }[]>([]);
+  const openShare = async () => {
+    setShareOpen(true);
+    if (folders.length) return;
+    try {
+      const tree = await foldersApi.tree();
+      const byId = new Map(tree.map((f) => [f.id, f]));
+      const label = (id: string): string => { const f = byId.get(id); return f ? (f.parentId && byId.has(f.parentId) ? `${label(f.parentId)} › ${f.name}` : f.name) : ''; };
+      setFolders(tree.map((f) => ({ id: f.id, label: label(f.id) })).sort((a, b) => a.label.localeCompare(b.label, 'th')));
+    } catch (e) { toast.error(apiError(e).message); }
+  };
+  const applyShare = async () => {
+    if (!shareFolder) return;
+    try {
+      if (dirty) await pdfApi.save(fileId, templates);
+      setDirty(false);
+      const r = await pdfApi.setFolderMaster(shareFolder, fileId);
+      setShareOpen(false); toast.success(`ตั้งรูปแบบกลางให้ ${r.files.toLocaleString()} ไฟล์แล้ว`, 'แก้รูปแบบในไฟล์นี้ครั้งเดียว ทุกไฟล์จะเปลี่ยนตาม');
+    } catch (e) { toast.error(apiError(e).message, 'ตั้งรูปแบบกลางไม่สำเร็จ'); }
+  };
+  const detachMaster = async () => {
+    if (!(await confirmDialog({ title: 'เลิกใช้รูปแบบกลาง?', message: 'ไฟล์นี้จะได้สำเนารูปแบบปัจจุบันไว้แก้เอง และไม่เปลี่ยนตามไฟล์กลางอีก', confirmText: 'เลิกใช้' }))) return;
+    try { await pdfApi.setMaster(fileId, null); saved.reload?.(); toast.success('เลิกใช้รูปแบบกลางแล้ว'); } catch (e) { toast.error(apiError(e).message); }
+  };
   const [copyFile, setCopyFile] = useState<{ id: string; name: string; path: string } | null>(null);
   const [colsBySheet, setColsBySheet] = useState<Record<string, Column[]>>({});
 
@@ -185,6 +211,15 @@ export default function PdfDesignerPage() {
 
   if (file.loading || saved.loading) return <div className="space-y-3 p-6"><Skeleton className="h-10 w-72" /><Skeleton className="h-[70vh] w-full" /></div>;
   if (file.error || !file.data) return <div className="p-6"><div className="ds-card"><EmptyState title="เปิดไฟล์ไม่ได้" description={file.error?.message} /></div></div>;
+  const master = saved.data?.master;
+  if (master) {
+    return (
+      <div className="p-6"><div className="ds-card">
+        <EmptyState title={`ไฟล์นี้ใช้รูปแบบ PDF กลางจาก “${master.name}”`} description="แก้รูปแบบที่ไฟล์ต้นทางครั้งเดียว ทุกไฟล์ที่ใช้รูปแบบกลางจะเปลี่ยนตามทันที"
+          action={<div className="flex gap-2"><Link to={`/files/${master.id}/pdf`}><Button>ไปแก้ที่ไฟล์ต้นทาง</Button></Link><Button variant="secondary" onClick={detachMaster}>เลิกใช้รูปแบบกลาง (คัดลอกมาแก้เอง)</Button><Link to={`/files/${fileId}`}><Button variant="secondary">กลับไปที่ไฟล์</Button></Link></div>} />
+      </div></div>
+    );
+  }
   if (!allowedMe) return <div className="p-6"><div className="ds-card"><EmptyState title="ออกแบบรูปแบบ PDF ได้เฉพาะเจ้าของไฟล์ / ผู้จัดการ / Admin" action={<Link to={`/files/${fileId}`}><Button>กลับไปที่ไฟล์</Button></Link>} /></div></div>;
 
   return (
@@ -193,6 +228,7 @@ export default function PdfDesignerPage() {
         <Link to={`/files/${fileId}`} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-ink/5" aria-label="กลับ"><ArrowLeft className="h-5 w-5" /></Link>
         <div className="min-w-0"><p className="truncate text-xs text-muted">{fileName}</p><h1 className="text-lg font-semibold">ออกแบบรูปแบบ PDF</h1></div>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <Button variant="secondary" size="sm" icon={<Share2 className="h-4 w-4" />} onClick={() => void openShare()} disabled={!templates.length}>ใช้เป็นรูปแบบกลาง</Button>
           <Button variant="secondary" size="sm" icon={<Files className="h-4 w-4" />} onClick={() => setCopyOpen(true)}>คัดลอกจากไฟล์อื่น</Button>
           <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-[13px] font-medium hover:border-primary/40"><FileUp className="h-4 w-4" />นำเข้า (.json)<input type="file" accept=".json,application/json" className="hidden" onChange={(e) => { void importJson(e.target.files?.[0]); e.target.value = ''; }} /></label>
           <Button variant="secondary" size="sm" icon={<FileJson className="h-4 w-4" />} onClick={exportJson} disabled={!tpl}>ส่งออก (.json)</Button>
@@ -269,7 +305,7 @@ export default function PdfDesignerPage() {
         {/* right: properties */}
         <aside className="ds-card hidden w-[360px] shrink-0 overflow-y-auto p-4 lg:block">
           {!tpl ? <p className="text-sm text-muted">เลือกหรือสร้างรูปแบบทางซ้าย</p>
-            : sel.kind === 'page' ? <PageSettings t={tpl} patch={patch} sheets={sheets} />
+            : sel.kind === 'page' ? <PageSettings t={tpl} patch={patch} sheets={sheets} colsBySheet={colsBySheet} />
             : selBlock ? (
               <div className="space-y-4">
                 <p className="text-sm font-semibold text-primary">{blockLabel(selBlock.type)}</p>
@@ -288,6 +324,11 @@ export default function PdfDesignerPage() {
         </aside>
       </div>
 
+      <Modal open={shareOpen} onClose={() => setShareOpen(false)} size="md" icon={<Share2 className="h-5 w-5" />} title="ใช้รูปแบบ PDF ของไฟล์นี้เป็นรูปแบบกลาง"
+        description="ทุกไฟล์ในโฟลเดอร์ที่เลือก (รวมโฟลเดอร์ย่อย) จะใช้รูปแบบของไฟล์นี้ — แก้ที่นี่ที่เดียว ทุกไฟล์เปลี่ยนตาม (ไฟล์เหล่านั้นจะไม่มีรูปแบบของตัวเองอีก ยกเลิกได้ภายหลัง) · เปิด “ใช้กับชีตที่กำลังพิมพ์” ในรูปแบบนี้ เพื่อให้ใช้ได้กับทุกชีตรายวัน"
+        footer={<><Button variant="secondary" onClick={() => setShareOpen(false)}>ยกเลิก</Button><Button onClick={applyShare} disabled={!shareFolder}>ตั้งเป็นรูปแบบกลาง</Button></>}>
+        <Field label="โฟลเดอร์"><Select value={shareFolder} onChange={(e) => setShareFolder(e.target.value)}><option value="">— เลือกโฟลเดอร์ —</option>{folders.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}</Select></Field>
+      </Modal>
       <Modal open={copyOpen} onClose={() => setCopyOpen(false)} size="md" icon={<Files className="h-5 w-5" />} title="คัดลอกรูปแบบ PDF จากไฟล์อื่น"
         description="รูปแบบทั้งหมดของไฟล์ต้นทางจะถูกเพิ่มเข้าไฟล์นี้ โดยจับคู่ชีตและคอลัมน์ตามชื่อ"
         footer={<><Button variant="secondary" onClick={() => setCopyOpen(false)}>ยกเลิก</Button><Button icon={<FileDown className="h-4 w-4" />} onClick={copyFrom} disabled={!copyFile}>คัดลอก</Button></>}>
@@ -297,18 +338,25 @@ export default function PdfDesignerPage() {
   );
 }
 
-function PageSettings({ t, patch, sheets }: { t: PdfTemplate; patch: (p: Partial<PdfTemplate>) => void; sheets: { id: string; name: string }[] }) {
+function PageSettings({ t, patch, sheets, colsBySheet }: { t: PdfTemplate; patch: (p: Partial<PdfTemplate>) => void; sheets: { id: string; name: string }[]; colsBySheet: Record<string, Column[]> }) {
   const m = t.page.margins;
   const setPage = (p: Partial<PdfTemplate['page']>) => patch({ page: { ...t.page, ...p } });
   return (
     <div className="space-y-4">
       <Group title="โหมดเอกสาร">
         <Field label="รูปแบบ"><Select value={t.mode} onChange={(e) => patch({ mode: e.target.value as PdfTemplate['mode'], perRow: e.target.value === 'perRow' ? t.perRow ?? { sheetId: sheets[0]?.id ?? '', sheetName: sheets[0]?.name ?? '', onlySelected: true } : t.perRow })}><option value="table">รายงานตาราง (หลายแถวในตาราง)</option><option value="perRow">แบบฟอร์มต่อแถว (1 แถว = 1 หน้า)</option></Select></Field>
+        <Toggle checked={!!t.followSheet} onChange={(v) => patch({ followSheet: v || undefined })} label="ใช้กับชีตที่กำลังพิมพ์ (ใช้รูปแบบเดียวกับทุกชีตรายวัน/ทุกไฟล์ที่มีคอลัมน์ชื่อเหมือนกัน)" />
         {t.mode === 'perRow' && t.perRow && (
           <>
             <Field label="ชีตที่ใช้พิมพ์"><Select value={t.perRow.sheetId} onChange={(e) => patch({ perRow: { ...t.perRow!, sheetId: e.target.value, sheetName: sheets.find((s) => s.id === e.target.value)?.name ?? '' } })}>{sheets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
             <Toggle checked={t.perRow.onlySelected} onChange={(v) => patch({ perRow: { ...t.perRow!, onlySelected: v } })} label="พิมพ์เฉพาะแถวที่เลือกในตาราง (ถ้าไม่ได้เลือก = ทุกแถวตามตัวกรอง)" />
             <div className="max-w-[12rem]"><Num label="จำนวนฟอร์ม (แถว) ต่อ 1 หน้า" value={t.perRow.rowsPerPage ?? 1} onChange={(v) => patch({ perRow: { ...t.perRow!, rowsPerPage: Math.max(1, Math.round(v ?? 1)) } })} min={1} max={20} /></div>
+            <Field label="จัดกลุ่มตามคอลัมน์ (เช่น Market / ลูกค้า — แต่ละกลุ่มขึ้นหน้าใหม่ และใช้ {{group}} ในข้อความได้)">
+              <Select value={t.perRow.groupBy ?? ''} onChange={(e) => patch({ perRow: { ...t.perRow!, groupBy: e.target.value || undefined } })}>
+                <option value="">ไม่จัดกลุ่ม</option>
+                {(colsBySheet[t.perRow.sheetId] ?? []).map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </Select>
+            </Field>
             <p className="text-[11px] text-muted">1 = แถวละหน้า · 4 = วาง 4 แถวต่อหน้า (คั่นเส้นประ) เช่น กระดาษ A3 แนวนอน</p>
             <Toggle checked={!!t.copies?.labels?.length} onChange={(v) => patch({ copies: v ? { labels: ['ฉบับที่ 1', 'ฉบับที่ 2'], separator: 'line' } : undefined })} label="พิมพ์ซ้ำหลายสำเนาต่อ 1 แถว (เช่น ใบ 4 ส่วน)" />
             {t.copies?.labels?.length ? (

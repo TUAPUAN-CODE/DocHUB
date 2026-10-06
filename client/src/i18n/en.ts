@@ -13,6 +13,8 @@ export const en: Record<string, string> = {
  "แดชบอร์ด": "Dashboards",
  "ตั้งค่า": "Settings",
  "ออกจากระบบ": "Sign out",
+ "ย่อเมนูให้เหลือแต่ไอคอน": "Collapse menu to icons",
+ "ขยายเมนู": "Expand menu",
  "ปิดเมนู": "Close menu",
  "เปิดเมนู": "Open menu",
  "ค้นหาไฟล์หรือโฟลเดอร์…": "Search files or folders…",

@@ -230,7 +230,8 @@ router.post(
       );
       const sheets = await q(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: T.uuid(id) }, tx);
       for (const [i, s] of sheets.entries()) await copySheet(tx, s.sheet_id, f!.file_id, i, u.id, body.includeData);
-      // PDF layouts travel with the file
+      // PDF layouts travel with the file (a file that follows a master keeps following it)
+      if (file.pdf_master_id) await q(`UPDATE Files SET pdf_master_id = @m WHERE file_id = @f`, { m: T.uuid(file.pdf_master_id), f: T.uuid(f!.file_id) }, tx);
       const tpls = parseTemplates(file.pdf_templates);
       if (tpls.length) {
         const mapped = remapTemplates(tpls, await sheetsOfFile(id, tx), await sheetsOfFile(f!.file_id, tx), false);

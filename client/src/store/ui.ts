@@ -10,6 +10,9 @@ interface UiState {
   confirmState: (ConfirmOpts & { resolve: (v: boolean) => void }) | null;
   openTransition: OpenTransition | null;
   mobileNav: boolean;
+  /** desktop left bar shows only the icons */
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (v: boolean) => void;
   pushToast: (t: Omit<Toast, 'id'>) => void;
   dismissToast: (id: number) => void;
   setOpenTransition: (t: OpenTransition | null) => void;
@@ -22,6 +25,8 @@ export const useUi = create<UiState>((set, get) => ({
   confirmState: null,
   openTransition: null,
   mobileNav: false,
+  sidebarCollapsed: (() => { try { return localStorage.getItem('ds.sidebarCollapsed') === '1'; } catch { return false; } })(),
+  setSidebarCollapsed: (sidebarCollapsed) => { try { localStorage.setItem('ds.sidebarCollapsed', sidebarCollapsed ? '1' : '0'); } catch { /* private mode: the choice just is not remembered */ } set({ sidebarCollapsed }); },
   pushToast: (t) => {
     const id = seq++;
     set({ toasts: [...get().toasts.slice(-4), { ...t, id }] });

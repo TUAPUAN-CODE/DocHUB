@@ -230,7 +230,9 @@ export const publicShareApi = {
 };
 
 export const pdfApi = {
-  get: (fileId: string) => get<{ templates: any[]; canEdit: boolean }>(`/files/${fileId}/pdf-templates`),
+  get: (fileId: string) => get<{ templates: any[]; canEdit: boolean; master: { id: string; name: string } | null }>(`/files/${fileId}/pdf-templates`),
+  setMaster: (fileId: string, masterFileId: string | null) => post(`/files/${fileId}/pdf-templates/master`, { masterFileId }),
+  setFolderMaster: (folderId: string, masterFileId: string) => post<{ files: number }>(`/folders/${folderId}/pdf-master`, { masterFileId }),
   save: (fileId: string, templates: any[]) => put(`/files/${fileId}/pdf-templates`, { templates }),
   copyFrom: (fileId: string, sourceFileId: string, templateIds?: string[]) => post<{ templates: any[] }>(`/files/${fileId}/pdf-templates/copy-from`, { sourceFileId, templateIds }),
 };

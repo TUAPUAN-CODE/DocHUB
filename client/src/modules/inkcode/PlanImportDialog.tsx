@@ -15,12 +15,14 @@ export function PlanImportDialog({ open, onClose, sheetId, onDone }: { open: boo
   const [pv, setPv] = useState<PlanPreview | null>(null);
   const [date, setDate] = useState('');
   const [onlyMatched, setOnlyMatched] = useState(true);
+  const [onlyPlant, setOnlyPlant] = useState(true);
+  const [allowOtherDate, setAllowOtherDate] = useState(false);
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [result, setResult] = useState<PlanImportResult | null>(null);
 
-  const reset = () => { setFile(null); setPv(null); setResult(null); setLineMap({}); setDate(''); };
+  const reset = () => { setFile(null); setPv(null); setResult(null); setLineMap({}); setDate(''); setAllowOtherDate(false); };
   const close = () => { reset(); onClose(); };
 
   const load = async (f?: File) => {
@@ -32,19 +34,22 @@ export function PlanImportDialog({ open, onClose, sheetId, onDone }: { open: boo
   };
   const unknownLines = useMemo(() => (pv ? [...new Set(pv.items.filter((i) => pv.knownLines.length && !pv.knownLines.includes(lineMap[i.line] ?? i.line)).map((i) => i.line))] : []), [pv, lineMap]);
   const items = useMemo(() => (pv ? pv.items.map((i) => ({ ...i, line: lineMap[i.line] ?? i.line })) : []), [pv, lineMap]);
-  const matched = items.filter((i) => i.inDb !== false).length;
+  const wrongDay = !!(pv?.sheetDate && date && pv.sheetDate !== date);
+  const matched = items.filter((i) => i.inDb !== false && !(onlyPlant && i.otherPlant)).length;
+  const otherPlant = items.filter((i) => i.otherPlant).length;
 
   const run = async () => {
     if (!file || !pv) return;
     if (!date) return toast.error('ระบุวันที่ผลิต');
+    if (wrongDay && !allowOtherDate) return toast.error(`ชีตนี้คือวันที่ ${pv!.sheetDate} แต่แผนเป็นวันที่ ${date}`, 'เปิดชีตของวันที่ในแผน หรือติ๊กยืนยันนำเข้าลงชีตนี้');
     setBusy(true);
-    try { const r = await inkcodeApi.importPlan(file, sheetId, { date, onlyMatched, lineMap }); setResult(r); onDone(); }
+    try { const r = await inkcodeApi.importPlan(file, sheetId, { date, onlyMatched, onlyPlant, allowOtherDate, lineMap }); setResult(r); onDone(); }
     catch (e) { toast.error(apiError(e).message, 'นำเข้าไม่สำเร็จ'); } finally { setBusy(false); }
   };
 
   return (
     <Modal open={open} onClose={close} size="xl" icon={<FileSpreadsheet className="h-5 w-5" />} title="นำเข้าแผนผลิตประจำวัน (Excel)" description="ระบบอ่านไลน์ / ประเทศ / Doc.No / เวลา จากแผน แล้วเพิ่มแถวใน Worksheet — โค้ด 4 แถวและรายละเอียดคำนวณให้เอง"
-      footer={result ? <Button onClick={close}>เสร็จสิ้น</Button> : <><Button variant="secondary" onClick={close}>ยกเลิก</Button><Button onClick={() => void run()} loading={busy} disabled={!pv || !items.length}>นำเข้า {pv ? `(${onlyMatched ? matched : items.length} แถว)` : ''}</Button></>}>
+      footer={result ? <Button onClick={close}>เสร็จสิ้น</Button> : <><Button variant="secondary" onClick={close}>ยกเลิก</Button><Button onClick={() => void run()} loading={busy} disabled={!pv || !items.length || (wrongDay && !allowOtherDate)}>นำเข้า {pv ? `(${onlyMatched ? matched : items.filter((i) => !(onlyPlant && i.otherPlant)).length} แถว)` : ''}</Button></>}>
       {!pv && (
         <div onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); void load(e.dataTransfer.files?.[0]); }}
           className={cn('flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-line px-6 py-14 text-center text-sm text-muted hover:border-primary/50', drag && 'border-primary bg-primary/5')} onClick={() => input.current?.click()} role="button" tabIndex={0}>
@@ -61,6 +66,19 @@ export function PlanImportDialog({ open, onClose, sheetId, onDone }: { open: boo
             <p className="pb-2 text-muted">ไฟล์ {file?.name} · ชีต {pv.sheetName} · พบ <b className="text-ink">{items.length}</b> รายการ · ตรงฐานข้อมูล <b className="text-ink">{matched}</b></p>
             <div className="ml-auto pb-2"><Checkbox checked={onlyMatched} onChange={setOnlyMatched} label="นำเข้าเฉพาะที่พบรหัสเอกสาร + ประเทศ ในฐานข้อมูล" /></div>
           </div>
+          {wrongDay && (
+            <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm dark:bg-red-500/10">
+              <p className="font-medium text-danger">ชีตนี้คือวันที่ {pv.sheetDate} แต่แผนเป็นวันที่ {date}</p>
+              <p className="mt-0.5 text-muted">เปิดชีตของวันที่ {date} (ไฟล์เดือนนั้น › ชีตวันนั้น) แล้วนำเข้าแผนอีกครั้ง</p>
+              <div className="mt-1.5"><Checkbox checked={allowOtherDate} onChange={setAllowOtherDate} label={`ยืนยันนำเข้าลงชีตนี้ทั้งที่วันที่ไม่ตรง`} /></div>
+            </div>
+          )}
+          {pv.plant && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm">
+              <span>ชีตนี้อยู่ใน <b>{pv.plant}</b></span>
+              <Checkbox checked={onlyPlant} onChange={setOnlyPlant} label={`นำเข้าเฉพาะไลน์ของ ${pv.plant}${otherPlant ? ` (ข้ามไลน์ของโรงงานอื่น ${otherPlant} รายการ)` : ''}`} />
+            </div>
+          )}
           {!!unknownLines.length && (
             <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm dark:bg-amber-500/10">
               <p className="mb-2 font-medium">ไลน์ที่ไม่อยู่ในตารางรหัสอ้างอิง — เลือกว่าตรงกับไลน์ไหน (ถ้าไม่เลือก แถวนั้นจะนำเข้าไม่ได้)</p>
@@ -86,7 +104,7 @@ export function PlanImportDialog({ open, onClose, sheetId, onDone }: { open: boo
       {result && (
         <div className="space-y-2 text-sm">
           <p className="text-base font-semibold text-emerald-600">นำเข้าแล้ว {result.created} แถว (วันที่ {result.date})</p>
-          <ul className="list-disc pl-5 text-muted"><li>มีอยู่แล้ว ข้าม {result.duplicate} แถว</li><li>ไม่พบในฐานข้อมูล ข้าม {result.skippedNotInDb} แถว</li>{!!result.failed.length && <li className="text-danger">นำเข้าไม่ได้ {result.failed.length} แถว: {result.failed.slice(0, 5).map((f) => `${f.doc} (${f.line}): ${f.reason}`).join(' · ')}</li>}</ul>
+          <ul className="list-disc pl-5 text-muted"><li>มีอยู่แล้ว ข้าม {result.duplicate} แถว</li><li>ไม่พบในฐานข้อมูล ข้าม {result.skippedNotInDb} แถว</li>{!!result.skippedOtherPlant && <li>ไลน์ของโรงงานอื่น ข้าม {result.skippedOtherPlant} แถว</li>}{!!result.failed.length && <li className="text-danger">นำเข้าไม่ได้ {result.failed.length} แถว: {result.failed.slice(0, 5).map((f) => `${f.doc} (${f.line}): ${f.reason}`).join(' · ')}</li>}</ul>
         </div>
       )}
     </Modal>

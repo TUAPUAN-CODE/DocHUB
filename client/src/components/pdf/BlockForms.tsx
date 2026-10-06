@@ -70,6 +70,13 @@ export function SpacingForm({ b, onChange }: { b: Block; onChange: (p: Partial<B
         <div className="grid grid-cols-1 gap-1.5">
           <Toggle checked={!!b.pageBreakBefore} onChange={(v) => onChange({ pageBreakBefore: v })} label="ขึ้นหน้าใหม่ก่อนบล็อกนี้" />
           <Toggle checked={!!b.pageBreakAfter} onChange={(v) => onChange({ pageBreakAfter: v })} label="ขึ้นหน้าใหม่หลังบล็อกนี้" />
+          <Field label="ฟอร์มต่อแถว + จัดกลุ่ม: พิมพ์บล็อกนี้">
+            <Select value={b.groupOnce ?? ''} onChange={(e) => onChange({ groupOnce: (e.target.value || undefined) as 'start' | 'end' | undefined })}>
+              <option value="">ซ้ำทุกแถว (ปกติ)</option>
+              <option value="start">ครั้งเดียวต้นกลุ่ม (เช่น หัวเอกสาร)</option>
+              <option value="end">ครั้งเดียวท้ายกลุ่ม (เช่น ลายเซ็นของลูกค้านั้น)</option>
+            </Select>
+          </Field>
         </div>
       )}
     </Group>

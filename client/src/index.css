@@ -42,6 +42,8 @@ body {
     margin-left: 14px; border-radius: 999px 0 0 999px; color: var(--sidebar-text);
     transition: background-color .2s ease, color .25s ease; font-weight: 500; white-space: nowrap; }
   /* Dim via the children, not the link: an opacity on the link would create a stacking context and hide the sliding pill */
+  /* icon-only left bar: the icon is centred, the active pill keeps its shape */
+  .sb-collapsed .nav-link { justify-content: center; gap: 0; padding: 0; margin-left: 10px; }
   .nav-link > :not(.nav-pill) { position: relative; z-index: 1; opacity: .82; transition: opacity .25s ease; }
   .nav-link:hover { background: rgb(255 255 255 / .1); }
   .nav-link:hover > :not(.nav-pill), .nav-link.active > :not(.nav-pill) { opacity: 1; }

@@ -162,7 +162,7 @@ export default function FilePage() {
       const tpl = t ?? defaultTemplate(file.data?.file.name ?? 'export', { id: sheetId, name: view.detail.sheet.name, columns: view.columns });
       const { blob, truncated } = await generatePdf(tpl, {
         fileName: file.data?.file.name ?? '', user: useAuth.getState().user?.displayName ?? '', values,
-        current: { sheetId, filters: view.query.filters, sorts: view.query.sorts, search: view.query.search || undefined, selectedRowIds: selRows },
+        current: { sheetId, sheetName: view.detail.sheet.name, filters: view.query.filters, sorts: view.query.sorts, search: view.query.search || undefined, selectedRowIds: selRows },
       });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${file.data?.file.name ?? 'export'} - ${view.detail.sheet.name}${t ? ` - ${t.name}` : ''}.pdf`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);

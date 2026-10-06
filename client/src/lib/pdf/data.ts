@@ -4,7 +4,23 @@ import type { Column, ColumnFilter, Row, SortSpec } from '@/types';
 import type { Block, FieldsBlock, PdfTemplate, TableBlock, TableCol } from './types';
 
 export interface SheetData { sheetId: string; columns: Column[]; rows: Row[]; total: number; truncated: boolean }
-export interface CurrentView { sheetId: string; filters: ColumnFilter[]; sorts: SortSpec[]; search?: string; selectedRowIds?: string[] }
+export interface CurrentView { sheetId: string; sheetName?: string; filters: ColumnFilter[]; sorts: SortSpec[]; search?: string; selectedRowIds?: string[] }
+
+/**
+ * A layout with `followSheet` is saved once and printed from any sheet: the sheet it was designed on is swapped for the sheet being
+ * exported. Columns are found by name (see resolveColumns), so every daily sheet with the same columns works.
+ */
+export function bindToCurrent(t: PdfTemplate, cur: CurrentView | null): PdfTemplate {
+  if (!t.followSheet || !cur) return t;
+  const from = t.mode === 'perRow' ? t.perRow?.sheetId : tableBlocks(t)[0]?.sheetId;
+  if (!from || from === cur.sheetId) return t;
+  const name = cur.sheetName ?? '';
+  return {
+    ...t,
+    perRow: t.perRow && t.perRow.sheetId === from ? { ...t.perRow, sheetId: cur.sheetId, sheetName: name || t.perRow.sheetName } : t.perRow,
+    blocks: t.blocks.map((b) => (b.type === 'table' && b.sheetId === from ? { ...b, sheetId: cur.sheetId, sheetName: name || b.sheetName } : b)),
+  };
+}
 
 export const resolveColumns = (refs: TableCol[], cols: Column[]) =>
   refs.map((r) => ({ ref: r, col: cols.find((c) => c.id === r.columnId) ?? cols.find((c) => c.name.trim().toLowerCase() === r.columnName?.trim().toLowerCase()) })).filter((x): x is { ref: TableCol; col: Column } => !!x.col);

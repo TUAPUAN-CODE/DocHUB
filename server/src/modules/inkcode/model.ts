@@ -194,7 +194,7 @@ export function printTemplate(worksheetSheetId: string) {
   });
   const side = (header: string, widthMm: number, items: { label?: string; text: string }[]) => ({ id: id(), header, widthMm, items: items.map((i) => ({ id: id(), label: i.label ?? '', text: i.text })) });
   return {
-    id: id(), name: 'ใบออกโค้ดนอกแผน 4 ส่วน', mode: 'perRow', perRow: { sheetId: worksheetSheetId, sheetName: SHEETS.ws, onlySelected: true },
+    id: id(), name: 'ใบออกโค้ดนอกแผน 4 ส่วน', mode: 'perRow', followSheet: true, perRow: { sheetId: worksheetSheetId, sheetName: SHEETS.ws, onlySelected: true },
     page: { size: 'A3', orientation: 'landscape', margins: { top: 5, right: 8, bottom: 4, left: 8 } },
     base: { font: 'Sarabun', fontSize: 10, color: '#111827' },
     header: { enabled: false, blocks: [] }, footer: { enabled: false, blocks: [] },
@@ -223,5 +223,21 @@ export function printTemplate(worksheetSheetId: string) {
         ] },
     ],
     watermark: { enabled: false, text: '', color: '#9CA3AF', opacity: 0.15, size: 90, angle: -35 }, lockEditing: false,
+  };
+}
+
+/**
+ * Same form, but the rows of a sheet are grouped by customer (Market): every customer starts on its own page with the title once,
+ * its notices follow one under the other, and ONE set of signatures closes that customer's part.
+ */
+export function printTemplateByCustomer(worksheetSheetId: string) {
+  const base: any = printTemplate(worksheetSheetId);
+  const [company, title, dept, codeSheet, signature] = base.blocks;
+  title.cols[2].blocks[0].text = 'วันที่ {{วันที่ผลิต}}      {{กะ}}      {{group}}';
+  return {
+    ...base, id: crypto.randomUUID(), name: 'ใบออกโค้ดนอกแผน แยกตามลูกค้า (ลายเซ็นต่อลูกค้า)',
+    perRow: { ...base.perRow, groupBy: 'Market', rowsPerPage: 6 },
+    copies: undefined,
+    blocks: [{ ...company, groupOnce: 'start' }, { ...title, groupOnce: 'start' }, { ...dept, groupOnce: 'start' }, codeSheet, { ...signature, marginTop: 2, groupOnce: 'end' }],
   };
 }
