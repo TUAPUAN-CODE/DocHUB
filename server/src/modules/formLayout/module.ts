@@ -32,10 +32,10 @@ router.put('/sheets/:id/form-layout', ah(async (req, res) => {
   ok(res, { saved: true });
 }));
 
-registerAfterSheetCopied(async ({ newSheetId, columnMap }) => {
-  const s = await readSettings(newSheetId);
+registerAfterSheetCopied(async ({ tx, newSheetId, columnMap }) => {
+  const s = await readSettings(newSheetId, tx);
   if (!s.formLayout) return;
-  await writeSettingsKey(newSheetId, 'formLayout', remapIds(s.formLayout, new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]))));
+  await writeSettingsKey(newSheetId, 'formLayout', remapIds(s.formLayout, new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]))), tx);
 });
 
 export default { router };

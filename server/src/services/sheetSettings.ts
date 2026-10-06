@@ -1,15 +1,16 @@
 import { q1, q, T } from '../config/db';
+import type { Tx } from '../config/db';
 import { safeJson } from '../shared/http';
 
 /** Sheet settings JSON is shared by several modules: each reads / writes only its own key */
-export async function readSettings(sheetId: string): Promise<Record<string, any>> {
-  const r = await q1(`SELECT settings_json FROM Sheets WHERE sheet_id = @s`, { s: T.uuid(sheetId) });
+export async function readSettings(sheetId: string, tx?: Tx): Promise<Record<string, any>> {
+  const r = await q1(`SELECT settings_json FROM Sheets WHERE sheet_id = @s`, { s: T.uuid(sheetId) }, tx);
   return safeJson<Record<string, any>>(r?.settings_json, {}) ?? {};
 }
-export async function writeSettingsKey(sheetId: string, key: string, value: unknown): Promise<Record<string, any>> {
-  const cur = await readSettings(sheetId);
+export async function writeSettingsKey(sheetId: string, key: string, value: unknown, tx?: Tx): Promise<Record<string, any>> {
+  const cur = await readSettings(sheetId, tx);
   if (value === null || value === undefined) delete cur[key]; else cur[key] = value;
-  await q(`UPDATE Sheets SET settings_json = @j, updated_at = SYSUTCDATETIME() WHERE sheet_id = @s`, { j: T.text(JSON.stringify(cur)), s: T.uuid(sheetId) });
+  await q(`UPDATE Sheets SET settings_json = @j, updated_at = SYSUTCDATETIME() WHERE sheet_id = @s`, { j: T.text(JSON.stringify(cur)), s: T.uuid(sheetId) }, tx);
   return cur;
 }
 /** Replaces column ids inside a settings value (used after a sheet copy) */
