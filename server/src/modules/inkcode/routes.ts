@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { isBasicRole } from '../../middleware/auth';
 import multer from 'multer';
 import { z } from 'zod';
 import { badRequest, ah, ok, parse, safeJson } from '../../shared/http';
@@ -6,6 +7,7 @@ import { LV, requireSheet } from '../../shared/permissions';
 import { annotate, context, dbPairs, insertItems, NAMES, norm } from './core';
 import { parsePlan } from './plan';
 import { dropPlan, importAuto, previewAuto } from './auto';
+import { ensureMsConnector, fetchPlanFromLink } from './planLink';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
@@ -74,6 +76,18 @@ router.post('/inkcode/plan/drop', upload.single('file'), ah(async (req, res) => 
   if (!req.file) throw badRequest('ไม่พบไฟล์ที่อัปโหลด');
   const name = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
   ok(res, await dropPlan(req.user!, req.file.buffer, name, b.folderId.toLowerCase(), req));
+}));
+
+/** The same, from a link (OneDrive / SharePoint / Google Drive / Dropbox / direct) — for computers that only have Excel on the web */
+router.post('/inkcode/plan/drop-url', ah(async (req, res) => {
+  const b = parse(z.object({ folderId: z.string().min(30).max(40), url: z.string().trim().min(8).max(2000) }), req.body);
+  const got = await fetchPlanFromLink(req.user!, b.url);
+  if ('needsMicrosoft' in got) return void ok(res, { needsMicrosoft: got.needsMicrosoft });
+  ok(res, await dropPlan(req.user!, got.file.buf, got.file.name, b.folderId.toLowerCase(), req));
+}));
+router.post('/inkcode/plan/ms-connector', ah(async (req, res) => {
+  if (isBasicRole(req.user!.role)) throw badRequest('เฉพาะ Master หรือ Admin');
+  ok(res, await ensureMsConnector(req.user!));
 }));
 
 export default router;

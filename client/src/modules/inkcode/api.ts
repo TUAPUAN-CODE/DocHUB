@@ -26,7 +26,10 @@ export interface AutoPreview { date: string; sheetName: string; warnings: string
 export interface AutoTarget { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: { created: number; duplicate: number; skippedNotInDb: number; skippedOtherPlant: number; failed: { doc: string; line: string; reason: string }[] } }
 export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string }
 
+export type DropResult = AutoResult | { needsMicrosoft: { connectorId: string; configured: boolean; message: string } };
 export const inkcodeAutoApi = {
+  dropUrl: (url: string, folderId: string) => post<DropResult>('/inkcode/plan/drop-url', { url, folderId }, { timeout: 300_000 }),
+  msConnector: () => post<{ id: string; configured: boolean }>('/inkcode/plan/ms-connector', {}),
   drop: (file: File, folderId: string) => post<AutoResult>('/inkcode/plan/drop', form(file, '', { folderId }), { timeout: 300_000 }),
   preview: (file: File, o: { date?: string; lineMap: Record<string, string>; plantMap: Record<string, string> }) =>
     post<AutoPreview>('/inkcode/plan/auto/preview', form(file, '', { ...(o.date ? { date: o.date } : {}), lineMap: JSON.stringify(o.lineMap), plantMap: JSON.stringify(o.plantMap) }), { timeout: 120_000 }),

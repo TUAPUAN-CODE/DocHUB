@@ -173,3 +173,15 @@ test('line spec: every line has one plant + area, no duplicates, the factory rul
   assert.deepEqual(DAY_SHEETS, ['Pouch DS', 'Pouch NS', 'Can DS', 'Can NS', 'Cup DS', 'Cup NS', 'อื่นๆ']);
   assert.equal(sheetFor('Cup', 'NS'), 'Cup NS'); assert.equal(sheetFor('อื่นๆ', 'DS'), 'อื่นๆ');
 });
+
+test('plan link: share links become direct downloads', async () => {
+  const { downloadCandidates } = await import('./planLink');
+  assert.deepEqual(downloadCandidates('https://drive.google.com/file/d/AbC_123-x/view?usp=sharing'), ['https://drive.google.com/uc?export=download&id=AbC_123-x']);
+  assert.deepEqual(downloadCandidates('https://docs.google.com/spreadsheets/d/XyZ9/edit#gid=0'), ['https://docs.google.com/spreadsheets/d/XyZ9/export?format=xlsx']);
+  assert.match(downloadCandidates('https://www.dropbox.com/s/abc/plan.xlsx?dl=0')[0], /dl=1/);
+  const ms = downloadCandidates('https://contoso-my.sharepoint.com/:x:/g/personal/a_b/EXyz?e=abc');
+  assert.equal(ms.length, 2); assert.match(ms[0], /download=1/); assert.equal(new URL(ms[1]).search, '?e=abc');
+  assert.deepEqual(downloadCandidates('https://example.com/plan.xlsx'), ['https://example.com/plan.xlsx']);
+  assert.throws(() => downloadCandidates('http://example.com/plan.xlsx'));
+  assert.throws(() => downloadCandidates('not a url'));
+});
