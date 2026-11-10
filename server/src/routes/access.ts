@@ -51,6 +51,58 @@ async function inheritedFor(ctx: PermCtx, folderId: string) {
   return out;
 }
 
+/* ---------------- Tag grants (everyone with the tag) ---------------- */
+const tagGrantSchema = z.object({ tagId: zId, permission: permEnum, expiresAt: z.string().datetime({ offset: true }).nullish() });
+
+const mapTagGrant = (r: any, source: string, extra: Record<string, unknown> = {}) => ({
+  tagId: r.tag_id,
+  name: r.tag_name,
+  color: r.color,
+  memberCount: Number(r.member_count ?? 0),
+  permission: r.permission,
+  grantedAt: r.granted_at ?? null,
+  grantedByName: r.granted_by_name ?? null,
+  expiresAt: r.expires_at ?? null,
+  expired: r.expires_at ? new Date(r.expires_at) < new Date() : false,
+  source,
+  ...extra,
+});
+
+async function tagGrants(kind: 'file' | 'folder', id: string) {
+  const table = kind === 'file' ? 'FileTagAccess' : 'FolderTagAccess';
+  const col = kind === 'file' ? 'file_id' : 'folder_id';
+  return q(
+    `SELECT t.tag_id, t.tag_name, t.color, ta.permission, ta.granted_at, ta.expires_at, gb.display_name AS granted_by_name,
+       (SELECT COUNT(*) FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = t.tag_id) AS member_count
+     FROM ${table} ta JOIN Tags t ON t.tag_id = ta.tag_id LEFT JOIN Users gb ON gb.user_id = ta.granted_by
+     WHERE ta.${col} = @id ORDER BY t.tag_name`,
+    { id: T.uuid(id) },
+  );
+}
+
+async function inheritedTagsFor(ctx: PermCtx, folderId: string) {
+  const out: any[] = [];
+  for (const f of ctx.path(folderId)) (await tagGrants('folder', f.id)).forEach((r) => out.push(mapTagGrant(r, 'folder', { folderId: f.id, folderName: f.name })));
+  return out;
+}
+
+async function upsertTagGrant(kind: 'file' | 'folder', targetId: string, g: z.infer<typeof tagGrantSchema>, by: string) {
+  const table = kind === 'file' ? 'FileTagAccess' : 'FolderTagAccess';
+  const col = kind === 'file' ? 'file_id' : 'folder_id';
+  const tag = await q1(`SELECT tag_id, tag_name FROM Tags WHERE tag_id = @t`, { t: T.uuid(g.tagId) });
+  if (!tag) throw notFound('ไม่พบ Tag นี้');
+  await q(
+    `MERGE ${table} AS t USING (SELECT @id AS target_id, @tag AS tag_id) AS s
+     ON t.${col} = s.target_id AND t.tag_id = s.tag_id
+     WHEN MATCHED THEN UPDATE SET permission = @p, granted_by = @by, granted_at = SYSUTCDATETIME(), expires_at = @e
+     WHEN NOT MATCHED THEN INSERT (${col}, tag_id, permission, granted_by, expires_at) VALUES (s.target_id, s.tag_id, @p, @by, @e);`,
+    { id: T.uuid(targetId), tag: T.uuid(g.tagId), p: g.permission, by: T.uuid(by), e: T.dt(g.expiresAt ?? null) },
+  );
+  const members = (await q(`SELECT ut.user_id FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = @t`, { t: T.uuid(g.tagId) }))
+    .map((r) => r.user_id as string);
+  return { name: tag.tag_name as string, members };
+}
+
 /* ---------------- File access ---------------- */
 router.get(
   '/files/:id/access',
@@ -68,6 +120,8 @@ router.get(
       owner: owner ? mapGrant({ ...owner, permission: 'manage' }, 'owner') : null,
       direct: direct.map((r) => mapGrant(r, 'file')),
       inherited: await inheritedFor(ctx, file.folder_id),
+      tags: (await tagGrants('file', id)).map((r) => mapTagGrant(r, 'file')),
+      inheritedTags: await inheritedTagsFor(ctx, file.folder_id),
     });
   }),
 );
@@ -143,6 +197,8 @@ router.get(
       owner: owner ? mapGrant({ ...owner, permission: 'manage' }, 'owner') : null,
       direct: direct.map((r) => mapGrant(r, 'folder')),
       inherited,
+      tags: (await tagGrants('folder', id)).map((r) => mapTagGrant(r, 'folder')),
+      inheritedTags: folder.parentId ? await inheritedTagsFor(ctx, folder.parentId) : [],
     });
   }),
 );
@@ -176,6 +232,43 @@ router.delete(
     ok(res, { revoked: true });
   }),
 );
+
+/* ---------------- Tag access routes ---------------- */
+for (const kind of ['file', 'folder'] as const) {
+  const what = kind === 'file' ? 'ไฟล์' : 'โฟลเดอร์';
+  const load = async (req: Request) => {
+    const id = pid(req);
+    if (kind === 'file') { const { file } = await requireFile(req.user!, id, LV.manage); return { id, name: file.file_name as string }; }
+    const { folder } = await requireFolder(req.user!, id, LV.manage);
+    return { id, name: folder.name };
+  };
+  router.put(
+    `/${kind}s/:id/access/tags`,
+    ah(async (req, res) => {
+      const t = await load(req);
+      const g = parse(tagGrantSchema, req.body);
+      const r = await upsertTagGrant(kind, t.id, g, req.user!.id);
+      await audit({ userId: req.user!.id, action: 'access_grant', entityType: kind, entityId: t.id, ...(kind === 'file' ? { fileId: t.id } : {}), newValue: { ...g, tag: r.name } }, req);
+      await notify(r.members.filter((m) => m !== req.user!.id), {
+        type: 'access_granted',
+        title: `คุณได้รับสิทธิ์เข้าถึง${what}`,
+        message: `${req.user!.displayName} ให้สิทธิ์ "${PERM_TH[g.permission]}" ใน${what} "${t.name}" กับ Tag "${r.name}" ที่คุณอยู่`,
+        link: `/${kind}s/${t.id}`,
+      });
+      ok(res, { granted: true, members: r.members.length });
+    }),
+  );
+  router.delete(
+    `/${kind}s/:id/access/tags/:tagId`,
+    ah(async (req, res) => {
+      const t = await load(req);
+      const tagId = pid(req, 'tagId');
+      await q(`DELETE FROM ${kind === 'file' ? 'FileTagAccess' : 'FolderTagAccess'} WHERE ${kind}_id = @id AND tag_id = @t`, { id: T.uuid(t.id), t: T.uuid(tagId) });
+      await audit({ userId: req.user!.id, action: 'access_revoke', entityType: kind, entityId: t.id, ...(kind === 'file' ? { fileId: t.id } : {}), oldValue: { tagId } }, req);
+      ok(res, { revoked: true });
+    }),
+  );
+}
 
 /* ---------------- Access requests ---------------- */
 const REQ_SQL = `

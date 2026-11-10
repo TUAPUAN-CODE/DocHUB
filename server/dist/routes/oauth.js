@@ -14,6 +14,7 @@ const audit_1 = require("../shared/audit");
 const http_1 = require("../shared/http");
 const logger_1 = require("../shared/logger");
 const auth_2 = require("./auth");
+const service_1 = require("../modules/accountRequests/service");
 /** "Sign in with Google / Microsoft" (OpenID Connect authorization-code flow) */
 const router = (0, express_1.Router)();
 const STATE_COOKIE = 'dsp_oauth';
@@ -43,7 +44,7 @@ function baseUrl(req) {
 const redirectUri = (req, p) => `${baseUrl(req)}/api/auth/oauth/${p}/callback`;
 /** Only same-site relative paths may be used as the post-login destination (no open redirect) */
 const safeFrom = (v) => (typeof v === 'string' && /^\/(?!\/)[\w\-./?=&%]*$/.test(v) ? v : '/');
-const fail = (res, req, msg) => res.redirect(`${baseUrl(req)}/login?oauth_error=${encodeURIComponent(msg)}`);
+const fail = (res, req, msg, from = '/') => res.redirect(`${baseUrl(req)}/login?oauth_error=${encodeURIComponent(msg)}${from !== '/' ? `&next=${encodeURIComponent(from)}` : ''}`);
 router.get('/providers', (_req, res) => (0, http_1.ok)(res, { google: enabled('google'), microsoft: enabled('microsoft') }));
 router.get('/oauth/:provider/start', (req, res) => {
     const p = String(req.params.provider);
@@ -81,16 +82,6 @@ async function exchange(req, p, code) {
         throw new Error('id_token หมดอายุ');
     return claims;
 }
-const slug = (s) => s.toLowerCase().replace(/[^a-z0-9._-]+/g, '').slice(0, 40) || 'user';
-async function uniqueUsername(base) {
-    let name = slug(base);
-    for (let i = 0; i < 50; i++) {
-        const candidate = i === 0 ? name : `${name}${i + 1}`;
-        if (!(await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE username = @u`, { u: candidate })))
-            return candidate;
-    }
-    return `${name}${crypto_1.default.randomBytes(3).toString('hex')}`;
-}
 router.get('/oauth/:provider/callback', (0, http_1.ah)(async (req, res) => {
     const p = String(req.params.provider);
     if (!isProvider(p) || !enabled(p))
@@ -106,7 +97,7 @@ router.get('/oauth/:provider/callback', (0, http_1.ah)(async (req, res) => {
         return fail(res, req, 'เซสชันการเข้าสู่ระบบหมดอายุ กรุณาลองใหม่');
     }
     if (st.p !== p || st.state !== req.query.state || !req.query.code)
-        return fail(res, req, 'ข้อมูลการยืนยันตัวตนไม่ถูกต้อง');
+        return fail(res, req, 'ข้อมูลการยืนยันตัวตนไม่ถูกต้อง', st.from);
     let claims;
     try {
         claims = await exchange(req, p, String(req.query.code));
@@ -115,7 +106,7 @@ router.get('/oauth/:provider/callback', (0, http_1.ah)(async (req, res) => {
     }
     catch (e) {
         logger_1.logger.warn(`OAuth ${p} failed: ${e?.message}`);
-        return fail(res, req, 'ยืนยันตัวตนกับผู้ให้บริการไม่สำเร็จ');
+        return fail(res, req, 'ยืนยันตัวตนกับผู้ให้บริการไม่สำเร็จ', st.from);
     }
     const email = (claims.email || claims.preferred_username || '').trim().toLowerCase();
     // Google states verification explicitly. For Microsoft the e-mail claim is only trustworthy in a single-tenant app.
@@ -133,10 +124,17 @@ router.get('/oauth/:provider/callback', (0, http_1.ah)(async (req, res) => {
             await (0, db_1.q)(`INSERT INTO OAuthIdentities (provider, subject, user_id, email) VALUES (@p, @s, @u, @e)`, { p, s: claims.sub, u: db_1.T.uuid(userId), e: email });
         }
     }
+    if (!userId && !(env_1.env.oauth.autoCreate && email && emailVerified)) {
+        // no account yet → the sign-up form, filled with this account; an admin approves the request
+        if (!email)
+            return fail(res, req, 'บัญชีนี้ไม่มีอีเมล กรุณาขอสร้างบัญชีด้วยชื่อผู้ใช้และรหัสผ่าน', st.from);
+        if (await (0, service_1.pendingForIdentity)(p, claims.sub))
+            return fail(res, req, 'คำขอสร้างบัญชีของคุณกำลังรอผู้ดูแลระบบอนุมัติ', st.from);
+        const token = (0, service_1.signSignupToken)({ p, sub: claims.sub, email, name: (claims.name || email.split('@')[0]).slice(0, 200), from: st.from });
+        return res.redirect(`${baseUrl(req)}/signup?oauth=${encodeURIComponent(token)}`);
+    }
     if (!userId) {
-        if (!env_1.env.oauth.autoCreate || !email || !emailVerified)
-            return fail(res, req, 'ยังไม่มีบัญชีสำหรับอีเมลนี้ กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มบัญชี');
-        const username = await uniqueUsername(email.split('@')[0]);
+        const username = await (0, service_1.uniqueUsername)(email.split('@')[0]);
         const hash = await bcryptjs_1.default.hash(crypto_1.default.randomBytes(24).toString('hex'), 10);
         userId = await (0, db_1.withTx)(async (tx) => {
             const row = await (0, db_1.q1)(`INSERT INTO Users (username, email, password_hash, display_name, avatar_url) OUTPUT inserted.user_id VALUES (@u, @e, @h, @n, @a)`, { u: username, e: email, h: hash, n: (claims.name || username).slice(0, 200), a: db_1.T.text(claims.picture?.slice(0, 1000) ?? null) }, tx);
@@ -148,7 +146,7 @@ router.get('/oauth/:provider/callback', (0, http_1.ah)(async (req, res) => {
     }
     const user = await (0, db_1.q1)(`SELECT user_id, is_active FROM Users WHERE user_id = @id`, { id: db_1.T.uuid(userId) });
     if (!user?.is_active)
-        return fail(res, req, 'บัญชีนี้ถูกปิดการใช้งาน กรุณาติดต่อผู้ดูแลระบบ');
+        return fail(res, req, 'บัญชีนี้ถูกปิดการใช้งาน กรุณาติดต่อผู้ดูแลระบบ', st.from);
     await (0, db_1.q)(`UPDATE Users SET last_login_at = SYSUTCDATETIME() WHERE user_id = @id`, { id: db_1.T.uuid(userId) });
     (0, auth_1.invalidateUserCache)(userId);
     await (0, auth_2.issueRefresh)(res, userId, req.headers['user-agent']);

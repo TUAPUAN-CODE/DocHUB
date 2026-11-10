@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, User as UserIcon } from 'lucide-react';
 import { apiError, http } from '@/api/client';
@@ -7,6 +7,12 @@ import { authApi } from '@/api/endpoints';
 import { Button } from '@/components/ui/Button';
 import { Field, TextInput } from '@/components/ui/Inputs';
 import { useAuth } from '@/store/auth';
+
+/** Where to go after signing in: ?next=/files/… (same-site paths only, never another host) */
+export function nextPath(search: string, fallback = '/') {
+  const n = new URLSearchParams(search).get('next');
+  return n && /^\/(?!\/)/.test(n) && !n.startsWith('/login') ? n : fallback;
+}
 
 export default function LoginPage() {
   const login = useAuth((s) => s.login);
@@ -21,10 +27,16 @@ export default function LoginPage() {
   useEffect(() => {
     authApi.providers().then(setProviders).catch(() => undefined);
     const e = new URLSearchParams(window.location.search).get('oauth_error');
-    if (e) { setErr(e); window.history.replaceState(null, '', '/login'); }
+    if (e) {
+      setErr(e);
+      const sp = new URLSearchParams(window.location.search);
+      sp.delete('oauth_error');
+      window.history.replaceState(null, '', `/login${sp.toString() ? `?${sp}` : ''}`);
+    }
   }, []);
+  const dest = loc.state?.from ?? nextPath(window.location.search);
   const social = (p: 'google' | 'microsoft') => {
-    const from = loc.state?.from ?? '/';
+    const from = dest;
     window.location.href = `${http.defaults.baseURL}/auth/oauth/${p}/start?from=${encodeURIComponent(from)}`;
   };
 
@@ -34,7 +46,7 @@ export default function LoginPage() {
     setErr(null);
     try {
       await login(username.trim(), password);
-      nav(loc.state?.from ?? '/', { replace: true });
+      nav(dest, { replace: true });
     } catch (e2) {
       setErr(apiError(e2).message);
     } finally {
@@ -100,6 +112,9 @@ export default function LoginPage() {
               </div>
             </div>
           )}
+          <p className="mt-6 text-center text-sm text-muted">
+            ยังไม่มีบัญชี? <Link to={`/signup${dest !== '/' ? `?next=${encodeURIComponent(dest)}` : ''}`} className="font-medium text-primary hover:underline">ขอสร้างบัญชี</Link>
+          </p>
           {import.meta.env.DEV && (
             <p className="mt-6 rounded-lg bg-ink/5 px-3 py-2 text-xs text-muted">บัญชีทดลอง: admin / Admin@123 · master / Master@123 · user / User@1234</p>
           )}

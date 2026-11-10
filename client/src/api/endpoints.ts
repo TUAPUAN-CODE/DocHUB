@@ -1,7 +1,7 @@
 import { del, get, post, put } from './client';
 import type {
-  AccessList, AccessRequest, AuditEntry, CellValue, Column, ColumnFilter, Crumb, DashboardMeta, DataSource, FileItem, FolderItem,
-  NotificationItem, Perm, Role, Row, Sheet, SheetPrefs, SortSpec, UnionStatus, User, UsersDict, Widget, WidgetData,
+  AccessList, AccessRequest, AccountRequest, AuditEntry, CellValue, Column, ColumnFilter, Crumb, DashboardMeta, DataSource, FileItem, FolderItem,
+  NotificationItem, Perm, Role, Row, Sheet, SheetPrefs, SortSpec, Tag, TagRef, UnionStatus, User, UsersDict, Widget, WidgetData,
 } from '@/types';
 
 export const authApi = {
@@ -139,6 +139,32 @@ export const accessApi = {
   grant: (type: 'file' | 'folder', id: string, b: { userId: string; permission: Perm; expiresAt?: string | null }) =>
     put<{ granted: boolean; cappedTo: 'read' | 'write' | null }>(`/${type}s/${id}/access`, b),
   revoke: (type: 'file' | 'folder', id: string, userId: string) => del(`/${type}s/${id}/access/${userId}`),
+  grantTag: (type: 'file' | 'folder', id: string, b: { tagId: string; permission: Perm; expiresAt?: string | null }) =>
+    put<{ granted: boolean; members: number }>(`/${type}s/${id}/access/tags`, b),
+  revokeTag: (type: 'file' | 'folder', id: string, tagId: string) => del(`/${type}s/${id}/access/tags/${tagId}`),
+};
+
+export const tagsApi = {
+  list: () => get<Tag[]>('/tags'),
+  create: (b: { name: string; color?: string | null; description?: string | null }) => post<Tag>('/tags', b),
+  update: (id: string, b: { name: string; color?: string | null; description?: string | null }) => put<Tag>(`/tags/${id}`, b),
+  remove: (id: string) => del(`/tags/${id}`),
+  members: (id: string) => get<User[]>(`/tags/${id}/members`),
+  addMembers: (id: string, userIds: string[]) => post(`/tags/${id}/members`, { userIds }),
+  removeMember: (id: string, userId: string) => del(`/tags/${id}/members/${userId}`),
+  setUserTags: (userId: string, tagIds: string[]) => put<{ tags: TagRef[] }>(`/users/${userId}/tags`, { tagIds }),
+};
+
+export interface SignupBody {
+  displayName: string; requestedRole: Role; note?: string; email?: string; username?: string; password?: string; oauthToken?: string;
+}
+export const accountRequestsApi = {
+  signup: (b: SignupBody) => post<{ requested: boolean; via: string | null }>('/auth/signup', b),
+  oauthInfo: (token: string) => get<{ provider: 'microsoft' | 'google'; email: string; name: string }>('/auth/signup/oauth', { token }),
+  list: (status: 'pending' | 'approved' | 'rejected' | 'all') => get<AccountRequest[]>('/account-requests', { status }),
+  pendingCount: () => get<{ count: number }>('/account-requests/pending-count'),
+  approve: (id: string, b: { role: Role; tagIds?: string[]; reviewNote?: string }) => post<{ approved: boolean; userId: string }>(`/account-requests/${id}/approve`, b),
+  reject: (id: string, reviewNote?: string) => post(`/account-requests/${id}/reject`, { reviewNote }),
 };
 
 export const requestsApi = {

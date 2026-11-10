@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { FavoriteItem, favoritesApi, foldersApi, requestsApi } from '@/api/endpoints';
+import { accountRequestsApi, FavoriteItem, favoritesApi, foldersApi, requestsApi } from '@/api/endpoints';
 import type { FolderItem } from '@/types';
 import { toast } from './ui';
 
@@ -7,6 +7,8 @@ interface DataState {
   favorites: FavoriteItem[];
   tree: FolderItem[];
   pendingReviews: number;
+  /** admin: requests for a new account waiting for approval */
+  pendingAccounts: number;
   loadFavorites: () => Promise<void>;
   loadTree: () => Promise<void>;
   loadPending: () => Promise<void>;
@@ -18,6 +20,7 @@ export const useData = create<DataState>((set, get) => ({
   favorites: [],
   tree: [],
   pendingReviews: 0,
+  pendingAccounts: 0,
   loadFavorites: async () => {
     try {
       set({ favorites: await favoritesApi.list() });
@@ -31,6 +34,10 @@ export const useData = create<DataState>((set, get) => ({
   loadPending: async () => {
     try {
       set({ pendingReviews: (await requestsApi.pendingCount()).count });
+    } catch { /* ignore */ }
+    try {
+      const { useAuth } = await import('./auth'); // (auth imports this store)
+      set({ pendingAccounts: useAuth.getState().user?.role === 'admin' ? (await accountRequestsApi.pendingCount()).count : 0 });
     } catch { /* ignore */ }
   },
   toggleFavorite: async (type, id) => {

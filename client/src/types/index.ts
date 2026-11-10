@@ -6,7 +6,19 @@ export const LV = { none: 0, read: 1, write: 2, manage: 3 } as const;
 
 export interface User {
   id: string; username: string; email: string; displayName: string; avatarUrl: string | null; role: Role;
-  isActive?: boolean; lastLoginAt?: string | null; createdAt?: string | null;
+  isActive?: boolean; lastLoginAt?: string | null; createdAt?: string | null; tags?: TagRef[];
+}
+export interface TagRef { id: string; name: string; color: string }
+export interface Tag extends TagRef { description: string | null; memberCount: number; grantCount?: number; createdAt: string }
+/** a file / folder shared with everyone who has a tag */
+export interface TagGrant {
+  tagId: string; name: string; color: string; memberCount: number; permission: Perm; grantedAt: string | null; grantedByName: string | null;
+  expiresAt: string | null; expired: boolean; source: 'file' | 'folder'; folderId?: string; folderName?: string;
+}
+export interface AccountRequest {
+  id: string; username: string | null; email: string; displayName: string; provider: 'microsoft' | 'google' | null; requestedRole: Role;
+  note: string | null; status: 'pending' | 'approved' | 'rejected'; grantedRole: Role | null; userId: string | null;
+  reviewerName: string | null; reviewNote: string | null; reviewedAt: string | null; createdAt: string;
 }
 export interface Crumb { id: string; name: string }
 
@@ -94,7 +106,7 @@ export interface AccessGrant {
   grantedAt: string | null; grantedByName: string | null; expiresAt: string | null; expired: boolean;
   source: 'owner' | 'file' | 'folder' | 'folder_owner'; folderId?: string; folderName?: string;
 }
-export interface AccessList { owner: AccessGrant | null; direct: AccessGrant[]; inherited: AccessGrant[] }
+export interface AccessList { owner: AccessGrant | null; direct: AccessGrant[]; inherited: AccessGrant[]; tags?: TagGrant[]; inheritedTags?: TagGrant[] }
 
 export interface AccessRequest {
   id: string; targetType: 'file' | 'folder'; targetId: string; targetName: string; permission: Perm; note: string;

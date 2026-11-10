@@ -46,6 +46,49 @@ async function inheritedFor(ctx, folderId) {
     }
     return out;
 }
+/* ---------------- Tag grants (everyone with the tag) ---------------- */
+const tagGrantSchema = zod_1.z.object({ tagId: http_1.zId, permission: permEnum, expiresAt: zod_1.z.string().datetime({ offset: true }).nullish() });
+const mapTagGrant = (r, source, extra = {}) => ({
+    tagId: r.tag_id,
+    name: r.tag_name,
+    color: r.color,
+    memberCount: Number(r.member_count ?? 0),
+    permission: r.permission,
+    grantedAt: r.granted_at ?? null,
+    grantedByName: r.granted_by_name ?? null,
+    expiresAt: r.expires_at ?? null,
+    expired: r.expires_at ? new Date(r.expires_at) < new Date() : false,
+    source,
+    ...extra,
+});
+async function tagGrants(kind, id) {
+    const table = kind === 'file' ? 'FileTagAccess' : 'FolderTagAccess';
+    const col = kind === 'file' ? 'file_id' : 'folder_id';
+    return (0, db_1.q)(`SELECT t.tag_id, t.tag_name, t.color, ta.permission, ta.granted_at, ta.expires_at, gb.display_name AS granted_by_name,
+       (SELECT COUNT(*) FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = t.tag_id) AS member_count
+     FROM ${table} ta JOIN Tags t ON t.tag_id = ta.tag_id LEFT JOIN Users gb ON gb.user_id = ta.granted_by
+     WHERE ta.${col} = @id ORDER BY t.tag_name`, { id: db_1.T.uuid(id) });
+}
+async function inheritedTagsFor(ctx, folderId) {
+    const out = [];
+    for (const f of ctx.path(folderId))
+        (await tagGrants('folder', f.id)).forEach((r) => out.push(mapTagGrant(r, 'folder', { folderId: f.id, folderName: f.name })));
+    return out;
+}
+async function upsertTagGrant(kind, targetId, g, by) {
+    const table = kind === 'file' ? 'FileTagAccess' : 'FolderTagAccess';
+    const col = kind === 'file' ? 'file_id' : 'folder_id';
+    const tag = await (0, db_1.q1)(`SELECT tag_id, tag_name FROM Tags WHERE tag_id = @t`, { t: db_1.T.uuid(g.tagId) });
+    if (!tag)
+        throw (0, http_1.notFound)('ไม่พบ Tag นี้');
+    await (0, db_1.q)(`MERGE ${table} AS t USING (SELECT @id AS target_id, @tag AS tag_id) AS s
+     ON t.${col} = s.target_id AND t.tag_id = s.tag_id
+     WHEN MATCHED THEN UPDATE SET permission = @p, granted_by = @by, granted_at = SYSUTCDATETIME(), expires_at = @e
+     WHEN NOT MATCHED THEN INSERT (${col}, tag_id, permission, granted_by, expires_at) VALUES (s.target_id, s.tag_id, @p, @by, @e);`, { id: db_1.T.uuid(targetId), tag: db_1.T.uuid(g.tagId), p: g.permission, by: db_1.T.uuid(by), e: db_1.T.dt(g.expiresAt ?? null) });
+    const members = (await (0, db_1.q)(`SELECT ut.user_id FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = @t`, { t: db_1.T.uuid(g.tagId) }))
+        .map((r) => r.user_id);
+    return { name: tag.tag_name, members };
+}
 /* ---------------- File access ---------------- */
 router.get('/files/:id/access', (0, http_1.ah)(async (req, res) => {
     const id = (0, http_1.pid)(req);
@@ -58,6 +101,8 @@ router.get('/files/:id/access', (0, http_1.ah)(async (req, res) => {
         owner: owner ? mapGrant({ ...owner, permission: 'manage' }, 'owner') : null,
         direct: direct.map((r) => mapGrant(r, 'file')),
         inherited: await inheritedFor(ctx, file.folder_id),
+        tags: (await tagGrants('file', id)).map((r) => mapTagGrant(r, 'file')),
+        inheritedTags: await inheritedTagsFor(ctx, file.folder_id),
     });
 }));
 async function upsertGrant(kind, targetId, g, by) {
@@ -117,6 +162,8 @@ router.get('/folders/:id/access', (0, http_1.ah)(async (req, res) => {
         owner: owner ? mapGrant({ ...owner, permission: 'manage' }, 'owner') : null,
         direct: direct.map((r) => mapGrant(r, 'folder')),
         inherited,
+        tags: (await tagGrants('folder', id)).map((r) => mapTagGrant(r, 'folder')),
+        inheritedTags: folder.parentId ? await inheritedTagsFor(ctx, folder.parentId) : [],
     });
 }));
 router.put('/folders/:id/access', (0, http_1.ah)(async (req, res) => {
@@ -141,6 +188,39 @@ router.delete('/folders/:id/access/:userId', (0, http_1.ah)(async (req, res) => 
     await (0, audit_1.audit)({ userId: req.user.id, action: 'access_revoke', entityType: 'folder', entityId: id, oldValue: { userId } }, req);
     (0, http_1.ok)(res, { revoked: true });
 }));
+/* ---------------- Tag access routes ---------------- */
+for (const kind of ['file', 'folder']) {
+    const what = kind === 'file' ? 'ไฟล์' : 'โฟลเดอร์';
+    const load = async (req) => {
+        const id = (0, http_1.pid)(req);
+        if (kind === 'file') {
+            const { file } = await (0, permissions_1.requireFile)(req.user, id, permissions_1.LV.manage);
+            return { id, name: file.file_name };
+        }
+        const { folder } = await (0, permissions_1.requireFolder)(req.user, id, permissions_1.LV.manage);
+        return { id, name: folder.name };
+    };
+    router.put(`/${kind}s/:id/access/tags`, (0, http_1.ah)(async (req, res) => {
+        const t = await load(req);
+        const g = (0, http_1.parse)(tagGrantSchema, req.body);
+        const r = await upsertTagGrant(kind, t.id, g, req.user.id);
+        await (0, audit_1.audit)({ userId: req.user.id, action: 'access_grant', entityType: kind, entityId: t.id, ...(kind === 'file' ? { fileId: t.id } : {}), newValue: { ...g, tag: r.name } }, req);
+        await (0, notify_1.notify)(r.members.filter((m) => m !== req.user.id), {
+            type: 'access_granted',
+            title: `คุณได้รับสิทธิ์เข้าถึง${what}`,
+            message: `${req.user.displayName} ให้สิทธิ์ "${PERM_TH[g.permission]}" ใน${what} "${t.name}" กับ Tag "${r.name}" ที่คุณอยู่`,
+            link: `/${kind}s/${t.id}`,
+        });
+        (0, http_1.ok)(res, { granted: true, members: r.members.length });
+    }));
+    router.delete(`/${kind}s/:id/access/tags/:tagId`, (0, http_1.ah)(async (req, res) => {
+        const t = await load(req);
+        const tagId = (0, http_1.pid)(req, 'tagId');
+        await (0, db_1.q)(`DELETE FROM ${kind === 'file' ? 'FileTagAccess' : 'FolderTagAccess'} WHERE ${kind}_id = @id AND tag_id = @t`, { id: db_1.T.uuid(t.id), t: db_1.T.uuid(tagId) });
+        await (0, audit_1.audit)({ userId: req.user.id, action: 'access_revoke', entityType: kind, entityId: t.id, ...(kind === 'file' ? { fileId: t.id } : {}), oldValue: { tagId } }, req);
+        (0, http_1.ok)(res, { revoked: true });
+    }));
+}
 /* ---------------- Access requests ---------------- */
 const REQ_SQL = `
 SELECT ar.*, ru.display_name AS requester_name, ru.username AS requester_username, ru.avatar_url AS requester_avatar,

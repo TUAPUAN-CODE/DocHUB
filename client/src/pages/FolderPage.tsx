@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowDownAZ, ChevronRight, FilePlus2, FolderOpen, FolderPlus, Layers, LayoutGrid, List, Lock, Plus, Search, Share2 } from 'lucide-react';
+import { ArrowDownAZ, ChevronRight, FilePlus2, FolderOpen, FolderPlus, KeyRound, Layers, LayoutGrid, List, Lock, Plus, Search, Share2 } from 'lucide-react';
 import { foldersApi } from '@/api/endpoints';
-import { MetaModal, RequestAccessForm, ShareDialog } from '@/components/files/Dialogs';
+import { MetaModal, NoAccessView, RequestAccessDialog, RequestAccessForm, ShareDialog } from '@/components/files/Dialogs';
 import { UnionDialog } from '@/components/files/UnionDialog';
 import { FolderGlyph } from '@/components/files/icons';
 import { Item, ItemCard, ItemRow } from '@/components/files/ItemViews';
@@ -34,6 +34,7 @@ export default function FolderPage() {
   const [union, setUnion] = useState(false);
   const [newFolder, setNewFolder] = useState(false);
   const [share, setShare] = useState(false);
+  const [askAccess, setAskAccess] = useState(false);
   const [dropCrumb, setDropCrumb] = useState<string | null>(null);
   const newBtn = useRef<HTMLButtonElement>(null);
   const actions = useItemActions(() => void reload(true));
@@ -55,6 +56,7 @@ export default function FolderPage() {
     return [...folders.sort(cmp).map((d) => ({ kind: 'folder' as const, data: d })), ...files.sort(cmp).map((d) => ({ kind: 'file' as const, data: d }))];
   }, [data, filter, sort]);
 
+  if (error?.code === 'NO_ACCESS') return <NoAccessView info={error} onRetry={() => void reload()} />;
   if (error)
     return <Page><div className="ds-card"><EmptyState icon={<Lock />} title="เปิดโฟลเดอร์ไม่ได้" description={error.message} action={<Button onClick={() => nav('/browse')}>กลับไปที่ไฟล์ทั้งหมด</Button>} /></div></Page>;
 
@@ -95,6 +97,7 @@ export default function FolderPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {folder && level >= LV.manage && <Button variant="secondary" icon={<Share2 className="h-4 w-4" />} onClick={() => setShare(true)}>แชร์</Button>}
+          {folder && level === 0 && items.length > 0 && <Button variant="secondary" icon={<KeyRound className="h-4 w-4" />} onClick={() => setAskAccess(true)}>ขอสิทธิ์โฟลเดอร์นี้</Button>}
           {canCreate && (
             <>
               <Button ref={newBtn} icon={<Plus className="h-4 w-4" />} onClick={() => setNewOpen(true)}>สร้างใหม่</Button>
@@ -154,6 +157,7 @@ export default function FolderPage() {
       <MetaModal open={newFolder} onClose={() => setNewFolder(false)} title={folder ? `โฟลเดอร์ใหม่ใน “${folder.name}”` : 'โฟลเดอร์ใหม่'} initial={{ name: '', color: folder?.color ?? '#1552F0' }}
         onSubmit={async (v) => { await foldersApi.create({ ...v, parentId: folder?.id ?? null }); toast.success('สร้างโฟลเดอร์แล้ว'); void useData.getState().loadTree(); void reload(true); }} />
       {folder && <ShareDialog open={share} onClose={() => setShare(false)} target={{ type: 'folder', id: folder.id, name: folder.name }} />}
+      {folder && <RequestAccessDialog open={askAccess} onClose={() => { setAskAccess(false); void reload(true); }} target={{ type: 'folder', id: folder.id, name: folder.name }} />}
     </Page>
   );
 }

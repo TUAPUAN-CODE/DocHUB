@@ -11,6 +11,7 @@ const auth_1 = require("../middleware/auth");
 const audit_1 = require("../shared/audit");
 const http_1 = require("../shared/http");
 const mappers_1 = require("../shared/mappers");
+const routes_1 = require("../modules/tags/routes");
 const router = (0, express_1.Router)();
 const adminOnly = (0, auth_1.requireRole)('admin');
 const zRole = zod_1.z.enum(auth_1.ROLES);
@@ -59,6 +60,11 @@ router.get('/users', adminOnly, (0, http_1.ah)(async (req, res) => {
         where.push('(u.display_name LIKE @s OR u.username LIKE @s OR u.email LIKE @s)');
         p.s = `%${(0, http_1.likeEscape)(s)}%`;
     }
+    const tag = String(req.query.tag ?? '');
+    if (/^[0-9a-f-]{36}$/i.test(tag)) {
+        where.push('EXISTS (SELECT 1 FROM UserTags ut WHERE ut.user_id = u.user_id AND ut.tag_id = @tag)');
+        p.tag = db_1.T.uuid(tag);
+    }
     if (status === 'active')
         where.push('u.is_active = 1');
     if (status === 'inactive')
@@ -72,8 +78,9 @@ router.get('/users', adminOnly, (0, http_1.ah)(async (req, res) => {
     const rows = await (0, db_1.q)(`SELECT * FROM (${base}) x ${roleFilter} ORDER BY x.created_at DESC
        OFFSET ${offset} ROWS FETCH NEXT ${pageSize} ROWS ONLY`, p);
     const stats = await (0, db_1.q1)(`SELECT COUNT(*) AS total, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active FROM Users`);
+    const tags = await (0, routes_1.tagsOfUsers)(rows.map((r) => r.user_id));
     (0, http_1.ok)(res, {
-        items: rows.map(mappers_1.mapUser),
+        items: rows.map((r) => ({ ...(0, mappers_1.mapUser)(r), tags: tags.get(String(r.user_id).toLowerCase()) ?? [] })),
         total: Number(count?.n ?? 0),
         page,
         pageSize,

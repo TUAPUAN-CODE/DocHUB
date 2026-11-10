@@ -19,6 +19,7 @@ export async function purgeFile(tx: Tx, fileId: string) {
      DELETE w FROM DashboardWidgets w JOIN Dashboards d ON d.dashboard_id = w.dashboard_id WHERE d.file_id = @f;
      DELETE FROM Dashboards WHERE file_id = @f;
      DELETE FROM FileAccess WHERE file_id = @f;
+     DELETE FROM FileTagAccess WHERE file_id = @f;
      DELETE FROM AccessRequests WHERE file_id = @f;
      DELETE FROM Favorites WHERE entity_type = 'file' AND entity_id = @f;
      DELETE FROM RecentFiles WHERE file_id = @f;
@@ -49,6 +50,7 @@ export async function purgeFolder(tx: Tx, folderId: string) {
   for (const node of tree.sort((a, b) => b.depth - a.depth)) {
     await q(
       `DELETE FROM FolderAccess WHERE folder_id = @f;
+       DELETE FROM FolderTagAccess WHERE folder_id = @f;
        DELETE FROM AccessRequests WHERE folder_id = @f;
        DELETE FROM Favorites WHERE entity_type = 'folder' AND entity_id = @f;
        DELETE FROM Folders WHERE folder_id = @f;`,

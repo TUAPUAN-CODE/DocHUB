@@ -17,7 +17,7 @@ import { SignatureDialog } from '@/modules/approvals/SignatureDialog';
 import { ArchiveDialog } from '@/modules/exportArchive/ArchiveDialog';
 import { ArchiveOption, ArchiveOptionValue } from '@/modules/exportArchive/ArchiveOption';
 import { ColumnManagerModal } from '@/components/builder/ColumnManagerModal';
-import { DuplicateDialog, MetaModal, RequestAccessForm, ShareDialog } from '@/components/files/Dialogs';
+import { DuplicateDialog, MetaModal, NoAccessView, ShareDialog } from '@/components/files/Dialogs';
 import { FileGlyph } from '@/components/files/icons';
 import { ColumnFilterMenu, FilterBar } from '@/components/sheet/ColumnFilterMenu';
 import { SheetTabs } from '@/components/sheet/SheetTabs';
@@ -47,26 +47,6 @@ import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { confirmDialog, toast, useUi } from '@/store/ui';
 import { Column, LV, Row, isBasicRole } from '@/types';
-
-function NoAccessView({ info, onRetry }: { info: ReturnType<typeof apiError>; onRetry: () => void }) {
-  const d = info.details ?? {};
-  return (
-    <div className="mx-auto max-w-lg px-4 py-16">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="ds-card ds-card-pad !p-8 text-center">
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-warning/15 text-warning"><Lock className="h-8 w-8" /></span>
-        <h1 className="mt-4 text-xl font-semibold">{info.code === 'NO_ACCESS' ? 'คุณยังไม่มีสิทธิ์เข้าถึงไฟล์นี้' : 'เปิดไฟล์ไม่ได้'}</h1>
-        <p className="mt-1 text-sm text-muted">{d.name ? `“${d.name}”` : info.message}</p>
-        {info.code === 'NO_ACCESS' && (d.pending ? (
-          <div className="mt-6 rounded-2xl bg-primary/[.06] p-4 text-sm">
-            <p className="font-medium text-primary">คำขอของคุณกำลังรอการอนุมัติ</p>
-            <p className="mt-1 text-muted">ส่งเมื่อ {fmtDateTime(d.pending.createdAt)} · คุณจะได้รับการแจ้งเตือนเมื่อมีผลการพิจารณา</p>
-            <Button variant="ghost" size="sm" className="mt-3" onClick={async () => { await requestsApi.cancel(d.pending.id); onRetry(); }}>ยกเลิกคำขอ</Button>
-          </div>
-        ) : <div className="mt-6"><RequestAccessForm target={{ type: 'file', id: d.targetId, name: d.name }} compact onDone={onRetry} /></div>)}
-      </motion.div>
-    </div>
-  );
-}
 
 const TOOLS_KEY = 'ds.sheetTools';
 /** Tools (header, toolbar, filter bar) shown? The viewer's last choice on this device; a phone starts with the data only. */
