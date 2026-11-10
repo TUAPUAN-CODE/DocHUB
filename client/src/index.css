@@ -106,3 +106,11 @@ body {
 @media (max-width: 768px), (prefers-reduced-motion: reduce) { .row-in { animation: none; } .cell-flash { animation-duration: .6s; } }
 @keyframes cellFlash { 0% { background-color: rgb(var(--c-primary) / .22); } 100% { background-color: transparent; } }
 .cell-flash { animation: cellFlash 1.4s ease-out; }
+
+/* คู่มือ → พิมพ์ / บันทึก PDF: only the document, page breaks between steps */
+@media print {
+  html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
+  .main-panel, #page-scroll { overflow: visible !important; height: auto !important; display: block !important; }
+  .guide-step { break-inside: avoid; }
+  @page { margin: 12mm; }
+}

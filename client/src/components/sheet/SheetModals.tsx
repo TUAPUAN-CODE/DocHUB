@@ -286,6 +286,8 @@ export function SheetTrashModal({ open, onClose, sheetId, columns, onRestored }:
     setBusy(true);
     try { const r = await rowsApi.restore(sheetId, [...picked]); toast.success(`กู้คืน ${r.restored} แถวแล้ว`); setPicked(new Set()); void reload(true); onRestored(); } catch (e) { toast.error(e); } finally { setBusy(false); }
   };
+  // the checkbox stops its click from reaching the row, so it toggles by itself too
+  const toggle = (id: string) => { const n = new Set(picked); if (n.has(id)) n.delete(id); else n.add(id); setPicked(n); };
   return (
     <Modal open={open} onClose={onClose} size="lg" icon={<Trash2 className="h-5 w-5" />} title="แถวที่ถูกลบ" description="เลือกแถวที่ต้องการกู้คืนกลับเข้าชีต"
       footer={<><Button variant="secondary" onClick={onClose}>ปิด</Button><Button icon={<RotateCcw className="h-4 w-4" />} disabled={!picked.size} loading={busy} onClick={restore}>กู้คืน {picked.size || ''} แถว</Button></>}>
@@ -300,8 +302,8 @@ export function SheetTrashModal({ open, onClose, sheetId, columns, onRestored }:
               </tr></thead>
               <tbody className="divide-y divide-line">
                 {data.rows.map((r) => (
-                  <tr key={r.id} className="cursor-pointer hover:bg-ink/[.03]" onClick={() => { const n = new Set(picked); if (n.has(r.id)) n.delete(r.id); else n.add(r.id); setPicked(n); }}>
-                    <td className="py-2"><Checkbox checked={picked.has(r.id)} onChange={() => undefined} /></td>
+                  <tr key={r.id} className="cursor-pointer hover:bg-ink/[.03]" onClick={() => toggle(r.id)}>
+                    <td className="py-2"><Checkbox checked={picked.has(r.id)} onChange={() => toggle(r.id)} /></td>
                     <td className="pr-3 text-muted">{r.order}</td>
                     {shown.map((c) => <td key={c.id} className="max-w-[180px] truncate pr-3">{displayValue(c, r.values[c.id] ?? null)}</td>)}
                     <td className="pr-3">{data.users[r.deletedBy ?? '']?.name ?? '—'}</td>

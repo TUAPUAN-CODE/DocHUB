@@ -28,6 +28,7 @@ const ApprovalsPage = lazy(() => import('@/modules/approvals/ApprovalsPage'));
 const ConnectorsPage = lazy(() => import('@/modules/connectors/ConnectorsPage'));
 const TracebackPage = lazy(() => import('@/pages/TracebackPage'));
 const DevicesPage = lazy(() => import('@/pages/DevicesPage'));
+const GuidePage = lazy(() => import('@/modules/guide/GuidePage'));
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const status = useAuth((s) => s.status);
@@ -83,6 +84,8 @@ export default function App() {
           <Route path="traceback" element={<TracebackPage />} />
           <Route path="devices" element={<RequireRole roles={['master', 'admin']}><DevicesPage /></RequireRole>} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="guide" element={<GuidePage />} />
+          <Route path="guide/:id" element={<GuidePage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

@@ -155,13 +155,13 @@ export function TopBar() {
   const [searching, setSearching] = useState(false);
   if (searching)
     return (
-      <header className="ds-topbar flex h-14 shrink-0 items-center gap-2 px-3 sm:h-16 sm:px-8">
+      <header className="ds-topbar print:hidden flex h-14 shrink-0 items-center gap-2 px-3 sm:h-16 sm:px-8">
         <div className="min-w-0 flex-1"><GlobalSearch autoFocus onDone={() => setSearching(false)} /></div>
         <button onClick={() => setSearching(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5" aria-label="ปิดการค้นหา"><X className="h-5 w-5" /></button>
       </header>
     );
   return (
-    <header className="ds-topbar flex h-14 shrink-0 items-center gap-1.5 px-2 sm:h-16 sm:gap-3 sm:px-8">
+    <header className="ds-topbar print:hidden flex h-14 shrink-0 items-center gap-1.5 px-2 sm:h-16 sm:gap-3 sm:px-8">
       <button onClick={() => setMobile(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 lg:hidden" aria-label="เปิดเมนู"><Menu className="h-5 w-5" /></button>
       <div className="hidden min-w-0 flex-1 sm:block"><GlobalSearch /></div>
       <button onClick={() => setSearching(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 sm:hidden" aria-label="ค้นหาไฟล์หรือโฟลเดอร์"><Search className="h-5 w-5" /></button>
