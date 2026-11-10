@@ -15,7 +15,7 @@ import { initSocket } from './socket';
 import { purgeExpiredTrash } from './services/purge';
 import { leaderTask, leaderTasks, releaseLeases } from './services/leader';
 import { NODE_ID, clusterEnabled } from './services/cluster';
-import { applyMigrations } from './scripts/migrate';
+import { applyMigrations, applySeeds } from './scripts/migrate';
 import accessRoutes from './routes/access';
 import activityRoutes from './routes/activity';
 import auditRoutes from './routes/audit';
@@ -103,6 +103,7 @@ initSocket(server);
 
 getPool()
   .then(() => applyMigrations())
+  .then(() => applySeeds().catch((e) => logger.error(`Seeds skipped: ${e?.message}`)))
   .then(() => {
     server.listen(env.port, '0.0.0.0', () =>
       logger.info(`DataSheet Pro API listening on http://0.0.0.0:${env.port} (LAN: http://172.48.0.116:${env.port})`)

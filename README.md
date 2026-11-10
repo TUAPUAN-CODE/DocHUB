@@ -184,7 +184,7 @@ SERVE_CLIENT_DIR=../client/dist NODE_ENV=production node dist/index.js
 
 Put it behind **HTTPS**, for example with IIS ARR, nginx or Caddy, and enable WebSocket upgrade for `/socket.io`.
 
-Quality Hilight (Note การผลิต from the QUALITY HIGHLIGHT Excel, with sheet revisions, auto-filled update date/name and a lookup dashboard): [`docs/QUALITY_HIGHLIGHT.md`](docs/QUALITY_HIGHLIGHT.md) (Thai).
+Quality Highlight (Note การผลิต from the QUALITY HIGHLIGHT Excel, with sheet revisions, auto-filled update date/name and a lookup dashboard): [`docs/QUALITY_HIGHLIGHT.md`](docs/QUALITY_HIGHLIGHT.md) (Thai). Its REV.9 data ships in `database/seed` and is inserted once per database at start-up.
 
 `client/dist` and `server/dist` are committed: a server running `ecosystem.production.config.js` updates with `git pull` alone (PM2 restarts the API when `server/dist` changes).
 

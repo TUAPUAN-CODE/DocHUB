@@ -138,6 +138,7 @@ const server = http_1.default.createServer(app);
 (0, socket_1.initSocket)(server);
 (0, db_1.getPool)()
     .then(() => (0, migrate_1.applyMigrations)())
+    .then(() => (0, migrate_1.applySeeds)().catch((e) => logger_1.logger.error(`Seeds skipped: ${e?.message}`)))
     .then(() => {
     server.listen(env_1.env.port, '0.0.0.0', () => logger_1.logger.info(`DataSheet Pro API listening on http://0.0.0.0:${env_1.env.port} (LAN: http://172.48.0.116:${env_1.env.port})`));
     // jobs that must run on ONE server: whoever holds the lease runs them, another server takes over if it stops (see services/leader.ts)
