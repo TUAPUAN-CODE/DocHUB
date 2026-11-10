@@ -40,6 +40,7 @@ npx ts-node --transpile-only scripts/seedQualityHighlight.ts --file "D:\QC\REV.8
 npx ts-node --transpile-only scripts/seedQualityHighlight.ts --file "D:\QC\REV.8_2026-27-06_QUALITY_HIGHLIGHT_SAVE.xlsx"
 ```
 
+- ใส่ในโฟลเดอร์ที่สร้างไว้แล้วได้: `--folder "Quality Highlight Report" --sub "Data"` (โฟลเดอร์ที่มีอยู่ใช้ต่อ ไม่สร้างซ้ำ) · ตั้งชื่อไฟล์ / แดชบอร์ด: `--name "Quality Highlight - Master" --dashboard "Quality Highlight"`
 - `--dry` แสดงว่าจะนำเข้าอะไร (จำนวนแถว รูป วันที่ที่เป็นข้อความ คำเตือน) โดยยังไม่สร้าง
 - Rev แรกใช้เลขหลัง `REV.` ในชื่อไฟล์ (REV.8 → Rev.8) หรือกำหนดเองด้วย `--rev 8`
 - รันซ้ำได้: ถ้ามีไฟล์ "Quality Hilight - Master" อยู่แล้วสคริปต์จะหยุด ไม่เขียนทับ

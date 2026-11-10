@@ -11,6 +11,8 @@
  *   npx ts-node --transpile-only scripts/seedQualityHighlight.ts --file "C:\path\REV.8_..._QUALITY_HIGHLIGHT_....xlsx" --dry
  *   npx ts-node --transpile-only scripts/seedQualityHighlight.ts --file "C:\path\REV.8_..._QUALITY_HIGHLIGHT_....xlsx"
  *     --rev 8   first Rev number (default: the number after "REV." in the file name, else 1)
+ *     --folder "Quality Highlight Report" --sub "Data"   put it in these folders (default Quality Hilight / Master; existing ones are reused)
+ *     --name "Quality Highlight - Master"  --dashboard "Quality Highlight"   file / dashboard names
  *
  * The Excel is read on this machine: the company's notes are never copied into the repository.
  * It talks to the normal HTTP API (same validation / permissions / audit as the screens). Nothing is deleted or
@@ -25,7 +27,11 @@ const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/
 const arg = (name: string) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : undefined; };
 const DRY = process.argv.includes('--dry');
 
-const NAMES = { folder: 'Quality Hilight', sub: 'Master', file: 'Quality Hilight - Master', sheet: 'Master', dashboard: 'Quality Hilight' };
+/** Where it goes; every name can be changed, e.g. --folder "Quality Highlight Report" --sub "Data" (existing folders are reused) */
+const NAMES = {
+  folder: arg('--folder') ?? 'Quality Hilight', sub: arg('--sub') ?? 'Master', file: arg('--name') ?? 'Quality Hilight - Master', sheet: 'Master',
+  dashboard: arg('--dashboard') ?? 'Quality Hilight',
+};
 const COL = {
   sub: 'Sub Doc No.', material: 'Material', short: 'Short Code', note: 'ให้Spread', images: 'รูปภาพ',
   date: 'วันที่ Update ข้อมูล', by: 'Updated by', dateNote: 'วันที่ Update (ข้อความเดิมใน Excel)',
@@ -194,6 +200,7 @@ async function main() {
   for (const p of pics) console.log(`  รูปแถว ${p.excelRow} → ${records[p.record].sub}${records[p.record].short ? ` (${records[p.record].short})` : ''}`);
   for (const w of warnings) console.log(`  ! ${w}`);
   console.log(`  Rev แรก = Rev.${firstRev}`);
+  console.log(`  ปลายทาง: ${NAMES.folder} / ${NAMES.sub} / ${NAMES.file} · แดชบอร์ด "${NAMES.dashboard}"`);
   if (DRY) { console.log('\n[dry] ยังไม่ได้สร้างอะไร — รันอีกครั้งโดยไม่ใส่ --dry'); return; }
 
   const user = process.env.DOCHUB_USER, password = process.env.DOCHUB_PASSWORD;
