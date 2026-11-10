@@ -7,8 +7,13 @@ const bool = (v: string | undefined, d: boolean) =>
 
 const nodeEnv = process.env.NODE_ENV ?? 'development';
 const jwtSecret = process.env.JWT_SECRET ?? '';
-if (nodeEnv === 'production' && jwtSecret.length < 32) {
-  throw new Error('JWT_SECRET must be set (32+ chars) in production');
+// The value from .env.example is public (it is in this repository), so anyone could sign their own admin token with it.
+const EXAMPLE_JWT_SECRETS = ['change-me-to-a-long-random-string'];
+if (nodeEnv === 'production' && (jwtSecret.length < 32 || EXAMPLE_JWT_SECRETS.includes(jwtSecret))) {
+  throw new Error(
+    'JWT_SECRET must be a random value of 32+ chars in production, not the example value. ' +
+      'Generate one: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"'
+  );
 }
 
 export const env = {

@@ -1,0 +1,12 @@
+# Cloudflare Tunnel — copy to  %USERPROFILE%\.cloudflared\config.yml  (Linux: ~/.cloudflared/config.yml)
+# and replace <TUNNEL-UUID> (printed by: cloudflared tunnel create dochub) and the host name.
+# Step by step (Thai): docs/DEPLOY_PUBLIC.md
+tunnel: <TUNNEL-UUID>
+credentials-file: C:\Users\<USER>\.cloudflared\<TUNNEL-UUID>.json
+
+ingress:
+  # the public name -> DocHUB on this machine (API + websockets + web app on one port)
+  - hostname: dochub.example.dpdns.org
+    service: http://localhost:4000
+  # anything else that reaches this tunnel
+  - service: http_status:404
