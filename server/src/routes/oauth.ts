@@ -9,6 +9,7 @@ import { audit } from '../shared/audit';
 import { ah, ok } from '../shared/http';
 import { logger } from '../shared/logger';
 import { issueRefresh } from './auth';
+import { pendingForIdentity, signSignupToken, uniqueUsername } from '../modules/accountRequests/service';
 
 /** "Sign in with Google / Microsoft" (OpenID Connect authorization-code flow) */
 const router = Router();
@@ -41,7 +42,8 @@ function baseUrl(req: Request) {
 const redirectUri = (req: Request, p: Provider) => `${baseUrl(req)}/api/auth/oauth/${p}/callback`;
 /** Only same-site relative paths may be used as the post-login destination (no open redirect) */
 const safeFrom = (v: unknown) => (typeof v === 'string' && /^\/(?!\/)[\w\-./?=&%]*$/.test(v) ? v : '/');
-const fail = (res: Response, req: Request, msg: string) => res.redirect(`${baseUrl(req)}/login?oauth_error=${encodeURIComponent(msg)}`);
+const fail = (res: Response, req: Request, msg: string, from = '/') =>
+  res.redirect(`${baseUrl(req)}/login?oauth_error=${encodeURIComponent(msg)}${from !== '/' ? `&next=${encodeURIComponent(from)}` : ''}`);
 
 router.get('/providers', (_req, res) => ok(res, { google: enabled('google'), microsoft: enabled('microsoft') }));
 
@@ -80,17 +82,6 @@ async function exchange(req: Request, p: Provider, code: string): Promise<Claims
   return claims;
 }
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9._-]+/g, '').slice(0, 40) || 'user';
-
-async function uniqueUsername(base: string) {
-  let name = slug(base);
-  for (let i = 0; i < 50; i++) {
-    const candidate = i === 0 ? name : `${name}${i + 1}`;
-    if (!(await q1(`SELECT 1 AS x FROM Users WHERE username = @u`, { u: candidate }))) return candidate;
-  }
-  return `${name}${crypto.randomBytes(3).toString('hex')}`;
-}
-
 router.get(
   '/oauth/:provider/callback',
   ah(async (req, res) => {
@@ -104,7 +95,7 @@ router.get(
     } catch {
       return fail(res, req, 'เซสชันการเข้าสู่ระบบหมดอายุ กรุณาลองใหม่');
     }
-    if (st.p !== p || st.state !== req.query.state || !req.query.code) return fail(res, req, 'ข้อมูลการยืนยันตัวตนไม่ถูกต้อง');
+    if (st.p !== p || st.state !== req.query.state || !req.query.code) return fail(res, req, 'ข้อมูลการยืนยันตัวตนไม่ถูกต้อง', st.from);
 
     let claims: Claims;
     try {
@@ -112,7 +103,7 @@ router.get(
       if (claims.nonce !== st.nonce) throw new Error('nonce ไม่ตรงกัน');
     } catch (e: any) {
       logger.warn(`OAuth ${p} failed: ${e?.message}`);
-      return fail(res, req, 'ยืนยันตัวตนกับผู้ให้บริการไม่สำเร็จ');
+      return fail(res, req, 'ยืนยันตัวตนกับผู้ให้บริการไม่สำเร็จ', st.from);
     }
 
     const email = (claims.email || claims.preferred_username || '').trim().toLowerCase();
@@ -131,8 +122,14 @@ router.get(
         await q(`INSERT INTO OAuthIdentities (provider, subject, user_id, email) VALUES (@p, @s, @u, @e)`, { p, s: claims.sub, u: T.uuid(userId), e: email });
       }
     }
+    if (!userId && !(env.oauth.autoCreate && email && emailVerified)) {
+      // no account yet → the sign-up form, filled with this account; an admin approves the request
+      if (!email) return fail(res, req, 'บัญชีนี้ไม่มีอีเมล กรุณาขอสร้างบัญชีด้วยชื่อผู้ใช้และรหัสผ่าน', st.from);
+      if (await pendingForIdentity(p, claims.sub)) return fail(res, req, 'คำขอสร้างบัญชีของคุณกำลังรอผู้ดูแลระบบอนุมัติ', st.from);
+      const token = signSignupToken({ p, sub: claims.sub, email, name: (claims.name || email.split('@')[0]).slice(0, 200), from: st.from });
+      return res.redirect(`${baseUrl(req)}/signup?oauth=${encodeURIComponent(token)}`);
+    }
     if (!userId) {
-      if (!env.oauth.autoCreate || !email || !emailVerified) return fail(res, req, 'ยังไม่มีบัญชีสำหรับอีเมลนี้ กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มบัญชี');
       const username = await uniqueUsername(email.split('@')[0]);
       const hash = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10);
       userId = await withTx(async (tx) => {
@@ -148,7 +145,7 @@ router.get(
       });
     }
     const user = await q1(`SELECT user_id, is_active FROM Users WHERE user_id = @id`, { id: T.uuid(userId) });
-    if (!user?.is_active) return fail(res, req, 'บัญชีนี้ถูกปิดการใช้งาน กรุณาติดต่อผู้ดูแลระบบ');
+    if (!user?.is_active) return fail(res, req, 'บัญชีนี้ถูกปิดการใช้งาน กรุณาติดต่อผู้ดูแลระบบ', st.from);
     await q(`UPDATE Users SET last_login_at = SYSUTCDATETIME() WHERE user_id = @id`, { id: T.uuid(userId) });
     invalidateUserCache(userId);
     await issueRefresh(res, userId, req.headers['user-agent']);

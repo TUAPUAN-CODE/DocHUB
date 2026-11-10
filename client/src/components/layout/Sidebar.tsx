@@ -11,6 +11,7 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
   const user = useAuth((s) => s.user)!;
   const logout = useAuth((s) => s.logout);
   const pending = useData((s) => s.pendingReviews);
+  const pendingAccounts = useData((s) => s.pendingAccounts);
   const { pathname } = useLocation();
   const inFiles = pathname.startsWith('/browse') || pathname.startsWith('/folders') || pathname.startsWith('/files');
 
@@ -19,7 +20,7 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
     { to: '/browse', label: 'ไฟล์ทั้งหมด', icon: <FolderOpen className="h-[18px] w-[18px]" />, active: inFiles },
     { to: '/access-requests', label: 'คำขอสิทธิ์', icon: <KeyRound className="h-[18px] w-[18px]" />, badge: pending },
     ...(!isBasicRole(user.role) ? [{ to: '/audit', label: 'ประวัติการแก้ไข', icon: <History className="h-[18px] w-[18px]" /> }] : []),
-    ...(user.role === 'admin' ? [{ to: '/users', label: 'จัดการผู้ใช้', icon: <Users className="h-[18px] w-[18px]" /> }] : []),
+    ...(user.role === 'admin' ? [{ to: '/users', label: 'จัดการผู้ใช้', icon: <Users className="h-[18px] w-[18px]" />, badge: pendingAccounts }] : []),
     { to: '/trash', label: 'ถังขยะ', icon: <Trash2 className="h-[18px] w-[18px]" /> },
     ...(!isBasicRole(user.role) ? [{ to: '/devices', label: 'อุปกรณ์ (RFID/IoT)', icon: <Cpu className="h-[18px] w-[18px]" /> }] : []),
     ...(!isBasicRole(user.role) ? [{ to: '/connectors', label: 'ดึงข้อมูลจากลิงก์/API', icon: <Database className="h-[18px] w-[18px]" /> }] : []),

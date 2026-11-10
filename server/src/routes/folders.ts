@@ -75,7 +75,19 @@ router.get(
       return ok(res, { folder: null, breadcrumb: [], level: canCreateRoot ? LV.write : LV.read, subfolders: subfolders.sort(byName), files: [] });
     }
     const id = pid(req);
-    if (!ctx.index.map.has(id) || !vis(id)) throw notFound('ไม่พบโฟลเดอร์');
+    if (!ctx.index.map.has(id)) throw notFound('ไม่พบโฟลเดอร์');
+    if (!vis(id)) {
+      // opened from a shared link without access: say whose folder it is and let them ask for access
+      const pending = await q1(
+        `SELECT TOP 1 request_id, permission, created_at FROM AccessRequests
+         WHERE folder_id = @f AND requester_id = @u AND status = 'pending' ORDER BY created_at DESC`,
+        { f: T.uuid(id), u: T.uuid(u.id) },
+      );
+      throw forbidden('คุณยังไม่มีสิทธิ์เข้าถึงโฟลเดอร์นี้', 'NO_ACCESS', {
+        targetType: 'folder', targetId: id, name: ctx.index.map.get(id)!.name, currentLevel: 'none',
+        pending: pending ? { id: pending.request_id, permission: pending.permission, createdAt: pending.created_at } : null,
+      });
+    }
     const level = ctx.folderLevel(id);
     const subfolders = (ctx.index.children.get(id) ?? []).filter(vis).map((cid) => folderOut(ctx, cid, favFolders, counts, vis));
     const files = await q(`${FILES_SQL} WHERE f.folder_id = @id AND f.is_deleted = 0 ORDER BY f.file_name`, { id: T.uuid(id) });

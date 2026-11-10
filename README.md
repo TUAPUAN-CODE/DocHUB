@@ -39,7 +39,7 @@ The UI is in Thai. This README is in English and uses Thai terms where helpful.
 | Dashboard | **Layer manager** (drag to reorder, show/hide, lock) and **full screen** presentation mode. |
 | Dashboard | Power BI-style format pane: axes, data labels, legend, gridlines, number format, reference / average lines, combo series with a secondary axis, control limits (UCL/LCL/USL/LSL). |
 | Files | **Excel (.xlsx) export**, and **share links** (`/s/<token>`): visitors without an account get a read-only view; signed-in users receive the permission chosen for the link. |
-| Login | **Google / Microsoft sign-in** (see `server/.env.example`). |
+| Login | **Google / Microsoft sign-in** (see `server/.env.example`); people without an account ask for one (role requested, admin approves) — [`docs/ACCOUNTS_TAGS.md`](docs/ACCOUNTS_TAGS.md) (Thai). |
 | Roles | `viewer` (read only), `user` (enters data in tables; cannot change columns or structure), `master`, `admin`. |
 | Tables | **Import from Excel / CSV** (column mapping, validation report, template download), **relationships** (a select column takes its options from a column of another sheet, optionally filtered by another column in the same row, e.g. Plant → Line), and an option to hide the “— ไม่ระบุ —” choice. |
 | Tables | **Auto document numbers** (column type “เลขที่เอกสารอัตโนมัติ”): free-form template such as `{PREFIX}-{YYMMDD}-{SEQ:3}` → `CSM-260926-009`; prefixes (CSM/CSN/CSR) come from a fixed list or from a column of another sheet; the running number restarts when the date or prefix changes. |
@@ -185,6 +185,8 @@ SERVE_CLIENT_DIR=../client/dist NODE_ENV=production node dist/index.js
 Put it behind **HTTPS**, for example with IIS ARR, nginx or Caddy, and enable WebSocket upgrade for `/socket.io`.
 
 Quality Highlight (Note การผลิต from the QUALITY HIGHLIGHT Excel, with sheet revisions, auto-filled update date/name and a lookup dashboard): [`docs/QUALITY_HIGHLIGHT.md`](docs/QUALITY_HIGHLIGHT.md) (Thai). Its REV.9 data ships in `database/seed` and is inserted once per database at start-up.
+
+Account requests, user tags (share a file or folder with everyone in a tag), links to a file or folder that bring people back after signing in, and dialogs that close only from their own buttons: [`docs/ACCOUNTS_TAGS.md`](docs/ACCOUNTS_TAGS.md) (Thai).
 
 `client/dist` and `server/dist` are committed: a server running `ecosystem.production.config.js` updates with `git pull` alone (PM2 restarts the API when `server/dist` changes).
 

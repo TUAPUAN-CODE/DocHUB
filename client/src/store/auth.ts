@@ -23,7 +23,7 @@ function afterSignIn(token: string) {
   s.on('notification', (n) => {
     useNotifications.getState().push(n);
     toast.info(n.title, n.message);
-    if (n.type === 'access_request') void useData.getState().loadPending();
+    if (n.type === 'access_request' || n.type === 'account_request') void useData.getState().loadPending();
     if (n.type === 'access_approved' || n.type === 'access_granted') void useData.getState().loadTree();
   });
   void useTheme.getState().load();

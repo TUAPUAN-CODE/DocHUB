@@ -37,3 +37,8 @@ without the owner asking for it.
 - `cd server && npm test` (node:test, `src/**/*.test.ts`) and `npm run build`
 - `cd client && npm run build`
 - UI text is Thai; the users work on phones on the production floor — check phone widths too.
+
+## UI rules
+
+- Dialogs (`components/ui/Modal.tsx`) close only from their own buttons (✕ / ยกเลิก …): no backdrop tap, no Esc. Do not bring those back.
+- Access = own grants + grants to the user's tags (`FileTagAccess` / `FolderTagAccess` via `UserTags`), capped by role (`shared/permissions.ts`).

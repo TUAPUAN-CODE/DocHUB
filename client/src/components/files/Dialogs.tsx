@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, ChevronRight, Folder, KeyRound, Share2, Trash2, UserPlus } from 'lucide-react';
-import { accessApi, filesApi, foldersApi, requestsApi, usersApi } from '@/api/endpoints';
+import { motion } from 'framer-motion';
+import { CalendarClock, Check, ChevronRight, Copy, Folder, KeyRound, Link2, Lock, Share2, Tags, Trash2, UserPlus } from 'lucide-react';
+import type { ApiErrorInfo } from '@/api/client';
+import { accessApi, filesApi, foldersApi, requestsApi, tagsApi, usersApi } from '@/api/endpoints';
 import { useLoad } from '@/hooks';
 import { cn } from '@/lib/cn';
 import { fmtDateTime, PERM_LABEL } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { toast } from '@/store/ui';
-import { AccessGrant, FolderItem, LV, Perm, isBasicRole } from '@/types';
+import { AccessGrant, FolderItem, LV, Perm, TagGrant, isBasicRole } from '@/types';
 import { Button } from '../ui/Button';
-import { Field, Select, TextArea, TextInput, Toggle } from '../ui/Inputs';
+import { Field, Segmented, Select, TextArea, TextInput, Toggle } from '../ui/Inputs';
 import { Avatar, ColorInput, PermBadge, RoleBadge, Skeleton } from '../ui/misc';
 import { Modal } from '../ui/Modal';
 import { SearchSelect } from '../ui/SearchSelect';
+import { TagChip } from '../ui/TagChip';
 
 /* ---------------- Name / color / description ---------------- */
 export function MetaModal({ open, onClose, title, initial, onSubmit, withDescription = true }: {
@@ -126,7 +129,7 @@ export function DuplicateDialog({ open, onClose, file, onDone }: { open: boolean
   );
 }
 
-import { ShareLinksSection } from './ShareLinks';
+import { copyText, ShareLinksSection } from './ShareLinks';
 
 /* ---------------- Share ---------------- */
 const EXPIRY = [
@@ -157,13 +160,57 @@ function GrantRow({ g, editable, onChange, onRemove }: { g: AccessGrant; editabl
   );
 }
 
+function TagGrantRow({ g, editable, onChange, onRemove }: { g: TagGrant; editable?: boolean; onChange?: (p: Perm) => void; onRemove?: () => void }) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full" style={{ background: `${g.color}1f`, color: g.color }}><Tags className="h-4 w-4" /></span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2"><TagChip tag={g} /><span className="text-xs text-muted">{g.memberCount} คน</span></div>
+        <div className="truncate text-xs text-muted">
+          {g.source === 'folder' && g.folderName ? `สืบทอดจากโฟลเดอร์ ${g.folderName}` : 'ทุกคนที่มี Tag นี้'}
+          {g.expiresAt && <span className={cn('ml-2 inline-flex items-center gap-1', g.expired && 'text-danger')}><CalendarClock className="h-3 w-3" />{g.expired ? 'หมดอายุแล้ว' : `ถึง ${fmtDateTime(g.expiresAt)}`}</span>}
+        </div>
+      </div>
+      {editable ? (
+        <>
+          <Select value={g.permission} onChange={(e) => onChange?.(e.target.value as Perm)} className="w-36">
+            <option value="read">ดูข้อมูล</option><option value="write">แก้ไขข้อมูล</option><option value="manage">จัดการ</option>
+          </Select>
+          <button onClick={onRemove} className="rounded-lg p-2 text-muted hover:bg-danger/10 hover:text-danger" aria-label={`ถอนสิทธิ์ Tag ${g.name}`}><Trash2 className="h-4 w-4" /></button>
+        </>
+      ) : <PermBadge perm={g.permission} />}
+    </div>
+  );
+}
+
 export function ShareDialog({ open, onClose, target }: { open: boolean; onClose: () => void; target: { type: 'file' | 'folder'; id: string; name: string } | null }) {
   const { data, loading, reload } = useLoad(() => (target ? accessApi.get(target.type, target.id) : Promise.resolve(null)), [target?.id, open], { skip: !open || !target });
+  const { data: allTags } = useLoad(() => tagsApi.list(), [open], { skip: !open });
+  const [mode, setMode] = useState<'user' | 'tag'>('user');
   const [userId, setUserId] = useState<string | null>(null);
+  const [tagId, setTagId] = useState('');
   const [perm, setPerm] = useState<Perm>('write');
   const [expiry, setExpiry] = useState('');
   const [busy, setBusy] = useState(false);
   if (!target) return null;
+
+  const grantTag = async (tid: string, p: Perm, exp: string | null) => {
+    try {
+      const r = await accessApi.grantTag(target.type, target.id, { tagId: tid, permission: p, expiresAt: exp });
+      toast.success(`แชร์ให้ Tag แล้ว (${r.members} คน)`, 'ผู้ใช้ระดับ User / Viewer ใช้สิทธิ์ได้ไม่เกินระดับของตัวเอง');
+      void reload(true);
+    } catch (e) { toast.error(e); }
+  };
+  const addTag = async () => {
+    if (!tagId) return;
+    setBusy(true);
+    await grantTag(tagId, perm, expiryIso(expiry));
+    setTagId('');
+    setBusy(false);
+  };
+  const revokeTag = async (tid: string) => {
+    try { await accessApi.revokeTag(target.type, target.id, tid); void reload(true); } catch (e) { toast.error(e); }
+  };
 
   const grant = async (uid: string, p: Perm, exp: string | null) => {
     try {
@@ -187,11 +234,20 @@ export function ShareDialog({ open, onClose, target }: { open: boolean; onClose:
   return (
     <Modal open={open} onClose={onClose} size="lg" icon={<Share2 className="h-5 w-5" />} title={`แชร์ “${target.name}”`}
       description={target.type === 'folder' ? 'สิทธิ์ของโฟลเดอร์จะสืบทอดไปยังโฟลเดอร์ย่อยและไฟล์ทั้งหมดภายใน' : 'สิทธิ์รายไฟล์ ใช้ร่วมกับสิทธิ์ที่สืบทอดจากโฟลเดอร์ (ใช้ระดับที่สูงกว่า)'}>
+      <ItemLink target={target} />
       {target.type === 'file' && <ShareLinksSection fileId={target.id} />}
+      <div className="mb-2"><Segmented size="sm" value={mode} onChange={setMode} options={[{ value: 'user', label: 'แชร์ให้ผู้ใช้', icon: <UserPlus /> }, { value: 'tag', label: 'แชร์ให้ Tag', icon: <Tags /> }]} /></div>
       <div className="flex flex-col gap-2 rounded-2xl bg-ink/[.03] p-3 sm:flex-row">
         <div className="min-w-0 flex-1">
-          <SearchSelect value={userId} onChange={(v) => setUserId(v)} placeholder="ค้นหาผู้ใช้เพื่อเพิ่ม…"
-            load={async (q) => (await usersApi.lookup(q)).map((u) => ({ value: u.id, label: u.displayName, sub: `${u.username} · ${u.email}` }))} />
+          {mode === 'user' ? (
+            <SearchSelect value={userId} onChange={(v) => setUserId(v)} placeholder="ค้นหาผู้ใช้เพื่อเพิ่ม…"
+              load={async (q) => (await usersApi.lookup(q)).map((u) => ({ value: u.id, label: u.displayName, sub: `${u.username} · ${u.email}` }))} />
+          ) : (
+            <Select value={tagId} onChange={(e) => setTagId(e.target.value)} aria-label="เลือก Tag">
+              <option value="">{allTags?.length ? 'เลือก Tag…' : 'ยังไม่มี Tag (Admin สร้างได้ที่ จัดการผู้ใช้ → Tag)'}</option>
+              {(allTags ?? []).map((t) => <option key={t.id} value={t.id}>{t.name} ({t.memberCount} คน)</option>)}
+            </Select>
+          )}
         </div>
         <Select value={perm} onChange={(e) => setPerm(e.target.value as Perm)} className="sm:w-36">
           <option value="read">ดูข้อมูล</option><option value="write">แก้ไขข้อมูล</option><option value="manage">จัดการ</option>
@@ -199,7 +255,9 @@ export function ShareDialog({ open, onClose, target }: { open: boolean; onClose:
         <Select value={expiry} onChange={(e) => setExpiry(e.target.value)} className="sm:w-40">
           {EXPIRY.map((x) => <option key={x.v} value={x.v}>{x.label}</option>)}
         </Select>
-        <Button icon={<UserPlus className="h-4 w-4" />} onClick={add} loading={busy} disabled={!userId}>เพิ่ม</Button>
+        {mode === 'user'
+          ? <Button icon={<UserPlus className="h-4 w-4" />} onClick={add} loading={busy} disabled={!userId}>เพิ่ม</Button>
+          : <Button icon={<Tags className="h-4 w-4" />} onClick={addTag} loading={busy} disabled={!tagId}>เพิ่ม</Button>}
       </div>
       <div className="mt-4 max-h-[50vh] overflow-y-auto">
         {loading && !data ? <div className="space-y-3 py-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10" />)}</div> : data && (
@@ -210,6 +268,15 @@ export function ShareDialog({ open, onClose, target }: { open: boolean; onClose:
               {data.direct.map((g) => <GrantRow key={g.userId} g={g} editable onChange={(p) => grant(g.userId, p, g.expiresAt)} onRemove={() => revoke(g.userId)} />)}
               {!data.direct.length && <p className="py-3 text-sm text-muted">ยังไม่ได้แชร์ให้ใครโดยตรง</p>}
             </div>
+            {(!!data.tags?.length || !!data.inheritedTags?.length) && (
+              <>
+                <p className="mb-1 mt-5 text-xs font-semibold uppercase tracking-wider text-muted">แชร์ให้ Tag</p>
+                <div className="divide-y divide-line">
+                  {(data.tags ?? []).map((g) => <TagGrantRow key={g.tagId} g={g} editable onChange={(p) => grantTag(g.tagId, p, g.expiresAt)} onRemove={() => revokeTag(g.tagId)} />)}
+                  {(data.inheritedTags ?? []).map((g, i) => <TagGrantRow key={`${g.tagId}-${i}`} g={g} />)}
+                </div>
+              </>
+            )}
             {data.inherited.length > 0 && (
               <>
                 <p className="mb-1 mt-5 text-xs font-semibold uppercase tracking-wider text-muted">สืบทอดจากโฟลเดอร์</p>
@@ -221,6 +288,51 @@ export function ShareDialog({ open, onClose, target }: { open: boolean; onClose:
         )}
       </div>
     </Modal>
+  );
+}
+
+/** Link to the folder / file itself: the receiver signs in first (then lands on it); without access they can ask for it there */
+export const itemUrl = (t: { type: 'file' | 'folder'; id: string }) => `${window.location.origin}/${t.type === 'file' ? 'files' : 'folders'}/${t.id}`;
+
+function ItemLink({ target }: { target: { type: 'file' | 'folder'; id: string } }) {
+  const [copied, setCopied] = useState(false);
+  const url = itemUrl(target);
+  const copy = async () => {
+    if (await copyText(url)) { setCopied(true); toast.success('คัดลอกลิงก์แล้ว'); setTimeout(() => setCopied(false), 1800); }
+    else toast.error('คัดลอกไม่สำเร็จ กรุณาคัดลอกลิงก์ด้วยตัวเอง');
+  };
+  return (
+    <div className="mb-4 rounded-2xl border border-line p-3">
+      <div className="flex items-center gap-2 text-sm font-medium"><Link2 className="h-4 w-4 text-primary" />ลิงก์ของ{target.type === 'file' ? 'ไฟล์' : 'โฟลเดอร์'}นี้</div>
+      <div className="mt-2 flex items-center gap-2">
+        <input readOnly value={url} onFocus={(e) => e.target.select()} className="ds-input h-9 min-w-0 flex-1 px-3 text-xs text-muted" aria-label="ลิงก์" />
+        <Button size="sm" icon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} onClick={copy}>{copied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์'}</Button>
+      </div>
+      <p className="mt-1.5 text-xs text-muted">ผู้รับต้องเข้าสู่ระบบก่อน แล้วจะเปิด{target.type === 'file' ? 'ไฟล์' : 'โฟลเดอร์'}นี้ให้เอง · ใช้ได้กับคนที่มีสิทธิ์ (เพิ่มด้านล่าง) — คนที่ยังไม่มีสิทธิ์จะเห็นปุ่มขอสิทธิ์</p>
+    </div>
+  );
+}
+
+/* ---------------- No access (opened from a link) ---------------- */
+export function NoAccessView({ info, onRetry }: { info: ApiErrorInfo; onRetry: () => void }) {
+  const d = info.details ?? {};
+  const type: 'file' | 'folder' = d.targetType === 'folder' ? 'folder' : 'file';
+  const what = type === 'file' ? 'ไฟล์' : 'โฟลเดอร์';
+  return (
+    <div className="mx-auto max-w-lg px-4 py-16">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="ds-card ds-card-pad !p-8 text-center">
+        <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-warning/15 text-warning"><Lock className="h-8 w-8" /></span>
+        <h1 className="mt-4 text-xl font-semibold">{info.code === 'NO_ACCESS' ? `คุณยังไม่มีสิทธิ์เข้าถึง${what}นี้` : `เปิด${what}ไม่ได้`}</h1>
+        <p className="mt-1 text-sm text-muted">{d.name ? `“${d.name}”` : info.message}</p>
+        {info.code === 'NO_ACCESS' && (d.pending ? (
+          <div className="mt-6 rounded-2xl bg-primary/[.06] p-4 text-sm">
+            <p className="font-medium text-primary">คำขอของคุณกำลังรอการอนุมัติ</p>
+            <p className="mt-1 text-muted">ส่งเมื่อ {fmtDateTime(d.pending.createdAt)} · คุณจะได้รับการแจ้งเตือนเมื่อมีผลการพิจารณา</p>
+            <Button variant="ghost" size="sm" className="mt-3" onClick={async () => { await requestsApi.cancel(d.pending.id); onRetry(); }}>ยกเลิกคำขอ</Button>
+          </div>
+        ) : <div className="mt-6"><RequestAccessForm target={{ type, id: d.targetId, name: d.name }} compact onDone={onRetry} /></div>)}
+      </motion.div>
+    </div>
   );
 }
 

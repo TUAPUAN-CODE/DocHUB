@@ -6,6 +6,7 @@ import { invalidateUserCache, requireRole, Role, ROLE_ID, ROLE_SQL, ROLES } from
 import { audit } from '../shared/audit';
 import { ah, badRequest, conflict, likeEscape, notFound, ok, pageParams, parse, pid, zId } from '../shared/http';
 import { mapUser } from '../shared/mappers';
+import { tagsOfUsers } from '../modules/tags/routes';
 
 const router = Router();
 const adminOnly = requireRole('admin');
@@ -82,6 +83,11 @@ router.get(
       where.push('(u.display_name LIKE @s OR u.username LIKE @s OR u.email LIKE @s)');
       p.s = `%${likeEscape(s)}%`;
     }
+    const tag = String(req.query.tag ?? '');
+    if (/^[0-9a-f-]{36}$/i.test(tag)) {
+      where.push('EXISTS (SELECT 1 FROM UserTags ut WHERE ut.user_id = u.user_id AND ut.tag_id = @tag)');
+      p.tag = T.uuid(tag);
+    }
     if (status === 'active') where.push('u.is_active = 1');
     if (status === 'inactive') where.push('u.is_active = 0');
     const roleFilter = ROLES.includes(role as Role) ? `WHERE x.role = @role` : '';
@@ -97,8 +103,9 @@ router.get(
     const stats = await q1(
       `SELECT COUNT(*) AS total, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active FROM Users`,
     );
+    const tags = await tagsOfUsers(rows.map((r) => r.user_id));
     ok(res, {
-      items: rows.map(mapUser),
+      items: rows.map((r) => ({ ...mapUser(r), tags: tags.get(String(r.user_id).toLowerCase()) ?? [] })),
       total: Number(count?.n ?? 0),
       page,
       pageSize,

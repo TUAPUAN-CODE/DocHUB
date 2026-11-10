@@ -4,7 +4,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ConfirmHost, Toaster } from '@/components/ui/Feedback';
 import { Spinner } from '@/components/ui/misc';
 import { useAuth } from '@/store/auth';
-import LoginPage from '@/pages/LoginPage';
+import LoginPage, { nextPath } from '@/pages/LoginPage';
 import HomePage from '@/pages/HomePage';
 import FolderPage from '@/pages/FolderPage';
 import NotFound from '@/pages/NotFound';
@@ -16,6 +16,9 @@ const SearchPage = lazy(() => import('@/pages/SearchPage'));
 const AccessRequestsPage = lazy(() => import('@/pages/AccessRequestsPage'));
 const AuditPage = lazy(() => import('@/pages/AuditPage'));
 const UsersPage = lazy(() => import('@/pages/UsersPage'));
+const AccountRequestsPage = lazy(() => import('@/pages/users/AccountRequestsPage'));
+const TagsPage = lazy(() => import('@/pages/users/TagsPage'));
+const SignupPage = lazy(() => import('@/pages/SignupPage'));
 const TrashPage = lazy(() => import('@/pages/TrashPage'));
 const DashboardsPage = lazy(() => import('@/pages/DashboardsPage'));
 const PublicSharePage = lazy(() => import('@/pages/PublicSharePage'));
@@ -29,7 +32,11 @@ const DevicesPage = lazy(() => import('@/pages/DevicesPage'));
 function RequireAuth({ children }: { children: ReactNode }) {
   const status = useAuth((s) => s.status);
   const loc = useLocation();
-  if (status === 'guest') return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
+  if (status === 'guest') {
+    const from = loc.pathname + loc.search;
+    // ?next= keeps the destination through a page reload and the Microsoft / Google round trip
+    return <Navigate to={from === '/' ? '/login' : `/login?next=${encodeURIComponent(from)}`} replace state={{ from }} />;
+  }
   return <>{children}</>;
 }
 function RequireRole({ roles, children }: { roles: string[]; children: ReactNode }) {
@@ -52,7 +59,8 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/login" element={status === 'authed' ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/login" element={status === 'authed' ? <Navigate to={nextPath(window.location.search)} replace /> : <LoginPage />} />
+        <Route path="/signup" element={status === 'authed' ? <Navigate to="/" replace /> : <Suspense fallback={<div className="grid h-full place-items-center"><Spinner /></div>}><SignupPage /></Suspense>} />
         <Route path="/s/:token" element={<Suspense fallback={<div className="grid h-full place-items-center"><Spinner /></div>}><PublicSharePage /></Suspense>} />
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
           <Route index element={<HomePage />} />
@@ -66,6 +74,8 @@ export default function App() {
           <Route path="access-requests" element={<AccessRequestsPage />} />
           <Route path="audit" element={<RequireRole roles={['master', 'admin']}><AuditPage /></RequireRole>} />
           <Route path="users" element={<RequireRole roles={['admin']}><UsersPage /></RequireRole>} />
+          <Route path="users/requests" element={<RequireRole roles={['admin']}><AccountRequestsPage /></RequireRole>} />
+          <Route path="users/tags" element={<RequireRole roles={['admin']}><TagsPage /></RequireRole>} />
           <Route path="trash" element={<TrashPage />} />
           <Route path="dashboards" element={<DashboardsPage />} />
           <Route path="approvals" element={<ApprovalsPage />} />
