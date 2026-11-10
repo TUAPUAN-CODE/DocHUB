@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -22,8 +22,7 @@ export function Modal({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[900] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+        <ModalLayer>
           <div className="fixed inset-0 bg-slate-900/40" onClick={onClose} />
           <motion.div role="dialog" aria-modal="true"
             className={cn('ds-modal relative my-6 flex w-full flex-col', SIZES[size], className)}
@@ -44,9 +43,22 @@ export function Modal({
             <div className={cn('px-6 py-4', bodyClassName)}>{children}</div>
             {footer && <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4">{footer}</div>}
           </motion.div>
-        </motion.div>
+        </ModalLayer>
       )}
     </AnimatePresence>,
     document.fullscreenElement ?? document.body, // inside the top layer while a page is full screen
+  );
+}
+
+/** The full-screen layer behind a dialog. Once closing starts it lets taps through, even if the exit animation is cut short
+ *  (phone app switched away mid-animation): an invisible layer left over the page would make the whole app look frozen. */
+function ModalLayer({ children }: { children: ReactNode }) {
+  const present = useIsPresent();
+  return (
+    <motion.div className="fixed inset-0 z-[900] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
+      style={{ pointerEvents: present ? 'auto' : 'none' }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+      {children}
+    </motion.div>
   );
 }
