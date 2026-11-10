@@ -56,3 +56,7 @@ export const TEMPLATES: { id: string; name: string; description: string; columns
 
 /** Cells of a computed column are filled by the server from a formula and cannot be edited by hand */
 export const isComputed = (c: { validation?: { formula?: { expr?: string } | null } | null }) => !!c.validation?.formula?.expr;
+/** "last updated" date / name, filled in by the server */
+export const isAutoStamp = (c: { validation?: { autoStamp?: string | null } | null }) => !!c.validation?.autoStamp;
+/** cells people do not type in: formula results and auto-stamped columns */
+export const isReadOnlyCol = (c: { validation?: { formula?: { expr?: string } | null; autoStamp?: string | null } | null }) => isComputed(c) || isAutoStamp(c);

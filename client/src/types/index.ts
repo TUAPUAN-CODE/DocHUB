@@ -40,6 +40,8 @@ export interface Validation {
   alert?: AlertCfg | null;
   /** auto-numbered document id, e.g. {PREFIX}-{YYMMDD}-{SEQ:3} */
   docNumber?: DocNumberCfg | null;
+  /** filled by the server whenever the row changes: today's date (date columns) / the editor's name (text columns) */
+  autoStamp?: 'updatedAt' | 'updatedBy' | null;
 }
 /** other sheets a formula reads: alias used in the formula as @alias[Column]; names are only for display (filled in by the server for managers) */
 export interface FormulaSource { alias: string; sheetId: string; fileId?: string | null; fileName?: string | null; sheetName?: string | null }
@@ -108,7 +110,7 @@ export interface AuditEntry {
 }
 
 export type WidgetType = 'bar' | 'line' | 'area' | 'pie' | 'doughnut' | 'scatter' | 'kpi' | 'table' | 'text' | 'image' | 'shape'
-  | 'heatmap' | 'pareto' | 'histogram' | 'xchart' | 'xbar' | 'pct' | 'slicer' | 'card' | 'condition';
+  | 'heatmap' | 'pareto' | 'histogram' | 'xchart' | 'xbar' | 'pct' | 'slicer' | 'card' | 'condition' | 'records' | 'revision';
 export type Agg = 'sum' | 'avg' | 'count' | 'count_distinct' | 'min' | 'max' | 'none';
 export interface DataSource {
   sheetId: string; xColumnId?: string | null; xBucket?: 'none' | 'day' | 'week' | 'month' | 'quarter' | 'year';

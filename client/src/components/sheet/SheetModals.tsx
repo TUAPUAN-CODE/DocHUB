@@ -16,7 +16,7 @@ import type { CellValue, Column, Row } from '@/types';
 import { Button } from '../ui/Button';
 import { Checkbox, Field, TextArea, TextInput } from '../ui/Inputs';
 import { Avatar, EmptyState, Skeleton } from '../ui/misc';
-import { isComputed } from '@/lib/columnTypes';
+import { isReadOnlyCol } from '@/lib/columnTypes';
 import { Modal } from '../ui/Modal';
 import { FieldInput } from './FieldInput';
 import { ImageGallery, toUrls } from './ImageCell';
@@ -64,7 +64,7 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
     let count = 0;
     for (const [cid, t] of Object.entries(r.values)) {
       const col = columns.find((c) => c.id === cid);
-      if (!col || isComputed(col)) continue;
+      if (!col || isReadOnlyCol(col)) continue;
       const v = coerceScanned(col, t);
       if (v === null) { errs[cid] = `ใช้ค่า “${t}” กับคอลัมน์นี้ไม่ได้`; continue; }
       const le = limitError(col, t);
@@ -135,14 +135,14 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
           )}
           <div className="grid max-h-[58vh] gap-4 overflow-y-auto pr-1" style={{ gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))` }}>
             {fields.map(({ col: c, span }, i) => {
-              const scannable = canWrite && !isComputed(c) && SCANNABLE.has(c.dataType);
+              const scannable = canWrite && !isReadOnlyCol(c) && SCANNABLE.has(c.dataType);
               return (
                 <div key={c.id} style={{ gridColumn: `span ${span} / span ${span}` }} className="min-w-0">
                   <Field label={<span className="flex items-center justify-between gap-2"><span>{c.name}</span>{scannable && <button type="button" onClick={() => setScanField((f) => (f === c.id ? null : c.id))} title="สแกนใส่ช่องนี้" aria-label={`สแกนใส่ ${c.name}`}
                     className={cn('rounded-md p-0.5', scanField === c.id ? 'bg-primary/15 text-primary' : 'text-muted hover:text-primary')}><Camera className="h-4 w-4" /></button>}</span>}
                     required={c.isRequired} error={errors[c.id]}
                     hint={row?.meta[c.id] ? `แก้ไขล่าสุด ${users[row.meta[c.id].by]?.name ?? ''} · ${relTime(row.meta[c.id].at)}` : c.description ?? undefined}>
-                    {canWrite && !isComputed(c) ? <FieldInput col={c} value={values[c.id]} rowValues={values} onChange={(v) => setValues(withDependentsCleared(c.id, v))} invalid={!!errors[c.id]} autoFocus={i === 0} />
+                    {canWrite && !isReadOnlyCol(c) ? <FieldInput col={c} value={values[c.id]} rowValues={values} onChange={(v) => setValues(withDependentsCleared(c.id, v))} invalid={!!errors[c.id]} autoFocus={i === 0} />
                       : c.dataType === 'image' ? <ImageGallery urls={toUrls(values[c.id])} />
                       : <div className="min-h-10 rounded-xl bg-ink/[.03] px-3 py-2.5 text-sm">{displayValue(c, values[c.id] ?? null) || <span className="text-muted">—</span>}</div>}
                   </Field>

@@ -22,6 +22,27 @@ const PRESETS = [
   { label: 'HD 1280×720', w: 1280, h: 720 }, { label: 'FHD 1600×900', w: 1600, h: 900 }, { label: 'Full HD 1920×1080', w: 1920, h: 1080 },
   { label: 'A4 แนวนอน', w: 1123, h: 794 }, { label: 'แนวตั้ง 1080×1920', w: 1080, h: 1920 },
 ];
+/** Phones: the free canvas would shrink to a third of its size, so widgets are stacked one per row instead (view mode only) */
+function useNarrow() {
+  const q = '(max-width: 639px)';
+  const [narrow, setNarrow] = useState(() => window.matchMedia?.(q).matches ?? false);
+  useEffect(() => {
+    const m = window.matchMedia?.(q);
+    if (!m) return;
+    const on = () => setNarrow(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return narrow;
+}
+const flowHeight = (w: Widget): number | string | undefined => {
+  if (w.type === 'records') return 'calc(100dvh - 8.5rem)'; // the search stays on top, the results scroll under it
+  if (w.type === 'text' || w.type === 'revision') return undefined; // as tall as the text / the change list
+  if (w.type === 'image') return Math.round((window.innerWidth - 24) * (w.h / Math.max(1, w.w)));
+  if (w.type === 'slicer') return Math.max(64, Math.min(w.h, 120));
+  return Math.max(60, Math.min(w.h, 460));
+};
+
 const WMIME = 'application/x-dsp-widget';
 
 export default function DashboardPage() {
@@ -37,6 +58,7 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [fit, setFit] = useState(true);
+  const narrow = useNarrow();
   const [refreshKey, setRefreshKey] = useState(0);
   const [settings, setSettings] = useState(false);
   const [slicers, setSlicers] = useState<Record<string, ColumnFilter | null>>({});
@@ -181,9 +203,10 @@ export default function DashboardPage() {
   const g = meta.canvas.gridSize;
 
   const pad = full ? 0 : 48;
+  const flow = narrow && !edit && !full;
   return (
     <DashCtx.Provider value={{ slicers, setSlicer, widgets }}>
-    <div ref={page} className={cn('flex flex-col bg-app', full ? 'h-screen' : 'h-[calc(100dvh-4rem)]')}>
+    <div ref={page} className={cn('flex flex-col bg-app', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
       {full && <button onClick={() => void toggleFull()} className="absolute right-3 top-3 z-[60] inline-flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity hover:opacity-100 focus:opacity-100"><Shrink className="h-3.5 w-3.5" />ออกจากเต็มจอ (Esc)</button>}
       <div className={cn('shrink-0 flex-wrap items-center gap-2 px-4 pb-3 sm:px-6', full ? 'hidden' : 'flex')}>
         <Link to={`/files/${fileId}`} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-ink/5" aria-label="กลับไปที่ไฟล์"><ArrowLeft className="h-5 w-5" /></Link>
@@ -194,12 +217,14 @@ export default function DashboardPage() {
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <IconButton label="รีเฟรชข้อมูล" onClick={() => setRefreshKey((k) => k + 1)}><RefreshCw className="h-4 w-4" /></IconButton>
+          {!flow && <>
           <IconButton label="ซูมออก" onClick={() => { setFit(false); setZoom((z) => Math.max(0.2, Math.round((z - 0.1) * 10) / 10)); }}><ZoomOut className="h-4 w-4" /></IconButton>
           <span className="w-12 text-center text-xs font-medium tabular-nums">{Math.round(zoom * 100)}%</span>
           <IconButton label="ซูมเข้า" onClick={() => { setFit(false); setZoom((z) => Math.min(2, Math.round((z + 0.1) * 10) / 10)); }}><ZoomIn className="h-4 w-4" /></IconButton>
           <IconButton label="พอดีหน้าจอ" active={fit} onClick={() => setFit(true)}><Maximize className="h-4 w-4" /></IconButton>
           <IconButton label="เต็มจอ (Full screen)" onClick={() => void toggleFull()}><Expand className="h-4 w-4" /></IconButton>
-          {canManage && (
+          </>}
+          {canManage && !flow && (
             <>
               <div className="mx-1 h-6 w-px bg-line" />
               <Segmented value={edit ? 'edit' : 'view'} onChange={(v) => { setEdit(v === 'edit'); setSelected(null); }} options={[{ value: 'view', label: 'ดู', icon: <Eye /> }, { value: 'edit', label: 'แก้ไข', icon: <Pencil /> }]} />
@@ -238,6 +263,14 @@ export default function DashboardPage() {
           </motion.aside>
         )}
 
+        {flow ? (
+          <div className="min-w-0 flex-1 space-y-3 overflow-y-auto rounded-theme p-2" style={{ backgroundColor: bg.color ?? '#F4F6FB' }}>
+            {[...widgets].filter((w) => !w.style?.hidden && w.type !== 'shape').sort((a, b) => a.y - b.y || a.x - b.x).map((w) => (
+              <div key={w.id} style={{ height: flowHeight(w) }}><WidgetView w={w} refreshKey={refreshKey} /></div>
+            ))}
+            {!widgets.length && <p className="py-16 text-center text-sm text-muted">ยังไม่มีวิดเจ็ต</p>}
+          </div>
+        ) : (
         <div ref={viewport} className={cn('relative min-w-0 flex-1 overflow-auto', full ? 'bg-black' : 'rounded-theme border border-line bg-ink/[.035]')} style={full ? { scrollbarGutter: 'stable' } : undefined} onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>
           <div className={cn(full ? 'mx-auto' : 'p-6')} style={{ width: meta.canvas.width * zoom + pad, height: meta.canvas.height * zoom + pad }}>
             <div style={{ width: meta.canvas.width * zoom, height: meta.canvas.height * zoom }} className="relative">
@@ -283,6 +316,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        )}
 
         {edit && !full && (
           <motion.aside key="cfg" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} className="ds-card hidden w-[320px] shrink-0 flex-col overflow-hidden lg:flex">

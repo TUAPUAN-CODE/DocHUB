@@ -95,7 +95,7 @@ export const columnsApi = {
   restore: (id: string) => post<Column>(`/columns/${id}/restore`),
 };
 
-export interface RowQueryBody { page: number; pageSize: number; sorts: SortSpec[]; filters: ColumnFilter[]; search?: string }
+export interface RowQueryBody { page: number; pageSize: number; sorts: SortSpec[]; filters: ColumnFilter[]; search?: string; searchColumns?: string[] }
 export interface RowPage { rows: Row[]; total: number; page: number; pageSize: number; users: UsersDict }
 export interface CellVersion { id: number; oldValue: CellValue; newValue: CellValue; source: string; by: string; byName: string; avatarUrl: string | null; at: string; version: number }
 export interface ColumnStat { columnId: string; filled: number; sum: number | null; avg: number | null; min: number | null; max: number | null; trueCount: number | null }

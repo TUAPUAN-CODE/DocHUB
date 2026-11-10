@@ -11,7 +11,7 @@ import { computeWidgetData } from '../services/widgetData';
 const router = Router();
 
 const WIDGET_TYPES = ['bar', 'line', 'area', 'pie', 'doughnut', 'scatter', 'kpi', 'table', 'text', 'image', 'shape',
-  'heatmap', 'pareto', 'histogram', 'xchart', 'xbar', 'pct', 'slicer', 'card', 'condition'] as const;
+  'heatmap', 'pareto', 'histogram', 'xchart', 'xbar', 'pct', 'slicer', 'card', 'condition', 'records', 'revision'] as const;
 
 const dataSourceSchema = z.object({
   sheetId: z.string().regex(/^[0-9a-fA-F-]{36}$/).transform((s) => s.toLowerCase()),

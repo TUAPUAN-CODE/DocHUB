@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import {
-  AreaChart as AreaIcon, BarChart3, BellRing, Circle, Donut, Filter, Gauge, Grid3x3, ImageIcon, LayoutList, LineChart as LineIcon, PieChart as PieIcon,
+  AreaChart as AreaIcon, BarChart3, BellRing, Circle, Donut, Filter, Gauge, Grid3x3, History, ImageIcon, LayoutList, LineChart as LineIcon, PieChart as PieIcon, ScanSearch,
   ScatterChart as ScatterIcon, Sigma, StretchHorizontal, Table2, TrendingUp, Type, Activity, BarChartHorizontal,
 } from 'lucide-react';
 import { ensureFont } from '@/lib/fonts';
@@ -11,6 +11,7 @@ import type { DataSource, Widget, WidgetData, WidgetType } from '@/types';
 import { ChartBody, PALETTE } from './ChartBody';
 import { useDash, withSlicers } from './dashContext';
 import { CardBody, ConditionBody, SlicerBody } from './SpecialBodies';
+import { RecordsBody, RevisionBody } from './RecordBodies';
 import { CHART_TYPES, DATA_TYPES_W, dsValid, needsX, useWidgetData } from './useWidgetData';
 
 export { CHART_TYPES, DATA_TYPES_W, dsValid, needsX, PALETTE, useWidgetData };
@@ -19,6 +20,7 @@ export const WIDGET_GROUPS: { label: string; types: WidgetType[] }[] = [
   { label: 'ตัวกรอง', types: ['slicer'] },
   { label: 'กราฟ', types: ['bar', 'line', 'area', 'pie', 'doughnut', 'scatter', 'pct', 'pareto', 'histogram', 'heatmap', 'xchart', 'xbar'] },
   { label: 'ตัวเลข', types: ['kpi', 'card', 'condition', 'table'] },
+  { label: 'รายละเอียด', types: ['records', 'revision'] },
   { label: 'ตกแต่ง', types: ['text', 'image', 'shape'] },
 ];
 
@@ -40,6 +42,8 @@ export const WIDGETS: { type: WidgetType; label: string; icon: JSX.Element; w: n
   { type: 'card', label: 'การ์ด', icon: <LayoutList />, w: 320, h: 170, hint: 'หัวข้อหลัก/หัวข้อย่อย/รายละเอียด เลือกแสดงได้' },
   { type: 'condition', label: 'การ์ดเงื่อนไข', icon: <BellRing />, w: 340, h: 150, hint: 'เทียบค่าจาก 2 ตาราง ผ่าน/ไม่ผ่าน แสดงข้อความ' },
   { type: 'table', label: 'ตารางสรุป', icon: <Table2 />, w: 480, h: 320 },
+  { type: 'records', label: 'ค้นหารายละเอียด', icon: <ScanSearch />, w: 760, h: 620, hint: 'พิมพ์รหัส (เช่น Sub Doc No. / Short Code) แล้วแสดงรายละเอียดและรูปของแถวที่ตรง' },
+  { type: 'revision', label: 'Rev ล่าสุด', icon: <History />, w: 520, h: 480, hint: 'Rev ล่าสุดของชีต และต่างจาก Rev ก่อนหน้าอย่างไร' },
   { type: 'text', label: 'ข้อความ', icon: <Type />, w: 420, h: 80 },
   { type: 'image', label: 'รูปภาพ', icon: <ImageIcon />, w: 360, h: 240 },
   { type: 'shape', label: 'รูปทรง', icon: <Circle />, w: 220, h: 160 },
@@ -52,7 +56,7 @@ const blankDs = (sheetId: string, extra: Partial<DataSource> = {}): DataSource =
 export function newWidget(type: WidgetType, x: number, y: number, z: number, sheetId: string | null): Widget {
   const def = WIDGETS.find((w) => w.type === type)!;
   const base: Widget = { id: uid(), type, title: def.label, x, y, w: def.w, h: def.h, z, locked: false, config: {}, style: { showTitle: true }, dataSource: null };
-  const withData = (DATA_TYPES_W.includes(type) || ['slicer', 'card', 'condition'].includes(type)) && sheetId;
+  const withData = (DATA_TYPES_W.includes(type) || ['slicer', 'card', 'condition', 'records', 'revision'].includes(type)) && sheetId;
   if (withData) base.dataSource = blankDs(sheetId!, { sort: type === 'pie' || type === 'doughnut' || type === 'pareto' ? 'value_desc' : 'x_asc' });
   if (type === 'text') Object.assign(base, { title: '', config: { text: 'พิมพ์ข้อความ', fontSize: 24, fontWeight: 600, align: 'left', color: '' }, style: { showTitle: false, bg: 'transparent', borderWidth: 0, shadow: 'none', padding: 4 } });
   if (type === 'image') Object.assign(base, { title: '', config: { url: '', fit: 'cover' }, style: { showTitle: false, padding: 0 } });
@@ -65,6 +69,8 @@ export function newWidget(type: WidgetType, x: number, y: number, z: number, she
   if (type === 'xbar' && base.dataSource) { base.dataSource.kind = 'xbar'; base.config = { ...base.config, legend: false }; }
   if (type === 'pareto') base.config = { ...base.config, legend: true, labels: true };
   if (type === 'heatmap') base.config = { colorLow: '#E8F0FE', colorHigh: '#1552F0', showValues: true };
+  if (type === 'records') base.config = { searchColumnIds: [], titleColumnIds: [], fieldColumnIds: [], imageColumnId: null, pageSize: 20, placeholder: '', showRev: true, fontSize: 14 };
+  if (type === 'revision') base.config = { limit: 10, fontSize: 14 };
   if (type === 'slicer') { base.title = ''; base.style = { showTitle: false }; base.config = { mode: 'dropdown_search', multi: true, showLabel: true, placeholder: '', targets: [] }; }
   if (type === 'card') { base.title = ''; base.style = { showTitle: false }; base.config = { heading: 'หัวข้อหลัก', subheading: 'หัวข้อย่อย', body: 'รายละเอียด', showHeading: true, showSubheading: true, showBody: true, showValue: false, align: 'left', decimals: 0 }; }
   if (type === 'condition') {
@@ -141,6 +147,8 @@ export function WidgetView({ w, refreshKey, editing }: { w: Widget; refreshKey: 
   } else if (w.type === 'slicer') body = <SlicerBody w={w} editing={editing} />;
   else if (w.type === 'card') body = <CardBody w={w} refreshKey={refreshKey} />;
   else if (w.type === 'condition') body = <ConditionBody w={w} refreshKey={refreshKey} editing={editing} />;
+  else if (w.type === 'records') body = <RecordsBody w={w} refreshKey={refreshKey} editing={editing} />;
+  else if (w.type === 'revision') body = <RevisionBody w={w} refreshKey={refreshKey} editing={editing} />;
   else if (w.type === 'text') {
     body = (
       <div className="flex h-full w-full overflow-hidden whitespace-pre-wrap break-words" style={{
