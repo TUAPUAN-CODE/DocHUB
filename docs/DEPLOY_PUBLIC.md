@@ -13,7 +13,12 @@
 
 ---
 
-## 1. Build (ทำทุกครั้งหลัง `git pull`)
+## 1. Build — ไม่ต้องทำบน server
+
+repo มี `client/dist` และ `server/dist` ที่ build แล้ว (ผู้พัฒนา build และ commit ให้ทุกครั้ง) บน server แค่ `git pull`
+ต้อง `npm ci` ในโฟลเดอร์ `server` เฉพาะครั้งแรก หรือเมื่อแจ้งว่ามี package ใหม่
+
+ผู้พัฒนา (หลังแก้โค้ด ก่อน commit):
 
 ```powershell
 cd client
@@ -21,6 +26,7 @@ npm run build          # → client/dist
 cd ..\server
 npm run build          # → server/dist
 cd ..
+git add -A client/dist server/dist
 ```
 
 - `client\.env` ต้องไม่มี `VITE_API_URL` ที่เป็น IP (ไม่มีบรรทัดนี้ หรือเป็น `/api`) ไม่อย่างนั้นคนนอกบริษัทจะเรียก API ไม่ได้
@@ -118,9 +124,12 @@ pm2 save
 
 ```powershell
 git pull
-cd client; npm run build; cd ..\server; npm run build; cd ..
-pm2 reload dochub
 ```
+
+เท่านั้น: หน้าเว็บใหม่มีผลทันที (ผู้ใช้กด F5) · `dochub` รีสตาร์ตเองประมาณ 5 วินาทีหลังมี `server/dist` ใหม่ (PM2 watch)
+
+- ครั้งแรกหลังเปลี่ยนมาใช้วิธีนี้ ให้ PM2 อ่านค่าใหม่ 1 ครั้ง: `pm2 delete dochub` → `pm2 start ecosystem.production.config.js --only dochub` → `pm2 save`
+- ถ้าเคย build บน server เอง แล้ว `git pull` บอกว่าไฟล์ใน dist ถูกแก้ไข: `git checkout -- client/dist server/dist` แล้ว pull ใหม่
 
 ## ความปลอดภัย (ตรวจก่อนเปิดลิงก์)
 

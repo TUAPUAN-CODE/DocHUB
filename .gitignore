@@ -1,5 +1,5 @@
 node_modules/
-dist/
+# client/dist and server/dist ARE committed: the server only runs `git pull` (see CLAUDE.md)
 .env
 uploads/
 *.log

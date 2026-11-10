@@ -1,9 +1,10 @@
 // PM2 — production (one port serves the API, websockets and the built React app)
 //
-//   1) build once after every git pull:   cd client && npm run build   then   cd ../server && npm run build
-//   2) server/.env:                        NODE_ENV=production, SERVE_CLIENT_DIR=../client/dist, JWT_SECRET=<random 48+>
-//   3) from this folder:                   pm2 start ecosystem.production.config.js --only dochub
-//   4) after the Cloudflare tunnel exists: pm2 start ecosystem.production.config.js --only dochub-tunnel
+//   client/dist and server/dist are built and committed in the repository: on the server, `git pull` is the whole update.
+//   dochub restarts by itself a few seconds after server/dist (or database/) changes; the web app needs no restart.
+//   1) server/.env:                        NODE_ENV=production, SERVE_CLIENT_DIR=../client/dist, JWT_SECRET=<random 48+>
+//   2) from this folder:                   pm2 start ecosystem.production.config.js --only dochub
+//   3) after the Cloudflare tunnel exists: pm2 start ecosystem.production.config.js --only dochub-tunnel
 //                                          pm2 save
 // Step by step (Thai): docs/DEPLOY_PUBLIC.md
 //
@@ -36,7 +37,10 @@ module.exports = {
       script: './dist/index.js',
       interpreter: 'node',
       windowsHide: true,
-      watch: false,
+      // `git pull` brings a new build → one restart once the files stop changing (a burst of writes = one restart)
+      watch: ['dist', '../database'],
+      watch_delay: 4000,
+      ignore_watch: ['node_modules', 'uploads', 'archive', '**/*.map'],
       autorestart: true,
       max_restarts: 10,
       restart_delay: 3000,
