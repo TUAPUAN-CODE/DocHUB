@@ -6,7 +6,7 @@ import {
 import { cn } from '@/lib/cn';
 import { ColumnStat, rowsApi } from '@/api/endpoints';
 import { parseTsv, toTsv } from '@/lib/csv';
-import { isComputed, TYPE_META } from '@/lib/columnTypes';
+import { isAutoStamp, isComputed, isReadOnlyCol, TYPE_META } from '@/lib/columnTypes';
 import { dependentsOf } from '@/lib/lookup';
 import { displayValue, fmtNumber, relTime } from '@/lib/format';
 import { toast } from '@/store/ui';
@@ -135,6 +135,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
     if (!col || !row) return;
     if (!canWrite) return toast.info('คุณมีสิทธิ์ดูข้อมูลเท่านั้น', 'ขอสิทธิ์แก้ไขได้จากเมนูของไฟล์');
     if (isComputed(col)) return toast.info('คอลัมน์นี้คำนวณจากสูตรอัตโนมัติ', 'แก้ไขสูตรได้ที่ “ตั้งค่าคอลัมน์”');
+    if (isAutoStamp(col)) return toast.info('คอลัมน์นี้ระบบเติมให้อัตโนมัติ', 'อัปเดตเองเมื่อมีการแก้ไขข้อมูลในแถว');
     if (col.dataType === 'boolean') return void commit([{ rowId: row.id, columnId: col.id, value: !row.values[col.id] }]);
     setEditing({ r, c, initial: initial !== undefined && EDIT_INLINE_TYPED.has(col.dataType) ? initial : undefined });
   };
@@ -183,7 +184,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
       for (let c = bounds.c1; c <= bounds.c2; c++) {
         const row = rows[r];
         const col = cols[c];
-        if (row && col && !isComputed(col) && !isEmpty(row.values[col.id])) changes.push({ rowId: row.id, columnId: col.id, value: null });
+        if (row && col && !isReadOnlyCol(col) && !isEmpty(row.values[col.id])) changes.push({ rowId: row.id, columnId: col.id, value: null });
       }
     if (changes.length) void commit(changes, { partial: true, source: 'edit' });
   };
@@ -211,7 +212,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
       for (let c = bounds.c1; c <= cEnd; c++) {
         const v = single ? grid[0][0] : grid[r - bounds.r1]?.[c - bounds.c1];
         if (v === undefined) continue;
-        if (isComputed(cols[c])) continue;
+        if (isReadOnlyCol(cols[c])) continue;
         changes.push({ rowId: rows[r].id, columnId: cols[c].id, value: v === '' ? null : v });
       }
     const skipped = single ? 0 : grid.length - (rEnd - bounds.r1 + 1);

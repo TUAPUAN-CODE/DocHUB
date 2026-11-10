@@ -130,6 +130,13 @@ function ColumnDetails({ c, set, siblings, fileId, fileName, sheetId, onAddDraft
           {v.pattern && <Field label="ข้อความเมื่อรูปแบบไม่ถูกต้อง"><TextInput value={v.patternMessage ?? ''} onChange={(e) => setV({ patternMessage: e.target.value })} /></Field>}
         </>
       )}
+      {(isDateish(c.dataType) || c.dataType === 'varchar' || c.dataType === 'text') && !v.formula && (() => {
+        const kind = isDateish(c.dataType) ? 'updatedAt' : 'updatedBy';
+        return (
+          <Toggle checked={v.autoStamp === kind} onChange={(x) => setV({ autoStamp: x ? kind : null })}
+            label={<span>{kind === 'updatedAt' ? 'เติมวันที่แก้ไขล่าสุดให้อัตโนมัติ' : 'เติมชื่อผู้แก้ไขล่าสุดให้อัตโนมัติ'} <span className="block text-xs text-muted">ระบบใส่ให้ทุกครั้งที่เพิ่มหรือแก้ไขแถว (พิมพ์เองไม่ได้ · ค่าที่นำเข้าจากไฟล์คงไว้)</span></span>} />
+        );
+      })()}
       {isDateish(c.dataType) && (
         <>
           <Field label="วันที่เร็วที่สุด"><TextInput type="date" value={v.minDate ?? ''} onChange={(e) => setV({ minDate: e.target.value || null })} /></Field>

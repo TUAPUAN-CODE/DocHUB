@@ -36,7 +36,9 @@ import oauthRoutes from './routes/oauth';
 import pdfRoutes from './routes/pdf';
 import unionRoutes from './routes/union';
 import { shareManageRouter, sharePublicRouter } from './routes/share';
+import './modules/autostamp/module'; // before formulas: they may read the stamped date / name
 import formulaModule from './modules/formula/module';
+import revisionsModule from './modules/revisions/module';
 import exportArchiveModule from './modules/exportArchive/module';
 import approvalsModule from './modules/approvals/module';
 import aiModule from './modules/ai/module';
@@ -80,7 +82,7 @@ app.use('/api', devicesModule.ingest);
 app.use('/api', authenticate);
 for (const r of [
   userRoutes, folderRoutes, fileRoutes, sheetRoutes, columnRoutes, rowRoutes, cellRoutes, accessRoutes, auditRoutes,
-  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router,
+  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router, revisionsModule.router,
 ]) app.use('/api', r);
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ API ที่เรียก' } });

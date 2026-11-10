@@ -184,6 +184,8 @@ SERVE_CLIENT_DIR=../client/dist NODE_ENV=production node dist/index.js
 
 Put it behind **HTTPS**, for example with IIS ARR, nginx or Caddy, and enable WebSocket upgrade for `/socket.io`.
 
+Quality Hilight (Note การผลิต from the QUALITY HIGHLIGHT Excel, with sheet revisions, auto-filled update date/name and a lookup dashboard): [`docs/QUALITY_HIGHLIGHT.md`](docs/QUALITY_HIGHLIGHT.md) (Thai).
+
 To open it on the internet from a company server for free (PM2 + Cloudflare Tunnel, no inbound ports, the database stays on site), follow [`docs/DEPLOY_PUBLIC.md`](docs/DEPLOY_PUBLIC.md) (Thai). It uses `ecosystem.production.config.js` and `deploy/cloudflared/config.example.yml`.
 
 With Docker:

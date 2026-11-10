@@ -41,6 +41,8 @@ export interface RowQuery {
   sorts?: SortSpec[];
   filters?: ColumnFilter[];
   search?: string;
+  /** limit the free-text search to these columns (e.g. Sub Doc No. and Short Code); empty = every column */
+  searchColumns?: string[];
 }
 
 /** Collects named parameters for a dynamically built statement */
@@ -222,12 +224,13 @@ export function buildFilterSql(
   return conds;
 }
 
-export function searchSql(search: string | undefined, p: Params): string | null {
+export function searchSql(search: string | undefined, p: Params, columnIds?: string[]): string | null {
   const s = search?.trim();
   if (!s) return null;
   const sp = p.add(T.text(`%${likeEscape(s)}%`));
+  const only = columnIds?.length ? `AND c.column_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(${p.add(T.text(JSON.stringify(columnIds)))}))` : '';
   return `EXISTS (SELECT 1 FROM Cells c JOIN Columns cc ON cc.column_id = c.column_id AND cc.is_deleted = 0
-    WHERE c.row_id = r.row_id AND (c.value_text LIKE ${sp} OR c.value_json LIKE ${sp}
+    WHERE c.row_id = r.row_id ${only} AND (c.value_text LIKE ${sp} OR c.value_json LIKE ${sp}
       OR CONVERT(NVARCHAR(40), c.value_int) LIKE ${sp} OR CONVERT(NVARCHAR(60), c.value_float) LIKE ${sp}
       OR CONVERT(NVARCHAR(10), c.value_date, 23) LIKE ${sp}))`;
 }
@@ -235,7 +238,7 @@ export function searchSql(search: string | undefined, p: Params): string | null 
 export function baseWhere(sheetId: string, cols: Map<string, any>, p: Params, opts: RowQuery, exceptColumnId?: string) {
   const where = [`r.sheet_id = ${p.add(T.uuid(sheetId))}`, 'r.is_deleted = 0'];
   where.push(...buildFilterSql(opts.filters, cols, p, exceptColumnId));
-  const s = searchSql(opts.search, p);
+  const s = searchSql(opts.search, p, opts.searchColumns);
   if (s) where.push(s);
   return where.join(' AND ');
 }
@@ -331,7 +334,7 @@ export async function queryRows(sheetId: string, cols: any[], opts: RowQuery) {
   if (opts.search?.trim() && !(opts.filters ?? []).some((f) => f && (f.op || f.values?.length)) && (await sheetRowCount(sheetId)) > BIG_SHEET_ROWS) {
     throw badRequest(`ชีตนี้มีข้อมูลมาก (เกิน ${BIG_SHEET_ROWS.toLocaleString()} แถว) กรุณากรองด้วยคอลัมน์ เช่น วันที่ ก่อนค้นหาข้อความ`);
   }
-  const countKey = JSON.stringify([opts.filters ?? [], opts.search ?? '']);
+  const countKey = JSON.stringify([opts.filters ?? [], opts.search ?? '', opts.searchColumns ?? []]);
   let total = cachedTotal(sheetId, countKey);
   if (total === null) {
     const count = await q1(`SELECT COUNT_BIG(*) AS total FROM Rows r WHERE ${where}`, p.values);

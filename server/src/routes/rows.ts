@@ -23,6 +23,7 @@ const querySchema = z.object({
   sorts: z.array(sortSchema).max(5).default([]),
   filters: z.array(filterSchema).max(50).default([]),
   search: z.string().max(200).optional(),
+  searchColumns: z.array(zId).max(20).optional(),
 });
 
 router.post(

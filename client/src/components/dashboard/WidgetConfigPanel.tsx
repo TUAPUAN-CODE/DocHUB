@@ -80,6 +80,60 @@ function FilterEditor({ ds, setDs, cols }: { ds: DataSource; setDs: (p: Partial<
   );
 }
 
+/** Ticks columns in sheet order; `max` keeps the first N picked */
+function ColumnChecks({ cols, value, onChange, max }: { cols: Column[]; value: string[]; onChange: (ids: string[]) => void; max?: number }) {
+  return (
+    <div className="max-h-48 space-y-0.5 overflow-y-auto rounded-xl border border-line p-1.5">
+      {!cols.length && <p className="px-1 py-2 text-xs text-muted">ไม่มีคอลัมน์ที่ใช้ได้</p>}
+      {cols.map((c) => (
+        <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-sm hover:bg-ink/5">
+          <input type="checkbox" checked={value.includes(c.id)} onChange={(e) => {
+            const next = e.target.checked ? cols.filter((x) => value.includes(x.id) || x.id === c.id).map((x) => x.id) : value.filter((id) => id !== c.id);
+            onChange(max ? next.slice(0, max) : next);
+          }} />
+          <span className="truncate">{c.name}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** "ค้นหารายละเอียด" and "Rev ล่าสุด": a sheet, plus (records) which columns are searched / shown */
+function RecordsDataTab({ w, set, ds, setDs, cols, fileId, fileName, fileSheets, srcFile, setSrcFile }: {
+  w: Widget; set: (p: Partial<Widget>) => void; ds: DataSource; setDs: (p: Partial<DataSource>) => void; cols: Column[];
+  fileId: string; fileName: string; fileSheets: Sheet[]; srcFile: string; setSrcFile: (v: string | undefined) => void;
+}) {
+  const c = w.config;
+  const setC = (p: Record<string, unknown>) => set({ config: { ...c, ...p } });
+  const textual = cols.filter((x) => ['varchar', 'text', 'int', 'select', 'doc_number', 'email', 'url'].includes(x.dataType));
+  const shown = cols.filter((x) => x.dataType !== 'image');
+  const images = cols.filter((x) => x.dataType === 'image');
+  return (
+    <div className="space-y-4">
+      <SourcePicker ds={ds} setDs={setDs} fileId={fileId} fileName={fileName} fileSheets={fileSheets} srcFile={srcFile} setSrcFile={setSrcFile} resetSeries={[{ columnId: null, aggregation: 'count' }]} />
+      {w.type === 'revision' ? (
+        <Num label="แสดงรายการเปลี่ยนแปลงสูงสุด (ต่อหมวด)" value={c.limit ?? 10} onChange={(v) => setC({ limit: v })} min={1} max={200} />
+      ) : (
+        <>
+          <Field label="ค้นหาจากคอลัมน์" hint="เช่น Sub Doc No. และ Short Code (ไม่เลือก = ค้นทุกคอลัมน์)"><ColumnChecks cols={textual} value={c.searchColumnIds ?? []} onChange={(v) => setC({ searchColumnIds: v })} /></Field>
+          <Field label="หัวข้อการ์ด (สูงสุด 3)" hint="อันแรกเป็นหัวข้อใหญ่ (แถวที่ค่าซ้ำกันรวมเป็นการ์ดเดียว) ที่เหลือเป็นป้ายย่อย เช่น Short Code"><ColumnChecks cols={shown} value={c.titleColumnIds ?? []} onChange={(v) => setC({ titleColumnIds: v })} max={3} /></Field>
+          <Field label="รายละเอียดที่แสดง"><ColumnChecks cols={shown} value={c.fieldColumnIds ?? []} onChange={(v) => setC({ fieldColumnIds: v })} /></Field>
+          <Field label="คอลัมน์รูปภาพ">
+            <Select value={c.imageColumnId ?? ''} onChange={(e) => setC({ imageColumnId: e.target.value || null })}>
+              <option value="">— ไม่แสดงรูป —</option>
+              {images.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="ข้อความในช่องค้นหา"><TextInput value={c.placeholder ?? ''} onChange={(e) => setC({ placeholder: e.target.value })} placeholder="ค้นหา Sub Doc No. / Short Code" /></Field>
+          <Num label="แสดงทีละ (รายการ)" value={c.pageSize ?? 20} onChange={(v) => setC({ pageSize: v })} min={5} max={200} />
+          <Toggle checked={c.showRev !== false} onChange={(v) => setC({ showRev: v })} label="บอกว่าแถวไหนแก้ไข / เพิ่มใน Rev ล่าสุด" />
+          <FilterEditor ds={ds} setDs={setDs} cols={cols} />
+        </>
+      )}
+    </div>
+  );
+}
+
 /** One aggregated number: "sum of column X" – used by the KPI-like widgets (card value, condition A / B) */
 function ValueSource({ w, set, ds, onDs, fileId, fileName, fileSheets, fileKey }: {
   w: Widget; set: (p: Partial<Widget>) => void; ds: DataSource; onDs: (p: Partial<DataSource>) => void; fileId: string; fileName: string; fileSheets: Sheet[]; fileKey: string;
@@ -116,6 +170,8 @@ function DataTab({ w, fileId, fileName, fileSheets, set }: { w: Widget; fileId: 
   const t = w.type;
   const srcFile: string = w.config.sourceFileId ?? fileId;
   const setSrcFile = (v: string | undefined) => set({ config: { ...w.config, sourceFileId: v } });
+
+  if (t === 'records' || t === 'revision') return <RecordsDataTab w={w} set={set} ds={ds} setDs={setDs} cols={cols} fileId={fileId} fileName={fileName} fileSheets={fileSheets} srcFile={srcFile} setSrcFile={setSrcFile} />;
 
   if (t === 'condition') {
     const b: DataSource = w.config.b ?? { ...ds, series: [{ columnId: null, aggregation: 'sum' }], filters: [] };
@@ -354,6 +410,7 @@ function StyleTab({ w, set }: { w: Widget; set: (p: Partial<Widget>) => void }) 
         </div>
       )}
       {w.type === 'table' && <Num label="ทศนิยม" value={c.decimals ?? 2} onChange={(v) => setC({ decimals: v })} min={0} max={6} />}
+      {(w.type === 'records' || w.type === 'revision') && <Num label="ขนาดตัวอักษร" value={c.fontSize ?? 14} onChange={(v) => setC({ fontSize: v })} min={10} max={32} />}
       {w.type === 'text' && (
         <>
           <Field label="ข้อความ"><TextArea rows={4} value={c.text ?? ''} onChange={(e) => setC({ text: e.target.value })} /></Field>
@@ -436,7 +493,7 @@ export function WidgetConfigPanel({ w, fileId, fileName, sheets, onChange, onRem
   w: Widget; fileId: string; fileName: string; sheets: Sheet[]; onChange: (p: Partial<Widget>) => void; onRemove: () => void; onDuplicate: () => void;
   onLayer: (op: 'front' | 'back' | 'up' | 'down') => void;
 }) {
-  const hasData = DATA_TYPES_W.includes(w.type) || ['slicer', 'card', 'condition'].includes(w.type);
+  const hasData = DATA_TYPES_W.includes(w.type) || ['slicer', 'card', 'condition', 'records', 'revision'].includes(w.type);
   const hasAnalytics = CHART_TYPES.includes(w.type);
   type Tab = 'data' | 'style' | 'analytics' | 'layout';
   const [tab, setTab] = useState<Tab>(hasData ? 'data' : 'style');

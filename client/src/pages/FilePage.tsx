@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, ChevronsUp, Columns3, Copy, SlidersHorizontal, Download, Expand, History, Lock, MoreHorizontal, Pencil, Pin, PinOff, Plus, Redo2, RotateCcw, Search, Share2, Shrink, Trash2, Undo2, Upload, ZoomIn, ZoomOut,
-  ScanLine, Merge, Boxes, Cpu,
+  ScanLine, Merge, Boxes, Cpu, Tag,
 } from 'lucide-react';
 import { apiError } from '@/api/client';
 import { filesApi, pdfApi, requestsApi, rowsApi } from '@/api/endpoints';
@@ -32,6 +32,8 @@ import { UnionBanner } from '@/components/sheet/UnionBanner';
 import { ImportModal } from '@/components/sheet/ImportModal';
 import { RowViewModal } from '@/components/sheet/RowViewModal';
 import { SpreadsheetGrid } from '@/components/sheet/SpreadsheetGrid';
+import { pendingTotal, revisionsApi, RevList } from '@/modules/revisions/api';
+import { RevisionsDialog } from '@/modules/revisions/RevisionsDialog';
 import { useSheetView } from '@/components/sheet/useSheetView';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Select, TextInput } from '@/components/ui/Inputs';
@@ -100,7 +102,7 @@ export default function FilePage() {
   const [rowHist, setRowHist] = useState<Row | null>(null);
   const [selRows, setSelRows] = useState<string[]>([]);
   const [rowView, setRowView] = useState<Row | null>(null);
-  const [modal, setModal] = useState<'columns' | 'trash' | 'rollback' | 'import' | 'filterbar' | 'share' | 'rename' | 'dup' | 'scanmix' | 'scan' | 'mix' | 'lines' | 'devices' | null>(null);
+  const [modal, setModal] = useState<'columns' | 'trash' | 'rollback' | 'import' | 'filterbar' | 'share' | 'rename' | 'dup' | 'scanmix' | 'scan' | 'mix' | 'lines' | 'devices' | 'revisions' | null>(null);
   const [more, setMore] = useState(false);
   const [freeze, setFreeze] = useState(false);
   const [full, setFull] = useState(false);
@@ -114,6 +116,17 @@ export default function FilePage() {
     try { localStorage.setItem(TOOLS_KEY, v ? 'off' : 'on'); } catch { /* not saved: still toggles */ }
     return !v;
   });
+  // Rev of the sheet ("ออก Rev"): latest number + rows edited since, refreshed shortly after the rows change
+  const [revs, setRevs] = useState<RevList | null>(null);
+  const loadRevs = () => { if (sheetId) revisionsApi.list(sheetId).then(setRevs).catch(() => setRevs(null)); };
+  useEffect(() => { setRevs(null); }, [sheetId]);
+  useEffect(() => {
+    if (!sheetId) return;
+    const t = setTimeout(loadRevs, 1200);
+    return () => clearTimeout(t);
+  }, [sheetId, view.rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  const latestRev = revs?.revisions[0] ?? null;
+  const revPending = pendingTotal(revs?.pending ?? null);
   // tools hidden → the app's top bar steps aside too; put it back when leaving the page
   useEffect(() => {
     useUi.getState().setFocusMode(!tools);
@@ -242,6 +255,7 @@ export default function FilePage() {
             ...(canManage ? [{ label: 'เปลี่ยนชื่อ / สี', icon: <Pencil />, onClick: () => setModal('rename') }, { label: 'ออกแบบรูปแบบ PDF', icon: <Download />, onClick: () => nav(`/files/${f.id}/pdf`) }] : []),
             ...(!isBasicRole(role) ? [{ label: 'ทำสำเนาไฟล์', icon: <Copy />, onClick: () => setModal('dup') }] : []),
             ...(canManage ? [{ label: 'ประวัติการแก้ไขของไฟล์', icon: <History />, onClick: () => nav(`/audit?fileId=${f.id}`) }] : []),
+            ...(sheetId ? [{ label: latestRev ? `Rev ของชีตนี้ (ล่าสุด Rev.${latestRev.revNo})` : 'ออก Rev / ประวัติ Rev ของชีตนี้', icon: <Tag />, onClick: () => setModal('revisions') }] : []),
             { label: 'ส่งออก Excel (.xlsx)', icon: <Download />, onClick: () => void exportRows('xlsx') },
             { label: 'ส่งออก CSV', icon: <Download />, onClick: () => void exportCsv() },
             ...(canManage ? [{ divider: true }, { label: 'ลบไฟล์', icon: <Trash2 />, danger: true, onClick: async () => {
@@ -289,6 +303,12 @@ export default function FilePage() {
               {canManage && !union && <Button size="sm" variant="secondary" icon={<Columns3 className="h-4 w-4" />} aria-label="คอลัมน์" title="คอลัมน์" onClick={() => setModal('columns')}><Lbl>คอลัมน์</Lbl></Button>}
               {canManage && !union && <Button size="sm" variant="secondary" icon={<Cpu className="h-4 w-4" />} aria-label="อุปกรณ์" title="อุปกรณ์" onClick={() => setModal('devices')}><Lbl>อุปกรณ์</Lbl></Button>}
               {canManage && !union && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} aria-label="ตั้งค่าสแกน/ผสม" title="ตั้งค่าสแกน/ผสม" onClick={() => setModal('scanmix')}><Lbl>ตั้งค่าสแกน/ผสม</Lbl></Button>}
+              {latestRev && (
+                <Button size="sm" variant="secondary" icon={<Tag className="h-4 w-4" />} onClick={() => setModal('revisions')}
+                  title={revPending ? `แก้ไขแล้ว ${revPending} แถวหลัง Rev.${latestRev.revNo} — กดเพื่อออก Rev ใหม่` : `Rev ล่าสุด: Rev.${latestRev.revNo}`}>
+                  Rev.{latestRev.revNo}{revPending > 0 && <span className="rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">+{revPending}</span>}
+                </Button>
+              )}
               <div className="mx-1 hidden h-6 w-px bg-line sm:block" />
               <IconButton label="ย้อนกลับ (Ctrl+Z)" onClick={() => void view.undo()} disabled={!view.canUndo}><Undo2 className="h-4 w-4" /></IconButton>
               <IconButton label="ทำซ้ำ (Ctrl+Y)" onClick={() => void view.redo()} disabled={!view.canRedo}><Redo2 className="h-4 w-4" /></IconButton>
@@ -356,6 +376,8 @@ export default function FilePage() {
 
       {view.detail && sheetId && (
         <>
+          <RevisionsDialog open={modal === 'revisions'} onClose={() => { setModal(null); loadRevs(); }} sheetId={sheetId} sheetName={view.detail.sheet.name}
+            columns={view.columns} canManage={canManage} onIssued={loadRevs} />
           <ColumnFilterMenu open={!!filterFor} onClose={() => setFilterFor(null)} anchor={filterFor?.el ?? null} sheetId={sheetId} column={filterCol}
             filters={view.query.filters} sorts={view.query.sorts} search={view.query.search}
             onApply={(flt) => filterCol && view.setQuery({ filters: [...view.query.filters.filter((x) => x.columnId !== filterCol.id), ...(flt ? [flt] : [])] })}
