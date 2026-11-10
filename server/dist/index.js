@@ -79,23 +79,26 @@ const module_1 = __importDefault(require("./modules/formula/module"));
 const module_2 = __importDefault(require("./modules/revisions/module"));
 const module_3 = __importDefault(require("./modules/tags/module"));
 const module_4 = __importDefault(require("./modules/accountRequests/module"));
-const module_5 = __importDefault(require("./modules/exportArchive/module"));
-const module_6 = __importDefault(require("./modules/approvals/module"));
-const module_7 = __importDefault(require("./modules/ai/module"));
-const module_8 = __importStar(require("./modules/connectors/module"));
+const module_5 = __importDefault(require("./modules/dataSearch/module"));
+const module_6 = __importDefault(require("./modules/monitor/module"));
+const module_7 = __importDefault(require("./modules/exportArchive/module"));
+const module_8 = __importDefault(require("./modules/approvals/module"));
+const module_9 = __importDefault(require("./modules/ai/module"));
+const module_10 = __importStar(require("./modules/connectors/module"));
 require("./modules/alerts/module");
-const module_9 = __importDefault(require("./modules/scan/module"));
-const module_10 = __importDefault(require("./modules/mix/module"));
-const module_11 = __importDefault(require("./modules/lines/module"));
-const module_12 = __importDefault(require("./modules/trace/module"));
-const module_13 = __importDefault(require("./modules/formLayout/module"));
-const module_14 = __importStar(require("./modules/devices/module"));
-const module_15 = __importStar(require("./modules/lineAlerts/module"));
+const module_11 = __importDefault(require("./modules/scan/module"));
+const module_12 = __importDefault(require("./modules/mix/module"));
+const module_13 = __importDefault(require("./modules/lines/module"));
+const module_14 = __importDefault(require("./modules/trace/module"));
+const module_15 = __importDefault(require("./modules/formLayout/module"));
+const module_16 = __importStar(require("./modules/devices/module"));
+const module_17 = __importStar(require("./modules/lineAlerts/module"));
 const uploads_1 = __importDefault(require("./routes/uploads"));
 const users_1 = __importDefault(require("./routes/users"));
 const app = (0, express_1.default)();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.use(module_6.default.trafficMeter); // counts every request (admin Monitor page)
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: { policy: 'cross-origin' }, contentSecurityPolicy: false }));
 app.use((0, cors_1.default)({ origin: env_1.env.corsOrigins, credentials: true }));
 // the LINE webhook signature is checked against the exact bytes LINE sent
@@ -117,12 +120,12 @@ app.use('/api/auth', auth_2.default);
 app.use('/api/auth', oauth_1.default);
 app.use('/api/auth', module_4.default.publicRouter);
 app.use('/api', share_1.sharePublicRouter);
-app.use('/api', module_15.default.webhook);
-app.use('/api', module_14.default.ingest);
+app.use('/api', module_17.default.webhook);
+app.use('/api', module_16.default.ingest);
 app.use('/api', auth_1.authenticate);
 for (const r of [
     users_1.default, folders_1.default, files_1.default, sheets_1.default, columns_1.default, rows_1.default, cells_1.default, access_1.default, audit_1.default,
-    favorites_1.default, activity_1.default, search_1.default, notifications_1.default, themes_1.default, dashboards_1.default, uploads_1.default, trash_1.default, share_1.shareManageRouter, union_1.default, pdf_1.default, module_1.default.router, module_5.default.router, module_6.default.router, module_8.default.router, module_7.default.router, module_15.default.router, module_9.default.router, module_10.default.router, module_11.default.router, module_12.default.router, module_13.default.router, module_14.default.router, module_2.default.router, module_3.default.router, module_4.default.router,
+    favorites_1.default, activity_1.default, search_1.default, notifications_1.default, themes_1.default, dashboards_1.default, uploads_1.default, trash_1.default, share_1.shareManageRouter, union_1.default, pdf_1.default, module_1.default.router, module_7.default.router, module_8.default.router, module_10.default.router, module_9.default.router, module_17.default.router, module_11.default.router, module_12.default.router, module_13.default.router, module_14.default.router, module_15.default.router, module_16.default.router, module_2.default.router, module_3.default.router, module_4.default.router, module_5.default.router, module_6.default.router,
 ])
     app.use('/api', r);
 app.use('/api', (_req, res) => {
@@ -143,12 +146,13 @@ const server = http_1.default.createServer(app);
     .then(() => (0, migrate_1.applyMigrations)())
     .then(() => (0, migrate_1.applySeeds)().catch((e) => logger_1.logger.error(`Seeds skipped: ${e?.message}`)))
     .then(() => {
+    module_6.default.startTrafficFlush();
     server.listen(env_1.env.port, '0.0.0.0', () => logger_1.logger.info(`DataSheet Pro API listening on http://0.0.0.0:${env_1.env.port} (LAN: http://172.48.0.116:${env_1.env.port})`));
     // jobs that must run on ONE server: whoever holds the lease runs them, another server takes over if it stops (see services/leader.ts)
     (0, leader_1.leaderTask)('trash-purge', () => { void (0, purge_1.purgeExpiredTrash)(); const t = setInterval(() => void (0, purge_1.purgeExpiredTrash)(), 6 * 3600_000); return () => clearInterval(t); });
-    (0, leader_1.leaderTask)('line-alerts', module_15.startLineWorker);
-    (0, leader_1.leaderTask)('connectors', module_8.startConnectorScheduler);
-    (0, leader_1.leaderTask)('rfid-gateway', module_14.startGateway);
+    (0, leader_1.leaderTask)('line-alerts', module_17.startLineWorker);
+    (0, leader_1.leaderTask)('connectors', module_10.startConnectorScheduler);
+    (0, leader_1.leaderTask)('rfid-gateway', module_16.startGateway);
     for (const sig of ['SIGINT', 'SIGTERM'])
         process.on(sig, () => void (0, leader_1.releaseLeases)().finally(() => process.exit(0)));
 })

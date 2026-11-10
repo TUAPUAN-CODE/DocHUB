@@ -27,8 +27,10 @@ const SOURCE: Record<string, string> = { edit: 'แก้ไข', create: 'ส�
 /* ---------------- Row form (add / edit) ---------------- */
 const SCANNABLE = new Set(['varchar', 'text', 'int', 'float', 'url', 'email', 'select', 'date', 'datetime', 'boolean']);
 
-export function RowFormModal({ open, onClose, columns, row, users, canWrite, onCreate, onSave, sheetId, settings, canManage, onLayoutSaved }: {
+export function RowFormModal({ open, onClose, columns, row, users, canWrite, onCreate, onSave, sheetId, settings, canManage, onLayoutSaved, initial, title }: {
   open: boolean; onClose: () => void; columns: Column[]; row: Row | null; users: Record<string, { name: string }>; canWrite: boolean;
+  /** values a new row starts with (e.g. a document's line copies the header's machine / date) */
+  initial?: Record<string, CellValue>; title?: string;
   onCreate: (values: Record<string, CellValue>) => Promise<unknown>; onSave: (changes: { columnId: string; value: CellValue }[]) => Promise<unknown>;
   sheetId: string; settings?: SheetSettings; canManage: boolean; onLayoutSaved: () => void;
 }) {
@@ -43,7 +45,7 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
   const hasScan = !!settings?.scanProfiles?.length && canWrite;
   const init = () => {
     const v: Record<string, CellValue> = {};
-    columns.forEach((c) => { v[c.id] = row ? row.values[c.id] ?? null : c.defaultValue ?? null; });
+    columns.forEach((c) => { v[c.id] = row ? row.values[c.id] ?? null : initial?.[c.id] ?? c.defaultValue ?? null; });
     setValues(v);
     setErrors({});
     setScanField(null);
@@ -116,7 +118,7 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
   };
 
   return (
-    <Modal open={open} onClose={onClose} size={perRow >= 3 ? 'xl' : 'lg'} icon={<Rows3 className="h-5 w-5" />} title={row ? `แถว #${row.order}` : 'เพิ่มแถวใหม่'}
+    <Modal open={open} onClose={onClose} size={perRow >= 3 ? 'xl' : 'lg'} icon={<Rows3 className="h-5 w-5" />} title={title ?? (row ? `แถว #${row.order}` : 'เพิ่มแถวใหม่')}
       description={row ? `สร้างโดย ${users[row.createdBy]?.name ?? 'ผู้ใช้'} · ${fmtDateTime(row.createdAt)}` : 'ช่องที่มี * จำเป็นต้องกรอก'}
       footer={designing ? undefined : <>
         {!row && <Checkbox checked={again} onChange={setAgain} label="เพิ่มต่ออีกแถว" className="mr-auto" />}

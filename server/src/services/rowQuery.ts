@@ -43,6 +43,8 @@ export interface RowQuery {
   search?: string;
   /** limit the free-text search to these columns (e.g. Sub Doc No. and Short Code); empty = every column */
   searchColumns?: string[];
+  /** only these rows (open a row from a search result / link) */
+  rowIds?: string[];
 }
 
 /** Collects named parameters for a dynamically built statement */
@@ -240,6 +242,7 @@ export function baseWhere(sheetId: string, cols: Map<string, any>, p: Params, op
   where.push(...buildFilterSql(opts.filters, cols, p, exceptColumnId));
   const s = searchSql(opts.search, p, opts.searchColumns);
   if (s) where.push(s);
+  if (opts.rowIds?.length) where.push(`r.row_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(${p.add(T.text(JSON.stringify(opts.rowIds)))}))`);
   return where.join(' AND ');
 }
 
@@ -334,7 +337,7 @@ export async function queryRows(sheetId: string, cols: any[], opts: RowQuery) {
   if (opts.search?.trim() && !(opts.filters ?? []).some((f) => f && (f.op || f.values?.length)) && (await sheetRowCount(sheetId)) > BIG_SHEET_ROWS) {
     throw badRequest(`ชีตนี้มีข้อมูลมาก (เกิน ${BIG_SHEET_ROWS.toLocaleString()} แถว) กรุณากรองด้วยคอลัมน์ เช่น วันที่ ก่อนค้นหาข้อความ`);
   }
-  const countKey = JSON.stringify([opts.filters ?? [], opts.search ?? '', opts.searchColumns ?? []]);
+  const countKey = JSON.stringify([opts.filters ?? [], opts.search ?? '', opts.searchColumns ?? [], opts.rowIds ?? []]);
   let total = cachedTotal(sheetId, countKey);
   if (total === null) {
     const count = await q1(`SELECT COUNT_BIG(*) AS total FROM Rows r WHERE ${where}`, p.values);

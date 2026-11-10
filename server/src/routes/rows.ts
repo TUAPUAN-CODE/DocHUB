@@ -24,6 +24,7 @@ const querySchema = z.object({
   filters: z.array(filterSchema).max(50).default([]),
   search: z.string().max(200).optional(),
   searchColumns: z.array(zId).max(20).optional(),
+  rowIds: z.array(zId).max(200).optional(),
 });
 
 router.post(

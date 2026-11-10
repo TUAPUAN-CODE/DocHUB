@@ -46,10 +46,12 @@ exports.validationSchema = zod_1.z
         .nullish(),
     lookup: zod_1.z
         .object({
-        sheetId: http_1.zId,
-        columnId: http_1.zId,
+        sheetId: zod_1.z.union([http_1.zId, zod_1.z.literal('')]).optional(),
+        columnId: zod_1.z.union([http_1.zId, zod_1.z.literal('')]).optional(),
         parent: zod_1.z.object({ localColumnId: http_1.zId, foreignColumnId: http_1.zId }).nullish(),
+        users: zod_1.z.object({ tag: zod_1.z.string().trim().max(100).nullish() }).nullish(),
     })
+        .refine((l) => !!l.users || (!!l.sheetId && !!l.columnId), 'เลือกตารางและคอลัมน์ต้นทางของตัวเลือก หรือเลือกดึงจากรายชื่อผู้ใช้')
         .nullish(),
 })
     .partial();

@@ -44,10 +44,12 @@ export const validationSchema = z
       .nullish(),
     lookup: z
       .object({
-        sheetId: zId,
-        columnId: zId,
+        sheetId: z.union([zId, z.literal('')]).optional(),
+        columnId: z.union([zId, z.literal('')]).optional(),
         parent: z.object({ localColumnId: zId, foreignColumnId: zId }).nullish(),
+        users: z.object({ tag: z.string().trim().max(100).nullish() }).nullish(),
       })
+      .refine((l) => !!l.users || (!!l.sheetId && !!l.columnId), 'เลือกตารางและคอลัมน์ต้นทางของตัวเลือก หรือเลือกดึงจากรายชื่อผู้ใช้')
       .nullish(),
   })
   .partial();

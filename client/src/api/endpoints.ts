@@ -55,7 +55,7 @@ export interface ScanProfile {
 }
 export interface ScanVerify { sheetId: string; refKeyColumnId: string; checkColumnId?: string | null; fill?: { fromColumnId: string; toColumnId: string }[] | null; onMiss: 'reject' | 'allow' }
 export interface MixCfg { deductColumnId: string; keyColumnId?: string | null; inheritColumnIds?: string[] | null; sameColumnIds?: string[] | null }
-export interface LinesCfg { lineSheetId: string; displayColumnIds?: string[] | null; actions?: { label: string; columnId: string; kind: 'now' | 'value'; value?: string | null }[] | null }
+export interface LinesCfg { lineSheetId: string; entry?: 'scan' | 'form' | null; displayColumnIds?: string[] | null; actions?: { label: string; columnId: string; kind: 'now' | 'value'; value?: string | null }[] | null }
 export interface FormLayout { perRow: number; fields: { columnId: string; span?: number; hidden?: boolean }[] }
 export interface TimeLinkCfg {
   id: string; name: string; targetSheetId: string;
@@ -95,7 +95,7 @@ export const columnsApi = {
   restore: (id: string) => post<Column>(`/columns/${id}/restore`),
 };
 
-export interface RowQueryBody { page: number; pageSize: number; sorts: SortSpec[]; filters: ColumnFilter[]; search?: string; searchColumns?: string[] }
+export interface RowQueryBody { page: number; pageSize: number; sorts: SortSpec[]; filters: ColumnFilter[]; search?: string; searchColumns?: string[]; rowIds?: string[] }
 export interface RowPage { rows: Row[]; total: number; page: number; pageSize: number; users: UsersDict }
 export interface CellVersion { id: number; oldValue: CellValue; newValue: CellValue; source: string; by: string; byName: string; avatarUrl: string | null; at: string; version: number }
 export interface ColumnStat { columnId: string; filled: number; sum: number | null; avg: number | null; min: number | null; max: number | null; trueCount: number | null }

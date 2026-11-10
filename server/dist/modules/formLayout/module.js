@@ -34,11 +34,11 @@ router.put('/sheets/:id/form-layout', (0, http_1.ah)(async (req, res) => {
     await (0, sheetSettings_1.writeSettingsKey)(sheetId, 'formLayout', layout);
     (0, http_1.ok)(res, { saved: true });
 }));
-(0, hooks_1.registerAfterSheetCopied)(async ({ newSheetId, columnMap }) => {
-    const s = await (0, sheetSettings_1.readSettings)(newSheetId);
+(0, hooks_1.registerAfterSheetCopied)(async ({ tx, newSheetId, columnMap }) => {
+    const s = await (0, sheetSettings_1.readSettings)(newSheetId, tx); // inside the copy's transaction (outside it, it would wait for itself)
     if (!s.formLayout)
         return;
-    await (0, sheetSettings_1.writeSettingsKey)(newSheetId, 'formLayout', (0, sheetSettings_1.remapIds)(s.formLayout, new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]))));
+    await (0, sheetSettings_1.writeSettingsKey)(newSheetId, 'formLayout', (0, sheetSettings_1.remapIds)(s.formLayout, new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]))), tx);
 });
 exports.default = { router };
 //# sourceMappingURL=module.js.map

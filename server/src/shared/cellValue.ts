@@ -39,7 +39,7 @@ export interface Validation {
   /** Show the "— ไม่ระบุ —" choice for select columns (default true; never shown for required columns) */
   allowEmpty?: boolean | null;
   /** Options come from a column of another sheet (relationship) instead of a fixed list */
-  lookup?: { sheetId: string; columnId: string; parent?: { localColumnId: string; foreignColumnId: string } | null } | null;
+  lookup?: { sheetId?: string; columnId?: string; parent?: { localColumnId: string; foreignColumnId: string } | null; users?: { tag?: string | null } | null } | null;
   /** computed column: expression with columns referenced by id, e.g. DATEDIFF("hour", [#id], [#id]) */
   formula?: { expr: string } | null;
   /** auto-numbered document id (type doc_number) */

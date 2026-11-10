@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Eye, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, ListChecks, Pencil } from 'lucide-react';
 import { fmtDateTime, relTime } from '@/lib/format';
 import type { Column, Row, UsersDict } from '@/types';
 import { Button } from '../ui/Button';
@@ -32,8 +32,10 @@ function Value({ col, value }: { col: Column; value: Row['values'][string] }) {
 }
 
 /** Read-only, scrollable detail of one row — all columns in full, with image galleries */
-export function RowViewModal({ row, rows, columns, users, onClose, onNavigate, onEdit }: {
+export function RowViewModal({ row, rows, columns, users, onClose, onNavigate, onEdit, onLines }: {
   row: Row | null; rows: Row[]; columns: Column[]; users: UsersDict; onClose: () => void; onNavigate: (r: Row) => void; onEdit?: (r: Row) => void;
+  /** the row has line items (a document's lines): open them */
+  onLines?: (r: Row) => void;
 }) {
   const idx = row ? rows.findIndex((r) => r.id === row.id) : -1;
   const live = row ? rows[idx] ?? row : null; // pick up refreshed values after an edit
@@ -46,6 +48,7 @@ export function RowViewModal({ row, rows, columns, users, onClose, onNavigate, o
         <Button variant="secondary" icon={<ChevronLeft className="h-4 w-4" />} disabled={!prev} onClick={() => prev && onNavigate(prev)}>แถวก่อนหน้า</Button>
         <Button variant="secondary" disabled={!next} onClick={() => next && onNavigate(next)}>แถวถัดไป<ChevronRight className="h-4 w-4" /></Button>
         <span className="mr-auto" />
+        {onLines && live && <Button variant="secondary" icon={<ListChecks className="h-4 w-4" />} onClick={() => onLines(live)}>รายการในแถว</Button>}
         {onEdit && live && <Button variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => onEdit(live)}>แก้ไข</Button>}
         <Button onClick={onClose}>ปิด</Button>
       </>}>

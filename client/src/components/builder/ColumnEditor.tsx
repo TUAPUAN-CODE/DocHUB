@@ -1,5 +1,6 @@
 import { AlertEditor } from '@/modules/alerts/AlertEditor';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { tagsApi } from '@/api/endpoints';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -89,6 +90,24 @@ function DocNumberEditor({ c, setV, siblings, fileId, fileName }: { c: ColumnDra
   );
 }
 
+/** Options = names of users in the system, only those with a tag when one is chosen (e.g. "Checked by" → MD) */
+function UserSourceEditor({ tag, onChange }: { tag: string | null; onChange: (tag: string | null) => void }) {
+  const [tags, setTags] = useState<{ id: string; name: string; memberCount: number }[]>([]);
+  useEffect(() => { void tagsApi.list().then(setTags).catch(() => setTags([])); }, []);
+  return (
+    <div className="space-y-2 rounded-xl border border-primary/25 bg-primary/[.03] p-3">
+      <p className="text-[13px] font-semibold text-primary">ตัวเลือก = ชื่อผู้ใช้ในระบบ</p>
+      <Field label="เฉพาะผู้ใช้ที่มี Tag" hint="เพิ่ม/เอาคนออกจาก Tag ได้ที่ จัดการผู้ใช้ → Tag แล้วรายชื่อในช่องนี้เปลี่ยนตามทันที">
+        <Select value={tag ?? ''} onChange={(e) => onChange(e.target.value || null)}>
+          <option value="">ผู้ใช้ทุกคนที่ใช้งานอยู่</option>
+          {tag && !tags.some((t) => t.name === tag) && <option value={tag}>{tag} (ยังไม่มี Tag นี้)</option>}
+          {tags.map((t) => <option key={t.id} value={t.name}>{t.name} ({t.memberCount} คน)</option>)}
+        </Select>
+      </Field>
+    </div>
+  );
+}
+
 function ColumnDetails({ c, set, siblings, fileId, fileName, sheetId, onAddDraft }: { c: ColumnDraft; set: (p: Partial<ColumnDraft>) => void; siblings: ColumnDraft[]; fileId?: string; fileName?: string; sheetId?: string; onAddDraft?: (d: ColumnDraft) => void }) {
   const v = c.validation ?? {};
   const setV = (p: Record<string, unknown>) => set({ validation: { ...v, ...p } });
@@ -102,9 +121,12 @@ function ColumnDetails({ c, set, siblings, fileId, fileName, sheetId, onAddDraft
       {c.id && c.dataType !== 'image' && <AlertEditor c={c} setV={setV} siblings={siblings} sheetId={sheetId} onAddDraft={onAddDraft} />}
       {isSelect(c.dataType) && (
         <div className="space-y-3 md:col-span-2">
-          <Segmented size="sm" value={isLookup ? 'lookup' : 'custom'} onChange={(m) => setV({ lookup: m === 'lookup' ? { sheetId: '', columnId: '', parent: null } : null })}
-            options={[{ value: 'custom', label: 'กำหนดตัวเลือกเอง' }, { value: 'lookup', label: 'ดึงจากตารางอื่น (Relationship)' }]} />
-          {isLookup && v.lookup ? (
+          <Segmented size="sm" value={v.lookup?.users ? 'users' : isLookup ? 'lookup' : 'custom'}
+            onChange={(m) => setV({ lookup: m === 'lookup' ? { sheetId: '', columnId: '', parent: null } : m === 'users' ? { sheetId: '', columnId: '', parent: null, users: { tag: null } } : null })}
+            options={[{ value: 'custom', label: 'กำหนดตัวเลือกเอง' }, { value: 'lookup', label: 'ดึงจากตารางอื่น (Relationship)' }, { value: 'users', label: 'รายชื่อผู้ใช้ในระบบ' }]} />
+          {v.lookup?.users ? (
+            <UserSourceEditor tag={v.lookup.users.tag ?? null} onChange={(tag) => setV({ lookup: { sheetId: '', columnId: '', parent: null, users: { tag } } })} />
+          ) : isLookup && v.lookup ? (
             <LookupEditor lookup={v.lookup} onChange={(lookup) => setV({ lookup })} siblings={siblings} selfKey={c.key} fileId={fileId} fileName={fileName} />
           ) : (
             <Field label="ตัวเลือก" hint="กดวงกลมเพื่อเปลี่ยนสีของแต่ละตัวเลือก">
@@ -155,7 +177,7 @@ function ColumnDetails({ c, set, siblings, fileId, fileName, sheetId, onAddDraft
   );
 }
 
-const lookupDone = (c: ColumnDraft) => !!c.validation?.lookup?.sheetId && !!c.validation.lookup.columnId && (!c.validation.lookup.parent || (!!c.validation.lookup.parent.localColumnId && !!c.validation.lookup.parent.foreignColumnId));
+const lookupDone = (c: ColumnDraft) => !!c.validation?.lookup?.users || !!c.validation?.lookup?.sheetId && !!c.validation.lookup.columnId && (!c.validation.lookup.parent || (!!c.validation.lookup.parent.localColumnId && !!c.validation.lookup.parent.foreignColumnId));
 
 export function validateDrafts(cols: ColumnDraft[]): string | null {
   if (!cols.length) return 'ต้องมีอย่างน้อย 1 คอลัมน์';
