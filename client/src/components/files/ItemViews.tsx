@@ -113,8 +113,9 @@ export function ActivityCard({ file }: { file: FileItem }) {
   return (
     <Link ref={ref} to={`/files/${file.id}`} onClick={() => playOpenFile(ref.current, file.color, file.name)}
       className="ds-card group block overflow-hidden transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
-      <div className="h-32 overflow-hidden border-b border-line"><FileThumb id={file.id} color={file.color} className="transition-transform duration-500 group-hover:scale-[1.04]" /></div>
-      <div className="p-4">
+      {/* phones: no preview picture, so a screen shows several files instead of one */}
+      <div className="hidden h-32 overflow-hidden border-b border-line sm:block"><FileThumb id={file.id} color={file.color} className="transition-transform duration-500 group-hover:scale-[1.04]" /></div>
+      <div className="p-3 sm:p-4">
         <div className="flex items-start gap-2.5">
           <FileGlyph color={file.color} size={26} />
           <div className="min-w-0 flex-1" title={['ไฟล์ทั้งหมด', ...(file.pathParts ?? []).map((p) => p.name)].join(' / ')}>
@@ -130,9 +131,9 @@ export function ActivityCard({ file }: { file: FileItem }) {
             </p>
           </div>
         </div>
-        <p className="mt-2 line-clamp-2 min-h-[2.6em] text-[15px] font-semibold leading-snug">{file.name}</p>
-        <p className="mt-1 text-[11px] text-muted">{file.sheetCount != null && <>{file.sheetCount} ชีต · </>}สร้างโดย {file.createdByName ?? '—'}{file.createdAt ? ` · ${fmtDateTime(file.createdAt)}` : ''}</p>
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted">
+        <p className="mt-1.5 line-clamp-2 text-[15px] font-semibold leading-snug sm:mt-2 sm:min-h-[2.6em]">{file.name}</p>
+        <p className="mt-1 truncate text-[11px] text-muted sm:whitespace-normal">{file.sheetCount != null && <>{file.sheetCount} ชีต · </>}สร้างโดย {file.createdByName ?? '—'}{file.createdAt ? ` · ${fmtDateTime(file.createdAt)}` : ''}</p>
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted sm:mt-3">
           <Avatar name={file.lastActivityBy ?? file.createdByName} src={file.lastActivityAvatar} size={24} />
           <span className="min-w-0 truncate">
             <span className="font-medium text-ink/80">{file.lastActivityBy ?? file.createdByName}</span>{' '}

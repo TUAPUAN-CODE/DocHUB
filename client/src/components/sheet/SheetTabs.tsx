@@ -44,10 +44,10 @@ export function SheetTabs({ fileId, sheets, activeId, dashboards, canManage, onS
       {sheets.map((s) => (
         <button key={s.id} onClick={() => onSelect(s.id)} onDoubleClick={() => canManage && setEdit(s)}
           onContextMenu={(e) => { if (!canManage) return; e.preventDefault(); setMenu({ anchor: { x: e.clientX, y: e.clientY }, sheet: s }); }}
-          className={cn('group relative flex h-10 shrink-0 items-center gap-2 rounded-t-xl px-4 text-sm font-medium transition-colors',
+          className={cn('group relative flex h-9 shrink-0 items-center gap-2 rounded-t-xl px-3 text-sm font-medium transition-colors sm:h-10 sm:px-4',
             s.id === activeId ? 'bg-surface text-ink shadow-[0_-1px_0_rgb(var(--c-border))]' : 'text-muted hover:bg-surface/60 hover:text-ink')}>
           {s.isUnion ? <Layers className="h-3.5 w-3.5 text-primary" /> : <span className="h-2 w-2 rounded-full" style={{ background: s.tabColor ?? 'rgb(var(--c-muted) / .5)' }} />}
-          <span className="max-w-[180px] truncate">{s.name}</span>
+          <span className="max-w-[130px] truncate sm:max-w-[180px]">{s.name}</span>
           {canManage && s.id === activeId && (
             <span role="button" tabIndex={-1} onClick={(e) => { e.stopPropagation(); setMenu({ anchor: e.currentTarget, sheet: s }); }} className="rounded p-0.5 opacity-60 hover:bg-ink/10 hover:opacity-100">
               <ChevronDown className="h-3.5 w-3.5" />
@@ -61,9 +61,9 @@ export function SheetTabs({ fileId, sheets, activeId, dashboards, canManage, onS
           <Plus className="h-4 w-4" />
         </button>
       )}
-      <div className="ml-auto flex shrink-0 items-center pb-1 pl-4">
-        <button ref={dashBtn} onClick={() => setDashOpen(true)} className="inline-flex h-8 items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted hover:bg-surface hover:text-primary">
-          <LayoutDashboard className="h-4 w-4" /> แดชบอร์ด {dashboards.length > 0 && <span className="rounded bg-ink/10 px-1.5 text-[11px]">{dashboards.length}</span>}<ChevronDown className="h-3.5 w-3.5" />
+      <div className="ml-auto flex shrink-0 items-center pb-1 pl-2 sm:pl-4">
+        <button ref={dashBtn} onClick={() => setDashOpen(true)} aria-label="แดชบอร์ด" title="แดชบอร์ด" className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted hover:bg-surface hover:text-primary sm:gap-2 sm:px-3">
+          <LayoutDashboard className="h-4 w-4" /> <span className="hidden sm:inline">แดชบอร์ด</span> {dashboards.length > 0 && <span className="rounded bg-ink/10 px-1.5 text-[11px]">{dashboards.length}</span>}<ChevronDown className="h-3.5 w-3.5" />
         </button>
       </div>
 

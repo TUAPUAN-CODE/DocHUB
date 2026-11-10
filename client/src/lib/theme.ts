@@ -106,6 +106,7 @@ export function applyTheme(t: Theme) {
   });
   root.classList.toggle('dark', t.mode === 'dark');
   root.style.colorScheme = t.mode;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.colors.sidebar);
+  // the phone browser's bars / status bar take the top bar's colour, so the app reads as one full screen (not blue bands)
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', comps.topbar.bg);
   loadMainFont(t.fontFamily);
 }

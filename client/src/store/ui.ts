@@ -10,10 +10,13 @@ interface UiState {
   confirmState: (ConfirmOpts & { resolve: (v: boolean) => void }) | null;
   openTransition: OpenTransition | null;
   mobileNav: boolean;
+  /** a sheet shown with its tools hidden: the app's top bar steps aside too, so a phone shows as many rows as possible */
+  focusMode: boolean;
   pushToast: (t: Omit<Toast, 'id'>) => void;
   dismissToast: (id: number) => void;
   setOpenTransition: (t: OpenTransition | null) => void;
   setMobileNav: (v: boolean) => void;
+  setFocusMode: (v: boolean) => void;
 }
 
 let seq = 1;
@@ -22,6 +25,7 @@ export const useUi = create<UiState>((set, get) => ({
   confirmState: null,
   openTransition: null,
   mobileNav: false,
+  focusMode: false,
   pushToast: (t) => {
     const id = seq++;
     set({ toasts: [...get().toasts.slice(-4), { ...t, id }] });
@@ -30,6 +34,7 @@ export const useUi = create<UiState>((set, get) => ({
   dismissToast: (id) => set({ toasts: get().toasts.filter((x) => x.id !== id) }),
   setOpenTransition: (openTransition) => set({ openTransition }),
   setMobileNav: (mobileNav) => set({ mobileNav }),
+  setFocusMode: (focusMode) => set({ focusMode }),
 }));
 
 export const toast = {

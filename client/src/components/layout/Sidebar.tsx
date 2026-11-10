@@ -1,6 +1,6 @@
 import { isBasicRole } from '@/types';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { CheckCircle2, Cpu, Database, FolderOpen, GitFork, History, Home, KeyRound, LayoutDashboard, LogOut, Settings, Trash2, Users, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
@@ -45,7 +45,11 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
               className={({ isActive }) => cn('nav-link', (it.active ?? isActive) && 'active')}>
               {({ isActive }) => (
                 <>
-                  {(it.active ?? isActive) && <motion.span layoutId={`nav-pill-${scope}`} className="nav-pill" transition={{ type: 'spring', stiffness: 420, damping: 38 }} />}
+                  {(it.active ?? isActive) && (scope === 'desktop'
+                    ? <motion.span layoutId="nav-pill-desktop" className="nav-pill" transition={{ type: 'spring', stiffness: 420, damping: 38 }} />
+                    // phone drawer: a plain pill. A sliding layoutId pill inside the closing drawer kept the drawer's exit from ever
+                    // finishing, leaving its invisible backdrop over the page: every tap hit it and the app looked frozen.
+                    : <span className="nav-pill" />)}
                   {it.icon}
                   <span className="flex-1">{it.label}</span>
                   {!!it.badge && <span className="mr-2 grid h-5 min-w-5 place-items-center rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">{it.badge}</span>}
@@ -65,23 +69,28 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
   );
 }
 
+function MobileDrawer({ onClose }: { onClose: () => void }) {
+  // once closing starts, let taps through even if the exit animation is cut short (app switched away, slow phone)
+  const present = useIsPresent();
+  return (
+    <motion.div className="fixed inset-0 z-[850] lg:hidden" style={{ pointerEvents: present ? 'auto' : 'none' }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="absolute inset-0 bg-slate-900/50" onClick={onClose} />
+      <motion.aside className="ds-sidebar relative h-full max-w-[85vw]" initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }} transition={{ type: 'spring', stiffness: 380, damping: 36 }}>
+        <button onClick={onClose} className="absolute right-3 top-6 rounded-lg p-1.5 opacity-80 hover:bg-white/10" aria-label="ปิดเมนู"><X className="h-5 w-5" /></button>
+        <SidebarBody scope="mobile" onNavigate={onClose} />
+      </motion.aside>
+    </motion.div>
+  );
+}
+
 export function Sidebar() {
   const mobile = useUi((s) => s.mobileNav);
   const setMobile = useUi((s) => s.setMobileNav);
   return (
     <>
       <aside className="ds-sidebar hidden h-full shrink-0 lg:block"><SidebarBody scope="desktop" /></aside>
-      <AnimatePresence>
-        {mobile && (
-          <motion.div className="fixed inset-0 z-[850] lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-slate-900/50" onClick={() => setMobile(false)} />
-            <motion.aside className="ds-sidebar relative h-full max-w-[85vw]" initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }} transition={{ type: 'spring', stiffness: 380, damping: 36 }}>
-              <button onClick={() => setMobile(false)} className="absolute right-3 top-6 rounded-lg p-1.5 opacity-80 hover:bg-white/10" aria-label="ปิดเมนู"><X className="h-5 w-5" /></button>
-              <SidebarBody scope="mobile" onNavigate={() => setMobile(false)} />
-            </motion.aside>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AnimatePresence>{mobile && <MobileDrawer onClose={() => setMobile(false)} />}</AnimatePresence>
     </>
   );
 }

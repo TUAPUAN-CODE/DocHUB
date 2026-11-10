@@ -37,6 +37,8 @@ interface Props {
 
 const isEmpty = (v: unknown) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
 const EDIT_INLINE_TYPED = new Set(['varchar', 'text', 'int', 'float', 'url', 'email']);
+/** phone / tablet: no mouse, so no hover and no Ctrl+click */
+const coarsePointer = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
 
 function cellStyle(base: React.CSSProperties | undefined, col: Column, values: Row['values'], now: number): React.CSSProperties | undefined {
   const cfg = col.validation?.alert;
@@ -519,7 +521,8 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
         )}
       </div>
 
-      <div className="flex h-9 shrink-0 items-center gap-4 overflow-x-auto border-t border-line px-3 text-xs text-muted">
+      {/* touch screens: the keyboard / mouse hint is meaningless, so the bar only appears when there is something to show */}
+      {(colSel.length > 0 || status || !coarsePointer) && <div className="flex h-9 shrink-0 items-center gap-4 overflow-x-auto border-t border-line px-3 text-xs text-muted">
         {colSel.length > 0 ? (
           <>
             <button onClick={() => setColSel([])} className="shrink-0 rounded-lg bg-primary/10 px-2 py-0.5 font-medium text-primary hover:bg-primary/20">เลือก {colSel.length} คอลัมน์ ✕</button>
@@ -559,9 +562,9 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
             )}
           </>
         ) : (
-          <span>คลิกเซลล์เพื่อเลือก · คลิกชื่อคอลัมน์เพื่อดูจำนวนแถว/ผลรวม (Ctrl+คลิก เลือกหลายคอลัมน์) · ดับเบิลคลิกหรือ Enter เพื่อแก้ไข · Ctrl+Z ย้อนกลับ</span>
+          <span className="whitespace-nowrap">คลิกเซลล์เพื่อเลือก · คลิกชื่อคอลัมน์เพื่อดูจำนวนแถว/ผลรวม (Ctrl+คลิก เลือกหลายคอลัมน์) · ดับเบิลคลิกหรือ Enter เพื่อแก้ไข · Ctrl+Z ย้อนกลับ</span>
         )}
-      </div>
+      </div>}
 
       <Popover open={!!menu} onClose={() => setMenu(null)} anchor={menu?.anchor ?? null} width={240}>
         {menu && <MenuList items={menuItems()} onClose={() => setMenu(null)} />}
