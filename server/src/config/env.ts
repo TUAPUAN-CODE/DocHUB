@@ -54,6 +54,8 @@ export const env = {
   serveClientDir: process.env.SERVE_CLIENT_DIR || '',
   /** Public base URL of the app (used for OAuth redirect URIs). Falls back to the request host. */
   publicUrl: (process.env.PUBLIC_URL ?? '').replace(/\/+$/, ''),
+  /** optional, admin Monitor page: Cloudflare's own request counts (API token with "Zone Analytics: Read") */
+  cloudflare: { apiToken: process.env.CF_API_TOKEN ?? '', zoneId: process.env.CF_ZONE_ID ?? '' },
   oauth: {
     google: { clientId: process.env.GOOGLE_CLIENT_ID ?? '', clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '' },
     microsoft: {

@@ -11,11 +11,27 @@ import { EmptyState, PageHeader } from '@/components/ui/misc';
 import { FilePicker, PickedFile } from '@/components/files/FilePicker';
 import { levelsOf, traceApi, TimeGroup, TraceData, TraceNode } from '@/modules/trace/api';
 import { TraceGraph } from '@/modules/trace/TraceGraph';
+import { DataSearch } from '@/modules/dataSearch/DataSearch';
 
 const msg = (e: unknown) => (e as { response?: { data?: { error?: { message?: string } } }; message?: string }).response?.data?.error?.message ?? (e as Error).message;
 
+/** Menu "Search": search every sheet for a word (default) or trace a lot (Traceback) */
+export default function SearchHubPage() {
+  const [sp, setSp] = useSearchParams();
+  const mode: 'data' | 'trace' = sp.get('mode') === 'trace' || sp.get('row') ? 'trace' : 'data';
+  return (
+    <div className="mx-auto w-full max-w-[1400px] space-y-4 p-4">
+      <PageHeader icon={<Search className="h-5 w-5" />} title="Search"
+        subtitle={mode === 'data' ? 'ค้นหาคำในข้อมูลทุกไฟล์ ทุกชีต ที่คุณมีสิทธิ์' : 'ค้นหาล็อต/รหัสแล้วดูว่าทำมาจากอะไร และถูกนำไปใช้ที่ไหน (การผสม และรายการบนรถเข็น)'} />
+      <Segmented value={mode} onChange={(m) => setSp(m === 'trace' ? { mode: 'trace' } : {}, { replace: true })}
+        options={[{ value: 'data', label: 'ค้นหาทุกข้อมูล', icon: <Search /> }, { value: 'trace', label: 'ย้อนรอย (Traceback)', icon: <GitFork /> }]} />
+      {mode === 'data' ? <DataSearch /> : <TracebackView />}
+    </div>
+  );
+}
+
 /** Traceback: find a lot / mapping_id and see what it was made of and where it went */
-export default function TracebackPage() {
+function TracebackView() {
   const nav = useNavigate();
   const [sp, setSp] = useSearchParams();
   const [file, setFile] = useState<PickedFile | null>(null);
@@ -75,8 +91,7 @@ export default function TracebackPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-4 p-4">
-      <PageHeader icon={<GitFork className="h-5 w-5" />} title="ย้อนรอย (Traceback)" subtitle="ค้นหาล็อต/รหัสแล้วดูว่าทำมาจากอะไร และถูกนำไปใช้ที่ไหน (การผสม และรายการบนรถเข็น)" />
+    <div className="space-y-4">
       <div className="ds-card grid gap-3 p-4 md:grid-cols-[1.2fr_1fr_1fr_1fr_auto]">
         <Field label="ไฟล์"><FilePicker value={file} onChange={(f) => { setFile(f); setSheetId(''); }} /></Field>
         <Field label="ชีต"><Select value={sheetId} onChange={(e) => setSheetId(e.target.value)} disabled={!file}><option value="">— เลือกชีต —</option>{sheets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>

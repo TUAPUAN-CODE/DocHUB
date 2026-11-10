@@ -4,7 +4,7 @@ import { filesApi, type LinesCfg } from '@/api/endpoints';
 import { loadCols } from '@/lib/dashCols';
 import type { Column, Sheet } from '@/types';
 import { Button } from '@/components/ui/Button';
-import { Field, Select, TextInput, Toggle } from '@/components/ui/Inputs';
+import { Field, Select, TextInput, Toggle, Segmented } from '@/components/ui/Inputs';
 import { FilePicker, PickedFile } from '@/components/files/FilePicker';
 
 /** Settings: which sheet holds the line items of each row of this sheet (a trolley and the materials on it), what to show, and one-click actions for all lines */
@@ -41,6 +41,10 @@ export function LinesForm({ cfg, onChange, fileId, fileName }: { cfg: LinesCfg |
           </div>
           {cfg.lineSheetId && (
             <>
+              <Field label="วิธีเพิ่มรายการ" hint={cfg.entry === 'form' ? 'เหมาะกับเอกสารที่มีหัว + หลายบรรทัด เช่น ใบตรวจ Metal Detector: กรอกฟอร์มทีละรายการ ช่องที่ชื่อตรงกับหัวเอกสารเติมให้เอง' : 'เหมาะกับรถเข็น / พาเลท: สแกน QR ของวัตถุดิบเพื่อใส่ลงในแถว'}>
+                <Segmented size="sm" value={cfg.entry === 'form' ? 'form' : 'scan'} onChange={(v) => set({ entry: v })}
+                  options={[{ value: 'scan', label: 'สแกน QR' }, { value: 'form', label: 'กรอกฟอร์ม' }]} />
+              </Field>
               <div>
                 <p className="mb-1 text-xs font-medium text-muted">คอลัมน์ของรายการที่แสดงในหน้าต่าง (สูงสุด 12)</p>
                 <div className="flex flex-wrap gap-1.5">

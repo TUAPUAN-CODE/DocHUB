@@ -7,6 +7,7 @@ exports.normalizeWithLookup = normalizeWithLookup;
 exports.parentValueOf = parentValueOf;
 exports.assertLookupConfig = assertLookupConfig;
 const db_1 = require("../config/db");
+const union_1 = require("./union");
 const cellValue_1 = require("../shared/cellValue");
 const http_1 = require("../shared/http");
 const permissions_1 = require("../shared/permissions");
@@ -15,13 +16,34 @@ const rowQuery_1 = require("./rowQuery");
 const NOT_TEXTLIKE = new Set(['multi_select', 'image']);
 const getLookup = (col) => {
     const l = col.validation?.lookup;
-    return l && (col.data_type === 'select' || col.data_type === 'multi_select') && l.sheetId && l.columnId ? l : null;
+    return l && (col.data_type === 'select' || col.data_type === 'multi_select') && (l.users || (l.sheetId && l.columnId)) ? l : null;
 };
 exports.getLookup = getLookup;
+/** Display names of active users (with the tag, when given) */
+async function userLookupValues(tag, search) {
+    const params = {};
+    let where = 'u.is_active = 1';
+    if (tag?.trim()) {
+        where += ` AND EXISTS (SELECT 1 FROM UserTags ut JOIN Tags t ON t.tag_id = ut.tag_id WHERE ut.user_id = u.user_id AND t.tag_name = @tag)`;
+        params.tag = db_1.T.text(tag.trim());
+    }
+    if (search?.trim()) {
+        where += ' AND u.display_name LIKE @sv';
+        params.sv = db_1.T.text(`%${search.trim().replace(/[%_[]/g, (m) => `[${m}]`)}%`);
+    }
+    const rows = await (0, db_1.q)(`SELECT DISTINCT TOP 1000 u.display_name AS val FROM Users u WHERE ${where} ORDER BY val`, params);
+    return rows.map((r) => String(r.val));
+}
 /** Distinct values of the source column (optionally limited to one parent value), as strings */
 async function lookupValues(l, parentValue, search) {
+    if (l.users)
+        return userLookupValues(l.users.tag, search);
     if (l.parent && (parentValue === null || parentValue === ''))
         return [];
+    // a union sheet is a copy of other sheets, refreshed when somebody opens it: refresh it from here too
+    const own = await (0, db_1.q1)(`SELECT sheet_id, union_config FROM Sheets WHERE sheet_id = @s`, { s: db_1.T.uuid(l.sheetId) });
+    if (own?.union_config)
+        (0, union_1.syncUnionIfStale)(own, 60_000);
     const cols = await (0, cellWriter_1.loadColumns)(l.sheetId);
     const src = cols.find((c) => c.column_id === l.columnId);
     if (!src || NOT_TEXTLIKE.has(src.data_type))
@@ -51,7 +73,7 @@ async function lookupValues(l, parentValue, search) {
 function lookupResolver() {
     const cache = new Map();
     return (l, parentValue) => {
-        const key = `${l.sheetId}|${l.columnId}|${l.parent?.foreignColumnId ?? ''}|${parentValue ?? ''}`;
+        const key = l.users ? `users|${l.users.tag ?? ''}` : `${l.sheetId}|${l.columnId}|${l.parent?.foreignColumnId ?? ''}|${parentValue ?? ''}`;
         if (!cache.has(key))
             cache.set(key, lookupValues(l, parentValue));
         return cache.get(key);
@@ -78,6 +100,13 @@ async function parentValueOf(col, values) {
 }
 /** Validates a lookup definition when a column is created / edited */
 async function assertLookupConfig(user, ownSheetId, ownColumnId, l) {
+    if (l.users) {
+        if (l.parent)
+            throw (0, http_1.badRequest)('ตัวเลือกจากรายชื่อผู้ใช้ใช้การเชื่อมโยงกับคอลัมน์อื่นไม่ได้');
+        return;
+    }
+    if (!l.sheetId || !l.columnId)
+        throw (0, http_1.badRequest)('เลือกตารางและคอลัมน์ต้นทางของตัวเลือกให้ครบ');
     await (0, permissions_1.requireSheet)(user, l.sheetId, permissions_1.LV.read);
     const foreign = await (0, cellWriter_1.loadColumns)(l.sheetId);
     const src = foreign.find((c) => c.column_id === l.columnId);

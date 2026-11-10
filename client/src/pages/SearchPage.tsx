@@ -30,6 +30,11 @@ export default function SearchPage() {
     <Page>
       <PageHeader icon={<Search />} title={`ผลการค้นหา “${q}”`} subtitle={data ? `พบ ${data.files.length} ไฟล์ และ ${data.folders.length} โฟลเดอร์` : 'กำลังค้นหา…'}
         actions={<Segmented value={tab} onChange={setTab} options={[{ value: 'all', label: 'ทั้งหมด' }, { value: 'files', label: 'ไฟล์' }, { value: 'folders', label: 'โฟลเดอร์' }]} />} />
+      {q.trim().length >= 2 && (
+        <Link to={`/traceback?q=${encodeURIComponent(q.trim())}`} className="mb-4 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/[.04] px-4 py-3 text-sm text-primary hover:bg-primary/[.08]">
+          <Search className="h-4 w-4 shrink-0" /><span>หน้านี้ค้นจากชื่อไฟล์/โฟลเดอร์ — <b>ค้นหา “{q.trim()}” ในข้อมูลทุกชีต</b> (เมนู Search)</span>
+        </Link>
+      )}
       {loading ? <div className="space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16 rounded-theme" />)}</div>
         : !files.length && !folders.length ? <div className="ds-card"><EmptyState icon={<Search />} title="ไม่พบผลลัพธ์" description="ลองใช้คำค้นที่สั้นลง หรือตรวจสอบการสะกด" /></div>
         : (

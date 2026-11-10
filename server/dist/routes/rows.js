@@ -27,6 +27,7 @@ const querySchema = zod_1.z.object({
     filters: zod_1.z.array(schemas_1.filterSchema).max(50).default([]),
     search: zod_1.z.string().max(200).optional(),
     searchColumns: zod_1.z.array(http_1.zId).max(20).optional(),
+    rowIds: zod_1.z.array(http_1.zId).max(200).optional(),
 });
 router.post('/sheets/:id/rows/query', (0, http_1.ah)(async (req, res) => {
     const sheetId = (0, http_1.pid)(req);

@@ -208,6 +208,8 @@ function baseWhere(sheetId, cols, p, opts, exceptColumnId) {
     const s = searchSql(opts.search, p, opts.searchColumns);
     if (s)
         where.push(s);
+    if (opts.rowIds?.length)
+        where.push(`r.row_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(${p.add(db_1.T.text(JSON.stringify(opts.rowIds)))}))`);
     return where.join(' AND ');
 }
 /** Loads full rows (with typed values + per-cell meta) for the given row records */
@@ -288,7 +290,7 @@ async function queryRows(sheetId, cols, opts) {
     if (opts.search?.trim() && !(opts.filters ?? []).some((f) => f && (f.op || f.values?.length)) && (await (0, rowCount_1.sheetRowCount)(sheetId)) > rowCount_1.BIG_SHEET_ROWS) {
         throw (0, http_1.badRequest)(`ชีตนี้มีข้อมูลมาก (เกิน ${rowCount_1.BIG_SHEET_ROWS.toLocaleString()} แถว) กรุณากรองด้วยคอลัมน์ เช่น วันที่ ก่อนค้นหาข้อความ`);
     }
-    const countKey = JSON.stringify([opts.filters ?? [], opts.search ?? '', opts.searchColumns ?? []]);
+    const countKey = JSON.stringify([opts.filters ?? [], opts.search ?? '', opts.searchColumns ?? [], opts.rowIds ?? []]);
     let total = (0, rowCount_1.cachedTotal)(sheetId, countKey);
     if (total === null) {
         const count = await (0, db_1.q1)(`SELECT COUNT_BIG(*) AS total FROM Rows r WHERE ${where}`, p.values);

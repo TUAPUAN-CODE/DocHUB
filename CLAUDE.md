@@ -22,9 +22,9 @@ git add -A client/dist server/dist
 The GitHub repository is **public**. Never commit company data (Excel files, notes, product codes, passwords, `.env`).
 Import scripts read the company's files on the server at run time (see `server/scripts/seedQualityHighlight.ts`).
 
-Exception, decided by the owner: the Quality Highlight master data is published as a start-up seed
-(`database/seed/quality_highlight_rev9.sql` + pictures in `database/seed/files`). Do not add other company data there
-without the owner asking for it.
+Exceptions, decided by the owner: the Quality Highlight master data (`database/seed/quality_highlight_rev9.sql` + pictures in
+`database/seed/files`) and the Metal Detector program / sensitivity tables + form F3QCPF06 (`database/seed/metal_detector_f3qcpf06.sql`)
+are published as start-up seeds. Do not add other company data there without the owner asking for it.
 
 - `database/seed/*.sql` run at start-up after the migrations, once per database (`AppliedSeeds`), each in its own
   transaction; a failing seed is logged and the server still starts (`applySeeds` in `server/src/scripts/migrate.ts`).
@@ -43,4 +43,8 @@ without the owner asking for it.
 - Dialogs (`components/ui/Modal.tsx`) close only from their own buttons (✕ / ยกเลิก …): no backdrop tap, no Esc. Do not bring those back.
 - The in-app manual (`/guide`, docs/GUIDE.md) is generated from the real UI: after a UI change that a guide shows, re-run
   `client/scripts/guide/capture.cjs` (demo database only) and commit `client/public/guide`.
+- A select column can take its options from another sheet (`validation.lookup` sheet/column, optional parent filter) or from the
+  users' names (`validation.lookup.users.tag`). Lines of a header row are entered by scanning or with a form (`settings.lines.entry`).
+- Code that runs inside a transaction (e.g. `registerAfterSheetCopied` hooks) must pass `tx` to every query: a query outside the
+  transaction waits for the rows that transaction has just written (union sheets used to hang 120 s this way).
 - Access = own grants + grants to the user's tags (`FileTagAccess` / `FolderTagAccess` via `UserTags`), capped by role (`shared/permissions.ts`).

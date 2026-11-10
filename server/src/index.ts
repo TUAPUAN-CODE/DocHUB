@@ -41,6 +41,8 @@ import formulaModule from './modules/formula/module';
 import revisionsModule from './modules/revisions/module';
 import tagsModule from './modules/tags/module';
 import accountRequestsModule from './modules/accountRequests/module';
+import dataSearchModule from './modules/dataSearch/module';
+import monitorModule from './modules/monitor/module';
 import exportArchiveModule from './modules/exportArchive/module';
 import approvalsModule from './modules/approvals/module';
 import aiModule from './modules/ai/module';
@@ -59,6 +61,7 @@ import userRoutes from './routes/users';
 const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.use(monitorModule.trafficMeter); // counts every request (admin Monitor page)
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' }, contentSecurityPolicy: false }));
 app.use(cors({ origin: env.corsOrigins, credentials: true }));
 // the LINE webhook signature is checked against the exact bytes LINE sent
@@ -85,7 +88,7 @@ app.use('/api', devicesModule.ingest);
 app.use('/api', authenticate);
 for (const r of [
   userRoutes, folderRoutes, fileRoutes, sheetRoutes, columnRoutes, rowRoutes, cellRoutes, accessRoutes, auditRoutes,
-  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router, revisionsModule.router, tagsModule.router, accountRequestsModule.router,
+  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router, revisionsModule.router, tagsModule.router, accountRequestsModule.router, dataSearchModule.router, monitorModule.router,
 ]) app.use('/api', r);
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ API ที่เรียก' } });
@@ -108,6 +111,7 @@ getPool()
   .then(() => applyMigrations())
   .then(() => applySeeds().catch((e) => logger.error(`Seeds skipped: ${e?.message}`)))
   .then(() => {
+    monitorModule.startTrafficFlush();
     server.listen(env.port, '0.0.0.0', () =>
       logger.info(`DataSheet Pro API listening on http://0.0.0.0:${env.port} (LAN: http://172.48.0.116:${env.port})`)
     );

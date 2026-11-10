@@ -14,6 +14,7 @@ const routes_1 = require("../scan/routes");
 const router = (0, express_1.Router)();
 const cfgSchema = zod_1.z.object({
     lineSheetId: http_1.zId,
+    entry: zod_1.z.enum(['scan', 'form']).nullish(),
     displayColumnIds: zod_1.z.array(http_1.zId).max(12).nullish(),
     actions: zod_1.z.array(zod_1.z.object({ label: zod_1.z.string().trim().min(1).max(60), columnId: http_1.zId, kind: zod_1.z.enum(['now', 'value']), value: zod_1.z.string().max(200).nullish() })).max(10).nullish(),
 });

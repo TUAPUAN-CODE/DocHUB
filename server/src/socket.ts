@@ -10,6 +10,9 @@ import { attachCluster } from './services/cluster';
 
 let io: IOServer | null = null;
 
+/** connections open right now (this process) — admin Monitor page */
+export const onlineSockets = () => io?.engine.clientsCount ?? 0;
+
 export function initSocket(server: http.Server) {
   io = new IOServer(server, {
     cors: { origin: env.corsOrigins, credentials: true },

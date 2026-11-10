@@ -69,7 +69,7 @@ export function ItemCard({ item, onMenu, onStar, draggable }: Common) {
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </div>
-        {d.favorite && <StarButton active onToggle={() => onStar(item)} size={16} className="absolute right-2 top-2 sm:group-hover:opacity-0" />}
+        {d.favorite && <StarButton active onToggle={() => onStar(item)} size={16} className="absolute right-2 top-2 max-sm:!hidden sm:group-hover:opacity-0" />}
       </div>
     </div>
   );

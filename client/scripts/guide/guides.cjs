@@ -12,6 +12,25 @@ const box = (el) => el.locator('xpath=ancestor-or-self::*[contains(concat(" ", @
 const fld = (scope, name) => scope.locator('label').filter({ has: scope.page().locator('span', { hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\%]/g, '\\$&')}$`) }) }).first();
 const ctl = (f) => f.locator('input, textarea, button:not([title="สแกนใส่ช่องนี้"]), [role="switch"]').first();
 const QH_FILE = 'a6e60e98-364e-4585-a4d0-eb09e3964ad2';
+const MD_FOLDER = 'DAILY METAL DETECTOR SENSITIVITY TEST REPORT';
+const MD_FILE = 'DAILY METAL DETECTOR SENSITIVITY TEST REPORT (F3QCPF06)';
+const MD_PROG = 'Program และค่า Sensitivity ของเครื่อง Metal Detector';
+/** people in tag MD (who may sign the metal detector form) */
+async function mdMembers(r) {
+  const md = (await r.call('GET', '/tags')).find((t) => t.name === 'MD');
+  const users = (await r.call('GET', '/users?pageSize=50')).items;
+  if (md) await r.call('POST', `/tags/${md.id}/members`, { userIds: users.filter((u) => ['user', 'admin'].includes(u.username)).map((u) => u.id) });
+  // as the seed does on a new server: everyone in tag MD may fill the forms of the folder
+  const top = (await r.call('GET', '/folders/tree')).find?.((f) => f.name === MD_FOLDER && !f.parentId);
+  if (md && top) await r.call('PUT', `/folders/${top.id}/access/tags`, { tagId: md.id, permission: 'write' });
+}
+async function openMd(r, fileName) {
+  const p = r.page;
+  await r.go('/browse');
+  await p.getByText(MD_FOLDER, { exact: true }).first().click(); await r.settle();
+  await p.getByText('Data', { exact: true }).first().click(); await r.settle();
+  await p.getByText(fileName, { exact: true }).first().click(); await r.settle(1800);
+}
 const QH_DASH = '1e6bcab4-c396-44a7-9522-48c85ae4ae3e';
 /** pick a value from a SearchSelect popover */
 async function choose(r, button, text) {
@@ -250,6 +269,26 @@ module.exports = [
           await box.press('Enter');
           await r.settle(1200);
           await r.shot({ title: 'กด Enter เพื่อดูผลทั้งหมด', text: 'กด **Enter** จะเปิดหน้าผลการค้นหาทั้งหมด กดชื่อไฟล์เพื่อเปิด', marks: [{ el: p.getByText(FILE, { exact: true }).last(), label: 'กดเพื่อเปิดไฟล์' }] });
+        },
+      },
+      {
+        id: 'data-search', title: 'ค้นหาข้อมูลจากทุกไฟล์ (Search)', summary: 'พิมพ์คำเดียว ระบบหาให้ทุกแถวในทุกชีตที่มีคำนั้น', as: 'user',
+        run: async (r) => {
+          const p = r.page;
+          await r.shot({ title: 'กดเมนู “Search”', text: 'กดเมนู **Search** ทางซ้าย', marks: [{ el: sidebar(p, 'Search'), label: 'กด Search', place: 'right' }] });
+          await sidebar(p, 'Search').click(); await r.settle();
+          const q = p.getByLabel('คำที่ต้องการหา');
+          await r.shot({ title: 'เลือก “ค้นหาทุกข้อมูล”', text: 'หน้า Search มี 2 แบบ: **ค้นหาทุกข้อมูล** (พิมพ์คำแล้วหาจากทุกไฟล์) และ **ย้อนรอย (Traceback)** (เลือกไฟล์/ชีต/คอลัมน์ เพื่อดูว่าล็อตทำมาจากอะไร)', marks: [{ el: role(p, 'button', 'ค้นหาทุกข้อมูล'), label: 'ค้นหาทุกข้อมูล', place: 'below' }, { el: role(p, 'button', 'ย้อนรอย (Traceback)'), label: 'ย้อนรอยล็อต (แบบเดิม)', place: 'below' }] });
+          await q.fill('สมหญิง'); await r.settle(2200);
+          await r.shot({
+            title: 'พิมพ์คำที่ต้องการหา',
+            text: 'พิมพ์อย่างน้อย 2 ตัวอักษร เช่น รหัสสินค้า เลขล็อต ชื่อคน ระบบค้นในทุกชีตของทุกไฟล์ที่คุณมีสิทธิ์ (ทุกคอลัมน์) แล้วแสดงแยกตาม **ไฟล์ › ชีต** พร้อมไฮไลต์คำที่เจอ',
+            marks: [{ el: box(q), label: 'พิมพ์คำที่ต้องการหา', place: 'below' }, { el: p.locator('section').first().locator('header'), label: 'ไฟล์ › ชีต ที่เจอ และจำนวนแถว', place: 'below' }],
+          });
+          const first = p.locator('section').first().locator('li button').first();
+          await r.shot({ title: 'กดที่ผลลัพธ์เพื่อเปิดแถว', text: 'กดที่แถวที่ต้องการ ระบบเปิดไฟล์และแสดงข้อมูลทั้งแถวนั้นให้ทันที', marks: [{ el: first, label: 'กดเพื่อเปิดแถวนี้', place: 'below' }] });
+          await first.click(); await r.settle(2200);
+          await r.shot({ title: 'แถวที่ค้นเจอ', text: 'เห็นข้อมูลทุกช่องของแถวนั้น กด **แก้ไข** ถ้ามีสิทธิ์ หรือปิดหน้าต่างเพื่อดูทั้งตาราง', marks: [{ el: p.getByRole('dialog').locator('h2').first(), label: 'แถวที่ค้นเจอ' }] });
         },
       },
       {
@@ -656,6 +695,93 @@ module.exports = [
 
   /* ================================================================ */
   {
+    id: 'md', title: 'ใบตรวจ Metal Detector (F3QCPF06)', icon: 'shield', description: 'DAILY METAL DETECTOR SENSITIVITY TEST REPORT และตาราง Program / ค่า Sensitivity',
+    guides: [
+      {
+        id: 'md-form', title: 'บันทึกใบตรวจ DAILY METAL DETECTOR', summary: 'สร้างหัวเอกสาร แล้วบันทึกการตรวจแต่ละรอบ (เลือกโปรแกรมได้เฉพาะของเครื่องนั้น)', as: 'user',
+        run: async (r) => {
+          const p = r.page;
+          await mdMembers(r);
+          await openMd(r, MD_FILE);
+          await r.shot({
+            title: 'เปิดไฟล์ใบตรวจ',
+            text: 'ไปที่ **ไฟล์ทั้งหมด → DAILY METAL DETECTOR SENSITIVITY TEST REPORT → Data → DAILY METAL DETECTOR SENSITIVITY TEST REPORT (F3QCPF06)** (คนใน Tag MD กรอกได้ทุกคน)\nชีต **หัวเอกสาร** = 1 แถวต่อใบ (วันที่ กะ เครื่อง …) · ชีต **รายการตรวจ** = การตรวจแต่ละรอบของทุกใบ',
+            marks: [{ el: role(p, 'button', 'หัวเอกสาร'), label: '1 แถว = 1 ใบตรวจ', place: 'below' }, { el: role(p, 'button', 'รายการตรวจ'), label: 'รายการตรวจของทุกใบ', place: 'below' }],
+          });
+          await r.shot({ title: 'กด “+ เพิ่มแถว” เพื่อเริ่มใบใหม่', text: 'อยู่ที่ชีต **หัวเอกสาร** แล้วกด **+ เพิ่มแถว**', marks: [{ el: role(p, 'button', 'เพิ่มแถว'), label: 'กด + เพิ่มแถว', place: 'below' }] });
+          await role(p, 'button', 'เพิ่มแถว').click(); await r.settle();
+          const dlg = p.getByRole('dialog');
+          await ctl(fld(dlg, 'วันที่ (Date)')).fill(new Date().toISOString().slice(0, 10));
+          await choose(r, ctl(fld(dlg, 'กะ (Shift)')), 'N/S (กะดึก)');
+          await ctl(fld(dlg, 'หมายเลขเครื่อง')).click(); await r.settle(500);
+          const m = p.getByText('3GMD2019', { exact: true }).last();
+          await r.shot({ title: 'กรอกวันที่ กะ และเลือกหมายเลขเครื่อง', text: 'หัวข้อเหมือนหัวกระดาษ: **วันที่ · กะ · หมายเลขเครื่อง** (รายชื่อเครื่องมาจากตาราง Program) แล้วกรอก ฝาล็อคหน้าจอ · Speed สายพาน · ขนาด/หมายเลข Test piece (Fe / Non Fe / SUS) · Belt stop · Alarm', marks: [{ el: m, label: 'เลือกเครื่อง', place: 'right' }] });
+          await m.click(); await r.settle(300);
+          await choose(r, ctl(fld(dlg, 'ฝาล็อคหน้าจอ')), 'มีล็อค');
+          await ctl(fld(dlg, 'Speed สายพาน (m/min)')).fill('27');
+          await ctl(fld(dlg, 'Fe (mm)')).fill('1.5'); await ctl(fld(dlg, 'Fe หมายเลข')).fill('54043');
+          await ctl(fld(dlg, 'Non Fe (mm)')).fill('2.5'); await ctl(fld(dlg, 'Non Fe หมายเลข')).fill('12621A');
+          await ctl(fld(dlg, 'SUS (mm)')).fill('3.0'); await ctl(fld(dlg, 'SUS หมายเลข')).fill('92841B');
+          await choose(r, ctl(fld(dlg, 'Belt stop')), 'OK');
+          await choose(r, ctl(fld(dlg, 'Alarm')), 'OK');
+          await ctl(fld(dlg, 'พนักงานคุมเครื่อง')).scrollIntoViewIfNeeded();
+          await ctl(fld(dlg, 'พนักงานคุมเครื่อง')).click(); await r.settle(500);
+          const who = p.getByText('สมหญิง ขยันงาน', { exact: true }).last();
+          await r.shot({ title: 'เลือกชื่อพนักงานคุมเครื่อง / ผู้ตรวจ', text: 'ช่อง **พนักงานคุมเครื่อง** และ **Checked By (QC staff)** เลือกได้เฉพาะคนที่มี **Tag MD** (Admin กำหนดที่ จัดการผู้ใช้ → Tag) · พิมพ์ชื่อเพื่อค้นหาได้', marks: [{ el: who, label: 'เลือกชื่อจากรายการ', place: 'right' }] });
+          await who.click(); await r.settle(300);
+          const save = role(dlg, 'button', 'เพิ่มแถว');
+          await r.shot({ title: 'กด “เพิ่มแถว” เพื่อบันทึกหัวเอกสาร', text: 'ระบบออก **เลขที่ใบตรวจ** ให้เอง (เช่น MD-260923-001) แล้วเปิดหน้าต่าง **รายการ** ของใบนี้ให้ต่อทันที', marks: [{ el: save, label: 'กด เพิ่มแถว', place: 'above' }] });
+          await save.click(); await r.settle(1500);
+          const ld = p.getByRole('dialog');
+          await r.shot({ title: 'หน้าต่างรายการตรวจของใบนี้', text: 'กด **+ เพิ่มรายการ** ทุกครั้งที่ตรวจ (เริ่มงาน / ทุกชั่วโมง / เปลี่ยนโปรแกรม / เลิกงาน)', marks: [{ el: role(ld, 'button', 'เพิ่มรายการ'), label: 'กด + เพิ่มรายการ', place: 'below' }] });
+          await role(ld, 'button', 'เพิ่มรายการ').click(); await r.settle();
+          const f = p.getByRole('dialog');
+          await r.shot({ title: 'วันที่ กะ และเครื่อง เติมให้เอง', text: 'ช่องที่ชื่อเหมือนหัวเอกสาร (**วันที่ · กะ · หมายเลขเครื่อง**) ระบบเติมจากหัวเอกสารให้ ไม่ต้องกรอกซ้ำ', marks: [{ el: ctl(fld(f, 'หมายเลขเครื่อง')), label: 'เติมจากหัวเอกสาร', place: 'right' }] });
+          await ctl(fld(f, 'เวลา')).fill('19.50');
+          for (const n of ['Fe', 'Non Fe', 'SUS']) { await ctl(fld(f, n)).click(); await r.settle(250); await p.getByRole('button', { name: '✓', exact: true }).last().click(); await r.settle(150); }
+          await r.shot({
+            title: 'บันทึกเวลาและผลทดสอบ',
+            text: 'พิมพ์**เวลา** (เช่น 19.50) แล้วเลือกผลของวัตถุมาตรฐาน Fe / Non Fe / SUS / Large test piece:\n**✓** = ผลผ่าน · **x** = ผลไม่ผ่าน · **-** = ไม่พบปัญหา · **∙** = ไม่ตรงกับรอบการตรวจ',
+            marks: [{ el: ctl(fld(f, 'เวลา')), label: 'เวลา', place: 'right' }, { el: ctl(fld(f, 'Fe')), label: 'เลือก ✓ x - ∙', place: 'right' }],
+          });
+          const fq = fld(f, 'ความถี่ (F)');
+          await fq.scrollIntoViewIfNeeded();
+          await fq.getByText('F0 Sensitivity test', { exact: true }).click().catch(() => undefined);
+          await fq.getByText('F2 เริ่มงาน', { exact: true }).click().catch(() => undefined);
+          await r.shot({ title: 'เลือกความถี่ (F) — เลือกได้หลายข้อ', text: 'แตะเลือกได้หลายข้อในช่องเดียว เช่น F0 + F2\nF0 Sensitivity test · F1 Memory test · F2 เริ่มงาน · F3 ทดสอบทุกชั่วโมง · F4 หยุดเครื่องชั่วคราว · F5 เปลี่ยนโปรแกรม · F6 เครื่องเสีย · F7 เลิกงาน', marks: [{ el: fq, label: 'แตะเลือกได้หลายข้อ', place: 'above' }] });
+          await ctl(fld(f, 'โปรแกรม / Sensitivity')).click(); await r.settle(800);
+          const prog = p.getByText('038 Chunk PET-01 (Fe 3.5 / SUS 6.0)', { exact: true }).last();
+          await r.shot({ title: 'เลือกโปรแกรม / Sensitivity', text: 'รายการแสดง**เฉพาะโปรแกรมของเครื่องที่เลือก** พร้อมค่าที่ควบคุม (Fe / SUS หรือ ML1-ML4) มาจากตาราง Program และค่า Sensitivity', marks: [{ el: prog, label: 'โปรแกรม + ค่า Fe / SUS', place: 'right' }] });
+          await prog.click(); await r.settle(300);
+          await ctl(fld(f, 'Code / วัตถุดิบ / Batch no.')).fill('Chunk C11201G9JN');
+          await ctl(fld(f, 'Checked By')).scrollIntoViewIfNeeded();
+          await choose(r, ctl(fld(f, 'Checked By')), 'สมหญิง ขยันงาน');
+          const saveLine = role(f, 'button', 'เพิ่มแถว');
+          await r.shot({ title: 'ช่องผลการตรวจจับวัตถุดิบ แล้วบันทึก', text: 'Result / รอบ A / Object / รอบ B / สรุปผล ตั้งต้นเป็น **-** (ไม่พบปัญหา) เปลี่ยนเมื่อเครื่องตรวจจับโลหะ · กรอก Code / Batch, MD Detect (NG), Checked By แล้วกด **เพิ่มแถว**', tip: 'ติ๊ก **เพิ่มต่ออีกแถว** ถ้าจะบันทึกหลายรายการติดกัน', marks: [{ el: saveLine, label: 'กด เพิ่มแถว', place: 'above' }] });
+          await saveLine.click(); await r.settle(1500);
+          await r.shot({ title: 'รายการอยู่ในใบตรวจแล้ว', text: 'รายการแสดงในหน้าต่างของใบนี้ · แตะที่รายการเพื่อแก้ไข · รูปถังขยะเพื่อลบ\nเปิดใบเดิมภายหลัง: ชีต **หัวเอกสาร** → กดรูป**ตา**หน้าแถว → **รายการในแถว**', marks: [{ el: p.getByRole('dialog').locator('tbody tr').first(), label: 'รายการที่บันทึก', place: 'below' }] });
+        },
+      },
+      {
+        id: 'md-program', title: 'แก้ไขตาราง Program และค่า Sensitivity', summary: 'ค่าที่แก้จะขึ้นในตัวเลือกของใบตรวจให้เอง', as: 'admin', roles: ['master', 'admin'],
+        run: async (r) => {
+          const p = r.page;
+          await openMd(r, MD_PROG);
+          await r.shot({
+            title: 'ไฟล์ Program และค่า Sensitivity',
+            text: 'มี 3 ชีต: **โรงผลิต Petfood** และ **โรงผลิต Petfood 2** (1 แถว = 1 โปรแกรมของ 1 เครื่อง) และ **รวมทุกโรงผลิต** (รวม 2 ชีตแรกให้เอง ใช้เป็นตัวเลือกของใบตรวจ แก้ที่ชีตนี้ไม่ได้)',
+            marks: [{ el: p.getByRole('button', { name: /โรงผลิต Petfood$/ }).first(), label: 'Petfood', place: 'below' }, { el: p.getByRole('button', { name: /รวมทุกโรงผลิต/ }).first(), label: 'รวมให้เอง (อ่านอย่างเดียว)', place: 'below' }],
+          });
+          const cell = p.locator('tbody tr').first().locator('td').nth(7);
+          await r.shot({ title: 'แก้ค่า Fe / SUS / ML ในชีตของโรงผลิต', text: 'ดับเบิลคลิกช่องที่จะแก้ พิมพ์ค่าใหม่แล้วกด Enter · เพิ่มโปรแกรมใหม่ด้วย **+ เพิ่มแถว** (กรอกหมายเลขเครื่อง Program No. ชื่อ และค่า)', marks: [{ el: cell, label: 'ดับเบิลคลิกเพื่อแก้' }] });
+          await r.shot({ title: 'คอลัมน์ “โปรแกรม / Sensitivity” สร้างเอง', text: 'คอลัมน์สุดท้ายรวม **Program No. + Name + ค่า** ให้เอง (เช่น 001 Chunk (Fe 5.2 / SUS 5.6)) ข้อความนี้คือสิ่งที่ขึ้นในตัวเลือกของใบตรวจ · ชีตรวมอัปเดตตามภายใน 1 นาที', marks: [{ el: p.locator('th').filter({ hasText: 'โปรแกรม / Sensitivity' }).first(), label: 'สร้างจากสูตร (แก้เองไม่ได้)', place: 'below' }] });
+        },
+      },
+    ],
+  },
+
+  /* ================================================================ */
+  {
     id: 'dash', title: 'แดชบอร์ด', icon: 'dashboard', description: 'ดูภาพรวมข้อมูลเป็นกราฟ',
     guides: [
       {
@@ -748,6 +874,35 @@ module.exports = [
           r.note({ title: 'ลงทะเบียนแอปใน Azure', text: 'เข้า **https://portal.azure.com** ด้วยบัญชีผู้ดูแล Microsoft 365 ของบริษัท → **Microsoft Entra ID** → **App registrations** → **New registration**\n• Name: DocHUB\n• Supported account types: เฉพาะบัญชีบริษัท = *Accounts in this organizational directory only*\n• Redirect URI เลือก **Web** แล้วใส่ **https://dochub.qcqrxdigital.dpdns.org/api/auth/oauth/microsoft/callback**\nกด **Register**' });
           r.note({ title: 'จดรหัสแอป และสร้าง Secret', text: 'หน้า **Overview** จด **Application (client) ID** และ **Directory (tenant) ID**\nไปที่ **Certificates & secrets** → **New client secret** → คัดลอกช่อง **Value** (เห็นครั้งเดียว ห้ามส่งในแชต/LINE)' });
           r.note({ title: 'ใส่ค่าใน server\\.env แล้วรีสตาร์ต', text: 'แก้ไฟล์ **server\\.env** บนเครื่อง server:\nPUBLIC_URL=https://dochub.qcqrxdigital.dpdns.org\nMS_CLIENT_ID=(Application ID)\nMS_CLIENT_SECRET=(Value)\nMS_TENANT=(Directory ID)\nแล้วสั่ง **pm2 restart dochub** ที่ cmd · หน้าเข้าสู่ระบบจะมีปุ่ม Microsoft', tip: 'คนที่ยังไม่มีบัญชี กดปุ่ม Microsoft แล้วจะไปที่ฟอร์มขอสร้างบัญชี Admin อนุมัติตามปกติ' });
+        },
+      },
+      {
+        id: 'monitor', title: 'ดูการใช้งานระบบ (Monitor)', summary: 'จำนวนการใช้งานผ่าน Cloudflare และในโรงงาน ต่อนาที/ชั่วโมง/วัน/เดือน', as: 'admin', roles: ['admin'],
+        run: async (r) => {
+          const p = r.page;
+          await r.shot({ title: 'กดเมนู “Monitor”', text: 'กดเมนู **Monitor** ทางซ้าย (เห็นเฉพาะ Admin)', marks: [{ el: sidebar(p, 'Monitor'), label: 'กด Monitor', place: 'right' }] });
+          await sidebar(p, 'Monitor').click(); await r.settle(2500);
+          await r.shot({
+            title: 'ตัวเลขวันนี้',
+            text: '• **ผ่าน Cloudflare** = คนที่เปิดจากอินเทอร์เน็ต (ลิงก์ dochub.qcqrxdigital.dpdns.org)\n• **ในโรงงาน (LAN)** = เปิดผ่านเครือข่ายบริษัท\n• **สูงสุดต่อนาที** และ **ผิดพลาด (5xx)** ใช้ดูว่าระบบรับไหวไหม · หน้านี้อัปเดตเองทุก 30 วินาที',
+            marks: [{ el: p.getByText('ผ่าน Cloudflare วันนี้'), label: 'ผ่านอินเทอร์เน็ต', place: 'below' }, { el: p.getByText('ผิดพลาด (5xx) วันนี้'), label: 'ข้อผิดพลาด', place: 'below' }],
+          });
+          const lim = p.getByText('ข้อจำกัดของ Cloudflare ที่ใช้กับระบบนี้');
+          await lim.scrollIntoViewIfNeeded();
+          await r.shot({ title: 'ข้อจำกัดของ Cloudflare', text: 'ระบบใช้ **Cloudflare Tunnel** (ฟรี) ซึ่ง**ไม่มีโควตาจำนวนครั้งต่อวัน/เดือน** · ตัวเลข 100,000 ครั้ง/วัน เป็นของ Cloudflare Workers ที่ไม่ได้ใช้ (แถบด้านขวาแสดงเทียบให้เห็นภาพเท่านั้น) · ข้อจำกัดจริง: อัปโหลด ≤ 100 MB ต่อครั้ง และต้องตอบภายใน 100 วินาที', marks: [{ el: lim, label: 'อ่านข้อจำกัด', place: 'below' }] });
+          r.note({ title: 'ตัวเลขจากฝั่ง Cloudflare (ไม่บังคับ)', text: 'ถ้าต้องการตัวเลขที่ Cloudflare นับเอง: Cloudflare → My Profile → API Tokens → Create Token สิทธิ์ **Zone · Analytics · Read** แล้วใส่ **CF_API_TOKEN** และ **CF_ZONE_ID** (Zone ID อยู่หน้า Overview ของโดเมน) ใน server\\.env แล้ว pm2 restart dochub' });
+        },
+      },
+      {
+        id: 'md-tag', title: 'กำหนดคนที่ลงชื่อในใบตรวจ Metal Detector (Tag MD)', summary: 'ใส่ผู้ใช้เข้า Tag MD แล้วชื่อขึ้นในช่อง พนักงานคุมเครื่อง / Checked By', as: 'admin', roles: ['admin'],
+        run: async (r) => {
+          const p = r.page;
+          await r.go('/users/tags', 1000);
+          const card = p.locator('div.ds-card').filter({ has: p.getByText('MD', { exact: true }) }).first();
+          await r.shot({ title: 'จัดการผู้ใช้ → Tag → การ์ด MD', text: 'Tag **MD** สร้างไว้ให้แล้ว กดปุ่ม **สมาชิก** ที่การ์ด MD', marks: [{ el: card.getByRole('button', { name: 'สมาชิก', exact: true }), label: 'กด สมาชิก', place: 'left' }] });
+          await card.getByRole('button', { name: 'สมาชิก', exact: true }).click(); await r.settle();
+          await r.shot({ title: 'เพิ่ม / เอาออก', text: 'ค้นหาชื่อแล้วกดเลือกเพื่อเพิ่ม · กดรูปคนมีขีดเพื่อเอาออก — ช่อง **พนักงานคุมเครื่อง**, **Checked By (QC staff)** ในหัวเอกสาร และ **Checked By** ในรายการตรวจ แสดงเฉพาะคนใน Tag นี้ทันที', marks: [{ el: p.getByRole('dialog').getByText('ค้นหาผู้ใช้เพื่อเพิ่มเข้า Tag…'), label: 'ค้นหาเพื่อเพิ่มคน', place: 'below' }] });
+          r.note({ title: 'ใช้กับคอลัมน์อื่นได้', text: 'ทำช่องเลือกชื่อผู้ใช้ในไฟล์อื่นได้: ตั้งค่าคอลัมน์ ชนิด **ตัวเลือกเดียว** → **รายชื่อผู้ใช้ในระบบ** → เลือก Tag (หรือผู้ใช้ทุกคน)' });
         },
       },
     ],

@@ -15,7 +15,7 @@ export function fetchLookupOptions(col: Pick<Column, 'sheetId' | 'id'>, parentVa
 }
 export const clearLookupCache = () => cache.clear();
 
-export const lookupOf = (col: Pick<Column, 'validation' | 'dataType'>) => ((col.dataType === 'select' || col.dataType === 'multi_select') && col.validation?.lookup?.columnId ? col.validation.lookup : null);
+export const lookupOf = (col: Pick<Column, 'validation' | 'dataType'>) => ((col.dataType === 'select' || col.dataType === 'multi_select') && (col.validation?.lookup?.columnId || col.validation?.lookup?.users) ? col.validation.lookup : null);
 
 /** Parent value (text) for a dependent column, read from the row being edited */
 export const parentValueFor = (col: Pick<Column, 'validation' | 'dataType'>, values: Record<string, CellValue | undefined>): string | null => {
@@ -37,7 +37,7 @@ export function useLookupOptions(col: Pick<Column, 'sheetId' | 'id' | 'validatio
     setState((s) => ({ ...s, loading: true }));
     void fetchLookupOptions(col, parent).then((o) => live && setState({ options: o, loading: false }));
     return () => { live = false; };
-  }, [col?.id, l?.columnId, l?.parent?.localColumnId, parent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [col?.id, l?.columnId, l?.users?.tag, l?.parent?.localColumnId, parent]); // eslint-disable-line react-hooks/exhaustive-deps
   return { ...state, isLookup: !!l, needsParent: !!l?.parent && parent === null };
 }
 

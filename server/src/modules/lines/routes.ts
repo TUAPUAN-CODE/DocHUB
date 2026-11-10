@@ -14,12 +14,15 @@ const router = Router();
 
 interface LinesCfg {
   lineSheetId: string;
+  /** scan = add a line by scanning its QR (trolley); form = fill a form for each line (a document's lines) */
+  entry?: 'scan' | 'form' | null;
   displayColumnIds?: string[] | null;
   actions?: { label: string; columnId: string; kind: 'now' | 'value'; value?: string | null }[] | null;
 }
 
 const cfgSchema = z.object({
   lineSheetId: zId,
+  entry: z.enum(['scan', 'form']).nullish(),
   displayColumnIds: z.array(zId).max(12).nullish(),
   actions: z.array(z.object({ label: z.string().trim().min(1).max(60), columnId: zId, kind: z.enum(['now', 'value']), value: z.string().max(200).nullish() })).max(10).nullish(),
 });

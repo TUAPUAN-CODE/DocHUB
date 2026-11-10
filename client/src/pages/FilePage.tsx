@@ -42,7 +42,7 @@ import { MenuList, Popover } from '@/components/ui/Popover';
 import { isTyping, useDebounce, useLoad } from '@/hooks';
 import { cn } from '@/lib/cn';
 import { downloadCsv, downloadXlsx } from '@/lib/csv';
-import { fmtDateTime, levelToPerm } from '@/lib/format';
+import { displayValue, fmtDateTime, levelToPerm } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { confirmDialog, toast, useUi } from '@/store/ui';
@@ -82,6 +82,21 @@ export default function FilePage() {
   const [rowHist, setRowHist] = useState<Row | null>(null);
   const [selRows, setSelRows] = useState<string[]>([]);
   const [rowView, setRowView] = useState<Row | null>(null);
+  const [linesRow, setLinesRow] = useState<Row | null>(null);
+  const linesCfg = view.detail?.settings?.lines;
+  const openLines = (r: Row) => { setRowView(null); setLinesRow(r); setModal('lines'); };
+  const linesHeader = (linesRow ? view.rows.find((r) => r.id === linesRow.id) ?? linesRow : null) ?? view.rows.find((r) => r.id === selRows[0]) ?? null;
+  // ?row=<id> (a Search result): open that row once the sheet is there
+  const linkRow = sp.get('row');
+  useEffect(() => {
+    if (!linkRow || !sheetId) return;
+    let live = true;
+    rowsApi.query(sheetId, { page: 1, pageSize: 1, sorts: [], filters: [], rowIds: [linkRow] })
+      .then((r) => { if (live && r.rows[0]) setRowView(r.rows[0]); })
+      .catch(() => undefined)
+      .finally(() => { if (live) { const n = new URLSearchParams(sp); n.delete('row'); setSp(n, { replace: true }); } });
+    return () => { live = false; };
+  }, [linkRow, sheetId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [modal, setModal] = useState<'columns' | 'trash' | 'rollback' | 'import' | 'filterbar' | 'share' | 'rename' | 'dup' | 'scanmix' | 'scan' | 'mix' | 'lines' | 'devices' | 'revisions' | null>(null);
   const [more, setMore] = useState(false);
   const [freeze, setFreeze] = useState(false);
@@ -279,7 +294,7 @@ export default function FilePage() {
               {canWrite && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} aria-label="นำเข้า" title="นำเข้า" onClick={() => setModal('import')}><Lbl>นำเข้า</Lbl></Button>}
               {canWrite && !!view.detail?.settings?.scanProfiles?.length && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} onClick={() => setModal('scan')}>สแกน</Button>}
               {canWrite && !!view.detail?.settings?.mix && <Button size="sm" variant="secondary" icon={<Merge className="h-4 w-4" />} onClick={() => setModal('mix')}>ผสม</Button>}
-              {!!view.detail?.settings?.lines && selRows.length === 1 && <Button size="sm" variant="secondary" icon={<Boxes className="h-4 w-4" />} onClick={() => setModal('lines')}>รายการในแถว</Button>}
+              {!!view.detail?.settings?.lines && selRows.length === 1 && <Button size="sm" variant="secondary" icon={<Boxes className="h-4 w-4" />} onClick={() => { setLinesRow(null); setModal('lines'); }}>รายการในแถว</Button>}
               {canManage && !union && <Button size="sm" variant="secondary" icon={<Columns3 className="h-4 w-4" />} aria-label="คอลัมน์" title="คอลัมน์" onClick={() => setModal('columns')}><Lbl>คอลัมน์</Lbl></Button>}
               {canManage && !union && <Button size="sm" variant="secondary" icon={<Cpu className="h-4 w-4" />} aria-label="อุปกรณ์" title="อุปกรณ์" onClick={() => setModal('devices')}><Lbl>อุปกรณ์</Lbl></Button>}
               {canManage && !union && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} aria-label="ตั้งค่าสแกน/ผสม" title="ตั้งค่าสแกน/ผสม" onClick={() => setModal('scanmix')}><Lbl>ตั้งค่าสแกน/ผสม</Lbl></Button>}
@@ -364,10 +379,15 @@ export default function FilePage() {
             onSort={(sorts) => view.setQuery({ sorts })} />
           <RowFormModal open={!!rowForm} onClose={() => setRowForm(null)} columns={view.allColumns} row={rowForm?.row ?? null} users={view.users} canWrite={canWrite}
             sheetId={sheetId} settings={view.detail.settings} canManage={canManage && !union} onLayoutSaved={() => void view.loadDetail()}
-            onCreate={(values) => view.addRow(values)}
+            onCreate={async (values) => {
+              const r = await view.addRow(values);
+              if (r && linesCfg?.entry === 'form') openLines(r); // a document: go on with its lines
+              return r;
+            }}
             onSave={(changes) => view.commit(changes.map((c) => ({ ...c, rowId: rowForm!.row!.id })), { partial: true })} />
           <RowViewModal row={rowView} rows={view.rows} columns={view.columns} users={view.users} onClose={() => setRowView(null)} onNavigate={setRowView}
-            onEdit={canWrite ? (r) => { setRowView(null); setRowForm({ row: r }); } : undefined} />
+            onEdit={canWrite ? (r) => { setRowView(null); setRowForm({ row: r }); } : undefined}
+            onLines={linesCfg ? openLines : undefined} />
           <CellHistoryModal target={cellHist} onClose={() => setCellHist(null)} onChanged={() => void view.loadRows(true)} />
           <RowHistoryModal row={rowHist} columns={view.allColumns} canRollback={canManage} onClose={() => setRowHist(null)} onChanged={() => void view.loadRows(true)} />
           <ColumnManagerModal open={modal === 'columns'} onClose={() => setModal(null)} sheetId={sheetId} fileId={f.id} fileName={f.name} columns={view.detail.columns} deleted={view.detail.deletedColumns}
@@ -375,7 +395,9 @@ export default function FilePage() {
           <ScanMixSettings open={modal === 'scanmix'} onClose={() => setModal(null)} sheetId={sheetId} columns={view.columns} settings={view.detail.settings} fileId={f.id} fileName={f.name} onSaved={() => void view.loadDetail()} />
           <ScanDialog open={modal === 'scan'} onClose={() => setModal(null)} sheetId={sheetId} profiles={view.detail.settings?.scanProfiles ?? []} onDone={() => void view.loadRows(true)} />
           {view.detail.settings?.mix && <MixDialog open={modal === 'mix'} onClose={() => setModal(null)} sheetId={sheetId} cfg={view.detail.settings.mix} columns={view.columns} selectedRows={view.rows.filter((r) => selRows.includes(r.id))} onDone={() => void view.loadRows(true)} />}
-          {view.detail.settings?.lines && <LinesDialog open={modal === 'lines'} onClose={() => setModal(null)} sheetId={sheetId} headerRow={view.rows.find((r) => r.id === selRows[0]) ?? null} headerLabel="" cfg={view.detail.settings.lines} canWrite={canWrite} onDone={() => void view.loadRows(true)} />}
+          {view.detail.settings?.lines && <LinesDialog open={modal === 'lines'} onClose={() => { setModal(null); setLinesRow(null); }} sheetId={sheetId}
+            headerRow={linesHeader} headerLabel={linesHeader && view.columns[0] ? displayValue(view.columns[0], linesHeader.values[view.columns[0].id] ?? null) : ''}
+            cfg={view.detail.settings.lines} canWrite={canWrite} onDone={() => void view.loadRows(true)} headerColumns={view.columns} />}
           <DeviceBindingsDialog open={modal === 'devices'} onClose={() => setModal(null)} sheetId={sheetId} profiles={view.detail.settings?.scanProfiles ?? []} columns={view.allColumns} />
           <FilterBarSettings open={modal === 'filterbar'} onClose={() => setModal(null)} sheetId={sheetId} columns={view.columns} selected={barSel} onSaved={() => void view.loadDetail()} />
           <ImportModal open={modal === 'import'} onClose={() => setModal(null)} sheetId={sheetId} sheetName={view.detail.sheet.name} fileName={f.name} columns={view.detail.columns}

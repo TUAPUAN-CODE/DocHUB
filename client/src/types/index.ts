@@ -62,7 +62,11 @@ export interface AlertLevel { atPct: number; color: string; label?: string | nul
 export interface AlertNotify { targetId: string; levelIdx?: number[] | null; labelColumnIds?: string[] | null }
 export interface AlertCfg { startColumnId: string; endColumnId?: string | null; limitColumnId: string; normalColor?: string | null; levels: AlertLevel[]; notify?: AlertNotify | null }
 export interface DocNumberCfg { template: string; prefixes?: string[] | null; prefixLookup?: Lookup | null; dateColumnId?: string | null }
-export interface Lookup { sheetId: string; columnId: string; parent?: { localColumnId: string; foreignColumnId: string } | null }
+export interface Lookup {
+  sheetId: string; columnId: string; parent?: { localColumnId: string; foreignColumnId: string } | null;
+  /** options = names of active users (with this tag when set) instead of another sheet's values */
+  users?: { tag?: string | null } | null;
+}
 export type CellValue = string | number | boolean | string[] | null;
 
 export interface Column {

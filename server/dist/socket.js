@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.onlineSockets = void 0;
 exports.initSocket = initSocket;
 exports.emitToUser = emitToUser;
 exports.emitToSheet = emitToSheet;
@@ -12,6 +13,9 @@ const permissions_1 = require("./shared/permissions");
 const logger_1 = require("./shared/logger");
 const cluster_1 = require("./services/cluster");
 let io = null;
+/** connections open right now (this process) — admin Monitor page */
+const onlineSockets = () => io?.engine.clientsCount ?? 0;
+exports.onlineSockets = onlineSockets;
 function initSocket(server) {
     io = new socket_io_1.Server(server, {
         cors: { origin: env_1.env.corsOrigins, credentials: true },
