@@ -186,6 +186,8 @@ Put it behind **HTTPS**, for example with IIS ARR, nginx or Caddy, and enable We
 
 Quality Highlight (Note การผลิต from the QUALITY HIGHLIGHT Excel, with sheet revisions, auto-filled update date/name and a lookup dashboard): [`docs/QUALITY_HIGHLIGHT.md`](docs/QUALITY_HIGHLIGHT.md) (Thai). Its REV.9 data ships in `database/seed` and is inserted once per database at start-up.
 
+In-app manual (menu คู่มือ): step-by-step guides with annotated screenshots of the real app, printable as PDF — [`docs/GUIDE.md`](docs/GUIDE.md) (Thai).
+
 Account requests, user tags (share a file or folder with everyone in a tag), links to a file or folder that bring people back after signing in, and dialogs that close only from their own buttons: [`docs/ACCOUNTS_TAGS.md`](docs/ACCOUNTS_TAGS.md) (Thai).
 
 `client/dist` and `server/dist` are committed: a server running `ecosystem.production.config.js` updates with `git pull` alone (PM2 restarts the API when `server/dist` changes).

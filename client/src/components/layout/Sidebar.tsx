@@ -1,7 +1,7 @@
 import { isBasicRole } from '@/types';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
-import { CheckCircle2, Cpu, Database, FolderOpen, GitFork, History, Home, KeyRound, LayoutDashboard, LogOut, Settings, Trash2, Users, X } from 'lucide-react';
+import { BookOpen, CheckCircle2, Cpu, Database, FolderOpen, GitFork, History, Home, KeyRound, LayoutDashboard, LogOut, Settings, Trash2, Users, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
@@ -27,6 +27,7 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
     { to: '/approvals', label: 'อนุมัติเอกสาร', icon: <CheckCircle2 className="h-[18px] w-[18px]" /> },
     { to: '/traceback', label: 'ย้อนรอย (Traceback)', icon: <GitFork className="h-[18px] w-[18px]" /> },
     { to: '/dashboards', label: 'แดชบอร์ด', icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
+    { to: '/guide', label: 'คู่มือ', icon: <BookOpen className="h-[18px] w-[18px]" /> },
     { to: '/settings', label: 'ตั้งค่า', icon: <Settings className="h-[18px] w-[18px]" /> },
   ];
 
@@ -90,7 +91,7 @@ export function Sidebar() {
   const setMobile = useUi((s) => s.setMobileNav);
   return (
     <>
-      <aside className="ds-sidebar hidden h-full shrink-0 lg:block"><SidebarBody scope="desktop" /></aside>
+      <aside className="ds-sidebar hidden h-full shrink-0 lg:block print:!hidden"><SidebarBody scope="desktop" /></aside>
       <AnimatePresence>{mobile && <MobileDrawer onClose={() => setMobile(false)} />}</AnimatePresence>
     </>
   );

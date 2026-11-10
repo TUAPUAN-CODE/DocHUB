@@ -41,4 +41,6 @@ without the owner asking for it.
 ## UI rules
 
 - Dialogs (`components/ui/Modal.tsx`) close only from their own buttons (✕ / ยกเลิก …): no backdrop tap, no Esc. Do not bring those back.
+- The in-app manual (`/guide`, docs/GUIDE.md) is generated from the real UI: after a UI change that a guide shows, re-run
+  `client/scripts/guide/capture.cjs` (demo database only) and commit `client/public/guide`.
 - Access = own grants + grants to the user's tags (`FileTagAccess` / `FolderTagAccess` via `UserTags`), capped by role (`shared/permissions.ts`).
