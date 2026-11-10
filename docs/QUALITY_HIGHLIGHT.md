@@ -23,14 +23,11 @@ Quality Hilight/                      (โฟลเดอร์)
 
 ## ติดตั้งบน server (cmd ที่ `I:\DocHUB`)
 
-รอบนี้แก้ทั้งหน้าเว็บและ server (ตารางใหม่ `SheetRevisions` สร้างให้เองตอนเปิดระบบ):
-
 ```
 git pull
-cd client && npm run build && cd ..
-cd server && npm run build && cd ..
-pm2 reload dochub
 ```
+
+repo มีไฟล์ที่ build แล้ว ไม่ต้อง build บน server · `dochub` รีสตาร์ตเองหลัง pull (ตารางใหม่ `SheetRevisions` สร้างให้เองตอนเปิดระบบ) — ดู "อัปเดตโค้ดครั้งต่อไป" ใน [DEPLOY_PUBLIC.md](DEPLOY_PUBLIC.md)
 
 นำเข้าจาก Excel (คัดลอกไฟล์ Excel ไปไว้บน server ก่อน — สคริปต์อ่านไฟล์บนเครื่องนั้น ข้อมูลไม่ถูกเก็บใน repo):
 

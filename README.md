@@ -186,6 +186,8 @@ Put it behind **HTTPS**, for example with IIS ARR, nginx or Caddy, and enable We
 
 Quality Hilight (Note การผลิต from the QUALITY HIGHLIGHT Excel, with sheet revisions, auto-filled update date/name and a lookup dashboard): [`docs/QUALITY_HIGHLIGHT.md`](docs/QUALITY_HIGHLIGHT.md) (Thai).
 
+`client/dist` and `server/dist` are committed: a server running `ecosystem.production.config.js` updates with `git pull` alone (PM2 restarts the API when `server/dist` changes).
+
 To open it on the internet from a company server for free (PM2 + Cloudflare Tunnel, no inbound ports, the database stays on site), follow [`docs/DEPLOY_PUBLIC.md`](docs/DEPLOY_PUBLIC.md) (Thai). It uses `ecosystem.production.config.js` and `deploy/cloudflared/config.example.yml`.
 
 With Docker:

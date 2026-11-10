@@ -1,0 +1,482 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseFormula = exports.formulaDisplay = exports.SYNC_LIMIT_ROWS = exports.invalidateSource = exports.formulaCfgOf = exports.formulaExprOf = exports.FORMULA_TYPES = void 0;
+exports.toF = toF;
+exports.fromF = fromF;
+exports.planSheet = planSheet;
+exports.recomputeRows = recomputeRows;
+exports.recomputeSheet = recomputeSheet;
+exports.backfill = backfill;
+exports.remapAfterCopy = remapAfterCopy;
+exports.countRows = countRows;
+exports.syncSources = syncSources;
+exports.readersOf = readersOf;
+exports.prepareFormulaValidation = prepareFormulaValidation;
+exports.formulaDependents = formulaDependents;
+exports.describeFormula = describeFormula;
+exports.scheduleReaders = scheduleReaders;
+const db_1 = require("../../config/db");
+const env_1 = require("../../config/env");
+const cellValue_1 = require("../../shared/cellValue");
+const http_1 = require("../../shared/http");
+const logger_1 = require("../../shared/logger");
+const cellWriter_1 = require("../../services/cellWriter");
+const socket_1 = require("../../socket");
+const compile_1 = require("./compile");
+const evaluator_1 = require("./evaluator");
+const convert_1 = require("./convert");
+const types_1 = require("./types");
+const parser_1 = require("./parser");
+Object.defineProperty(exports, "parseFormula", { enumerable: true, get: function () { return parser_1.parse; } });
+const permissions_1 = require("../../shared/permissions");
+/** Column types a formula may produce (the result is stored exactly like a typed value of that column) */
+exports.FORMULA_TYPES = new Set(['varchar', 'text', 'int', 'float', 'date', 'datetime', 'boolean']);
+const formulaExprOf = (col) => {
+    const e = col.validation?.formula?.expr;
+    return e && exports.FORMULA_TYPES.has(col.data_type) ? e : null;
+};
+exports.formulaExprOf = formulaExprOf;
+const pad2 = (n) => String(n).padStart(2, '0');
+/** stored cell value → formula value */
+function toF(type, v) {
+    if (v === null || v === undefined)
+        return null;
+    if (Array.isArray(v))
+        return type === 'multi_select' ? v.join(', ') : null;
+    if (type === 'date' && typeof v === 'string')
+        return (0, convert_1.toDate)(v) ? { kind: 'date', ms: (0, convert_1.toDate)(v).ms } : null;
+    if (type === 'datetime' && typeof v === 'string') {
+        const ms = Date.parse(v);
+        return Number.isNaN(ms) ? null : { kind: 'datetime', ms };
+    }
+    return v;
+}
+/** formula result → raw value for the column's own normalizer */
+function fromF(result, type) {
+    if (result === null)
+        return null;
+    const tz = env_1.env.tzOffsetMinutes;
+    if ((0, types_1.isDateV)(result)) {
+        const p = (0, convert_1.parts)(result, { tzOffsetMinutes: tz });
+        switch (type) {
+            case 'date': return `${p.y}-${pad2(p.m)}-${pad2(p.d)}`;
+            case 'datetime': return new Date(result.ms - (result.kind === 'date' ? tz * 60_000 : 0)).toISOString();
+            case 'varchar':
+            case 'text': return result.kind === 'date' ? `${p.y}-${pad2(p.m)}-${pad2(p.d)}` : `${p.y}-${pad2(p.m)}-${pad2(p.d)} ${pad2(p.h)}:${pad2(p.mi)}`;
+            default: return (0, convert_1.toNumber)(result);
+        }
+    }
+    switch (type) {
+        case 'int': {
+            const n = (0, convert_1.toNumber)(result);
+            return n === null ? null : Math.round(n);
+        }
+        case 'float': return (0, convert_1.toNumber)(result);
+        case 'boolean': return (0, convert_1.toBool)(result);
+        case 'date':
+        case 'datetime': {
+            const d = (0, convert_1.toDate)(result);
+            return d ? fromF(d, type) : null;
+        }
+        default: return (0, convert_1.toText)(result);
+    }
+}
+const formulaCfgOf = (col) => {
+    const f = col.validation?.formula;
+    return f?.expr && exports.FORMULA_TYPES.has(col.data_type) ? f : null;
+};
+exports.formulaCfgOf = formulaCfgOf;
+const refsOf = (cols) => cols.map((c) => ({ id: c.column_id, name: c.column_name, dataType: c.data_type }));
+const sourceCache = new Map();
+const SOURCE_TTL_MS = 5000;
+const SOURCE_CELL_CAP = 200_000;
+/** a write to a sheet makes what other sheets read from it stale */
+const invalidateSource = (sheetId) => { sourceCache.delete(sheetId.toLowerCase()); };
+exports.invalidateSource = invalidateSource;
+async function loadSourceData(sheetId, columnIds) {
+    const key = `${sheetId.toLowerCase()}`;
+    const hit = sourceCache.get(key);
+    if (hit && Date.now() - hit.at < SOURCE_TTL_MS)
+        return hit.data;
+    const data = (async () => {
+        const cols = await (0, cellWriter_1.loadColumns)(sheetId);
+        const types = new Map(cols.map((c) => [c.column_id, c.data_type]));
+        const ids = [...new Set(columnIds)];
+        const cells = ids.length ? await (0, db_1.q)(`SELECT TOP (${SOURCE_CELL_CAP}) c.row_id, c.column_id, r.row_order, c.value_text, c.value_int, c.value_float, c.value_date, c.value_bool, c.value_json
+       FROM Cells c JOIN Rows r ON r.row_id = c.row_id
+       WHERE r.sheet_id = @s AND r.is_deleted = 0 AND c.column_id IN ${(0, db_1.idList)('@cc')}
+       ORDER BY r.row_order`, { s: db_1.T.uuid(sheetId), cc: (0, db_1.jsonParam)(ids) }) : [];
+        if (cells.length >= SOURCE_CELL_CAP)
+            logger_1.logger.warn(`LOOKUP source ${sheetId} is larger than ${SOURCE_CELL_CAP} cells — only the first rows are used`);
+        const rows = new Map();
+        const order = [];
+        for (const c of cells) {
+            const t = types.get(c.column_id);
+            if (!t)
+                continue;
+            if (!rows.has(c.row_id)) {
+                rows.set(c.row_id, new Map());
+                order.push(c.row_id);
+            }
+            rows.get(c.row_id).set(c.column_id, toF(t, (0, cellValue_1.fromStorage)(t, c)));
+        }
+        return { types, rows, order };
+    })();
+    sourceCache.set(key, { at: Date.now(), data });
+    data.catch(() => sourceCache.delete(key));
+    return data;
+}
+const keyOf = (v) => (0, convert_1.toText)(v).trim().toLowerCase();
+async function buildLookup(needed) {
+    if (!needed.size)
+        return undefined;
+    const loaded = new Map();
+    for (const [sheetId, ids] of needed)
+        loaded.set(sheetId, await loadSourceData(sheetId, [...ids]));
+    const index = new Map(); // sheet:keyColumn → normalized key → first row
+    return (sheetId, resultColumnId, keyColumnId, key) => {
+        const data = loaded.get(sheetId.toLowerCase());
+        if (!data || key === null || (typeof key === 'string' && !key.trim()))
+            return null;
+        const ik = `${sheetId}:${keyColumnId}`;
+        let idx = index.get(ik);
+        if (!idx) {
+            idx = new Map();
+            for (const rowId of data.order) {
+                const k = data.rows.get(rowId).get(keyColumnId);
+                if (k !== undefined && k !== null) {
+                    const nk = keyOf(k);
+                    if (nk && !idx.has(nk))
+                        idx.set(nk, rowId);
+                }
+            }
+            index.set(ik, idx);
+        }
+        const row = idx.get(keyOf(key));
+        return row ? data.rows.get(row).get(resultColumnId) ?? null : null;
+    };
+}
+/** Formula columns of a sheet in the order they have to be computed. Broken formulas (deleted source column …) are skipped. */
+async function planSheet(sheetId, tx) {
+    const cols = await (0, cellWriter_1.loadColumns)(sheetId, tx);
+    const defs = new Map(cols.map((c) => [c.column_id, (0, cellValue_1.toColumnDef)(c)]));
+    const refs = refsOf(cols);
+    const srcCols = new Map();
+    const found = [];
+    const neededLookup = new Map();
+    for (const c of cols) {
+        const def = defs.get(c.column_id);
+        const cfg = (0, exports.formulaCfgOf)(def);
+        if (!cfg)
+            continue;
+        try {
+            for (const s of cfg.sources ?? [])
+                if (!srcCols.has(s.sheetId.toLowerCase()))
+                    srcCols.set(s.sheetId.toLowerCase(), refsOf(await (0, cellWriter_1.loadColumns)(s.sheetId)));
+            const compiled = (0, compile_1.compileFormula)(cfg.expr, refs, { selfId: c.column_id, sources: cfg.sources, sourceColumns: srcCols });
+            for (const x of (0, parser_1.collectXrefs)(compiled.ast)) {
+                if (!x.sheetId || !x.columnId)
+                    continue;
+                if (!neededLookup.has(x.sheetId))
+                    neededLookup.set(x.sheetId, new Set());
+                neededLookup.get(x.sheetId).add(x.columnId);
+            }
+            found.push({ id: c.column_id, def, ast: compiled.ast, deps: compiled.deps, sourceSheets: compiled.sourceSheets });
+        }
+        catch (e) {
+            logger_1.logger.warn(`Formula skipped (${def.column_name}): ${e.message}`);
+        }
+    }
+    let ordered;
+    const memo = {};
+    const lookup = () => (memo.p ??= buildLookup(neededLookup));
+    try {
+        ordered = (0, compile_1.topoOrder)(found);
+    }
+    catch {
+        logger_1.logger.warn(`Formula cycle in sheet ${sheetId}`);
+        return { items: [], types: new Map(), defs, needed: [], lookup };
+    }
+    const byId = new Map(found.map((f) => [f.id, f]));
+    const items = ordered.map((id) => byId.get(id));
+    const needed = [...new Set(items.flatMap((i) => i.deps))];
+    return { items, types: new Map(cols.map((c) => [c.column_id, c.data_type])), defs, needed, lookup };
+}
+/** Recomputes every formula column for the given rows and writes the changes (same transaction as the caller). */
+async function recomputeRows(tx, sheetId, rowIds, userId, preset) {
+    const plan = preset ?? (await planSheet(sheetId, tx));
+    if (!plan.items.length || !rowIds.length)
+        return [];
+    const ids = [...new Set(rowIds.map((r) => r.toLowerCase()))];
+    const lookup = await plan.lookup();
+    const cells = await (0, db_1.q)(`SELECT row_id, column_id, value_text, value_int, value_float, value_date, value_bool, value_json FROM Cells
+     WHERE row_id IN ${(0, db_1.idList)('@ids')} AND column_id IN ${(0, db_1.idList)('@cc')}`, { ids: (0, db_1.jsonParam)(ids), cc: (0, db_1.jsonParam)(plan.needed) }, tx);
+    const rows = await (0, db_1.q)(`SELECT row_id, row_order FROM Rows WHERE row_id IN ${(0, db_1.idList)('@ids')} AND is_deleted = 0`, { ids: (0, db_1.jsonParam)(ids) }, tx);
+    const rowNo = new Map(rows.map((r) => [r.row_id, r.row_order]));
+    const vals = new Map();
+    for (const c of cells) {
+        const t = plan.types.get(c.column_id);
+        if (!t)
+            continue;
+        if (!vals.has(c.row_id))
+            vals.set(c.row_id, new Map());
+        vals.get(c.row_id).set(c.column_id, toF(t, (0, cellValue_1.fromStorage)(t, c)));
+    }
+    const out = [];
+    for (const rowId of ids) {
+        if (!rowNo.has(rowId))
+            continue;
+        const cur = vals.get(rowId) ?? new Map();
+        for (const it of plan.items) {
+            let result = null;
+            try {
+                result = (0, evaluator_1.evaluate)(it.ast, { get: (id) => cur.get(id) ?? null, tzOffsetMinutes: env_1.env.tzOffsetMinutes, lookup });
+            }
+            catch {
+                result = null;
+            }
+            const n = (0, cellValue_1.normalizeValue)(it.def, fromF(result, it.def.data_type), { skipRequired: true });
+            const value = n.ok ? n.value : null;
+            cur.set(it.id, toF(it.def.data_type, value)); // dependents see the stored (rounded / typed) value
+            const w = await (0, cellWriter_1.writeCell)(tx, { sheetId, rowId, col: it.def, value, userId, source: 'formula' });
+            if (w.changed)
+                out.push({ rowId, columnId: it.id, rowNo: rowNo.get(rowId), columnName: it.def.column_name, oldValue: w.oldValue, newValue: w.newValue, historyId: w.historyId, at: w.at });
+        }
+    }
+    return out;
+}
+const CHUNK = 400;
+exports.SYNC_LIMIT_ROWS = 20_000;
+/** Recomputes all formula columns of a sheet for every row (after a formula is created / changed) */
+async function recomputeSheet(user, sheetId) {
+    const plan = await planSheet(sheetId);
+    if (!plan.items.length)
+        return { rows: 0, cellsChanged: 0 };
+    const all = await (0, db_1.q)(`SELECT row_id FROM Rows WHERE sheet_id = @s AND is_deleted = 0 ORDER BY row_order`, { s: db_1.T.uuid(sheetId) });
+    let changed = 0;
+    for (let i = 0; i < all.length; i += CHUNK) {
+        const chunk = all.slice(i, i + CHUNK).map((r) => r.row_id);
+        changed += await (0, db_1.withTx)(async (tx) => (await recomputeRows(tx, sheetId, chunk, user.id, plan)).length);
+    }
+    (0, socket_1.emitToSheet)(sheetId, 'rows:changed', { sheetId, action: 'formula', by: user.displayName });
+    return { rows: all.length, cellsChanged: changed };
+}
+/** After a formula column was created / changed: fill existing rows (in the background when the sheet is large) */
+async function backfill(user, sheetId) {
+    await syncSources(sheetId);
+    if ((await countRows(sheetId)) > exports.SYNC_LIMIT_ROWS) {
+        void recomputeSheet(user, sheetId).catch((e) => logger_1.logger.error(`formula backfill failed: ${e?.message}`));
+        return { queued: true };
+    }
+    await recomputeSheet(user, sheetId);
+    return { queued: false };
+}
+/** A copied sheet has new column ids: re-point the formulas of its columns */
+async function remapAfterCopy(tx, newSheetId, columnMap) {
+    const map = new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]));
+    const rows = await (0, db_1.q)(`SELECT column_id, validation_rule FROM Columns WHERE sheet_id = @s AND validation_rule LIKE N'%formula%'`, { s: db_1.T.uuid(newSheetId) }, tx);
+    for (const r of rows) {
+        let v = null;
+        try {
+            v = JSON.parse(r.validation_rule);
+        }
+        catch {
+            continue;
+        }
+        const expr = v?.formula?.expr;
+        if (!expr)
+            continue;
+        v.formula.expr = expr.replace(/\[#([0-9a-fA-F-]{36})\]/g, (_m, id) => `[#${map.get(id.toLowerCase()) ?? id.toLowerCase()}]`);
+        await (0, db_1.q)(`UPDATE Columns SET validation_rule = @v WHERE column_id = @c`, { v: db_1.T.text(JSON.stringify(v)), c: db_1.T.uuid(r.column_id) }, tx);
+    }
+}
+async function countRows(sheetId) {
+    const r = await (0, db_1.q)(`SELECT COUNT(*) AS n FROM Rows WHERE sheet_id = @s AND is_deleted = 0`, { s: db_1.T.uuid(sheetId) });
+    return Number(r[0]?.n ?? 0);
+}
+const ALIAS_RE = /^[\p{L}\p{N}\p{M}_]{1,40}$/u;
+/** Keeps FormulaSources (who reads which sheet) in line with the stored formulas of a sheet */
+async function syncSources(sheetId) {
+    const cols = await (0, cellWriter_1.loadColumns)(sheetId);
+    const rows = [];
+    for (const c of cols) {
+        const cfg = (0, exports.formulaCfgOf)((0, cellValue_1.toColumnDef)(c));
+        for (const src of cfg?.sources ?? [])
+            rows.push({ c: c.column_id, s: src.sheetId.toLowerCase() });
+    }
+    await (0, db_1.withTx)(async (tx) => {
+        await (0, db_1.q)(`DELETE FROM FormulaSources WHERE sheet_id = @s`, { s: db_1.T.uuid(sheetId) }, tx);
+        for (const r of rows) {
+            await (0, db_1.q)(`INSERT INTO FormulaSources (column_id, sheet_id, source_sheet_id) VALUES (@c, @s, @src)`, { c: db_1.T.uuid(r.c), s: db_1.T.uuid(sheetId), src: db_1.T.uuid(r.s) }, tx);
+        }
+    });
+}
+/** Sheets that read from `sheetId` (directly) */
+async function readersOf(sheetId) {
+    const r = await (0, db_1.q)(`SELECT DISTINCT sheet_id FROM FormulaSources WHERE source_sheet_id = @s`, { s: db_1.T.uuid(sheetId) });
+    return r.map((x) => String(x.sheet_id).toLowerCase());
+}
+/** Would adding "sheetId reads from sources" create a loop of sheets reading each other? */
+async function readsBack(sheetId, sources) {
+    const target = sheetId.toLowerCase();
+    const seen = new Set();
+    const stack = [...sources.map((x) => x.toLowerCase())];
+    while (stack.length) {
+        const cur = stack.pop();
+        if (cur === target)
+            return true;
+        if (seen.has(cur))
+            continue;
+        seen.add(cur);
+        const r = await (0, db_1.q)(`SELECT DISTINCT source_sheet_id FROM FormulaSources WHERE sheet_id = @s`, { s: db_1.T.uuid(cur) });
+        for (const x of r)
+            stack.push(String(x.source_sheet_id).toLowerCase());
+    }
+    return false;
+}
+/** Validates a formula column definition; returns the validation to store (expression kept by column id) */
+async function prepareFormulaValidation(user, sheetId, selfId, dataType, validation) {
+    const raw = validation?.formula?.expr;
+    if (validation && 'formula' in validation && !raw) {
+        const { formula: _f, ...rest } = validation;
+        void _f;
+        return Object.keys(rest).length ? rest : null;
+    }
+    if (!raw)
+        return validation;
+    if (!exports.FORMULA_TYPES.has(dataType))
+        throw (0, http_1.badRequest)('สูตรใช้ได้กับคอลัมน์ชนิด ข้อความ ตัวเลข วันที่ และ ใช่/ไม่ใช่ เท่านั้น');
+    // sources: other sheets this formula reads. The person configuring must be able to read them.
+    const sources = [];
+    const srcCols = new Map();
+    const seenAlias = new Set();
+    for (const s of (validation?.formula?.sources ?? [])) {
+        if (!ALIAS_RE.test(s.alias))
+            throw (0, http_1.badRequest)(`ชื่อแหล่งข้อมูล "${s.alias}" ใช้ไม่ได้ (ตัวอักษร ตัวเลข _ ไม่เกิน 40 ตัว ไม่มีช่องว่าง)`);
+        if (seenAlias.has(s.alias.toLowerCase()))
+            throw (0, http_1.badRequest)(`ชื่อแหล่งข้อมูล "${s.alias}" ซ้ำกัน`);
+        seenAlias.add(s.alias.toLowerCase());
+        if (s.sheetId.toLowerCase() === sheetId.toLowerCase())
+            throw (0, http_1.badRequest)('อ่านข้อมูลจากชีตตัวเองด้วย @ ไม่ได้ ใช้ชื่อคอลัมน์ธรรมดาแทน');
+        await (0, permissions_1.requireSheet)(user, s.sheetId, permissions_1.LV.read);
+        sources.push({ alias: s.alias, sheetId: s.sheetId.toLowerCase() });
+        srcCols.set(s.sheetId.toLowerCase(), refsOf(await (0, cellWriter_1.loadColumns)(s.sheetId)));
+    }
+    if (sources.length && (await readsBack(sheetId, sources.map((x) => x.sheetId))))
+        throw (0, http_1.badRequest)('ชีตทั้งสองอ่านข้อมูลจากกันเป็นวงกลม');
+    const cols = await (0, cellWriter_1.loadColumns)(sheetId);
+    const refs = refsOf(cols.filter((c) => c.column_id !== selfId));
+    let compiled;
+    try {
+        compiled = (0, compile_1.compileFormula)(raw, refs, { selfId: selfId ?? undefined, sources, sourceColumns: srcCols });
+    }
+    catch (e) {
+        if (e instanceof types_1.FormulaSyntaxError)
+            throw (0, http_1.badRequest)(`สูตรไม่ถูกต้อง: ${e.message}`, { formula: { message: e.message, pos: e.pos } });
+        throw e;
+    }
+    // cycle check including the column being saved
+    const others = [];
+    for (const c of cols) {
+        if (c.column_id === selfId)
+            continue;
+        const cfg = (0, exports.formulaCfgOf)((0, cellValue_1.toColumnDef)(c));
+        if (!cfg)
+            continue;
+        try {
+            const oc = new Map();
+            for (const s of cfg.sources ?? [])
+                oc.set(s.sheetId.toLowerCase(), refsOf(await (0, cellWriter_1.loadColumns)(s.sheetId)));
+            others.push({ id: c.column_id, deps: (0, compile_1.compileFormula)(cfg.expr, refsOf(cols), { selfId: c.column_id, sources: cfg.sources, sourceColumns: oc }).deps });
+        }
+        catch { /* broken elsewhere */ }
+    }
+    const selfKey = selfId ?? '__new__';
+    try {
+        (0, compile_1.topoOrder)([...others, { id: selfKey, deps: compiled.deps }]);
+    }
+    catch {
+        throw (0, http_1.badRequest)('สูตรนี้ทำให้คอลัมน์สูตรอ้างอิงกันเป็นวงกลม');
+    }
+    const formula = { expr: compiled.canonical };
+    if (sources.length)
+        formula.sources = sources;
+    return { ...validation, formula };
+}
+/** Names of formula columns that use `columnId` (a column used by a formula cannot be deleted).
+ *  Also covers columns of OTHER sheets that read this column through @source[...]. */
+async function formulaDependents(sheetId, columnId) {
+    const cols = await (0, cellWriter_1.loadColumns)(sheetId);
+    const refs = refsOf(cols);
+    const names = [];
+    for (const c of cols) {
+        const cfg = (0, exports.formulaCfgOf)((0, cellValue_1.toColumnDef)(c));
+        if (!cfg || c.column_id === columnId)
+            continue;
+        try {
+            const sc = new Map();
+            for (const s of cfg.sources ?? [])
+                sc.set(s.sheetId.toLowerCase(), refsOf(await (0, cellWriter_1.loadColumns)(s.sheetId)));
+            if ((0, compile_1.compileFormula)(cfg.expr, refs, { selfId: c.column_id, sources: cfg.sources, sourceColumns: sc }).deps.includes(columnId))
+                names.push(c.column_name);
+        }
+        catch { /* ignore */ }
+    }
+    const id = columnId.toLowerCase();
+    for (const readerSheet of await readersOf(sheetId)) {
+        for (const c of await (0, cellWriter_1.loadColumns)(readerSheet)) {
+            const cfg = (0, exports.formulaCfgOf)((0, cellValue_1.toColumnDef)(c));
+            if (cfg?.expr.toLowerCase().includes(`@{${sheetId.toLowerCase()}}[#${id}]`))
+                names.push(c.column_name);
+        }
+    }
+    return names;
+}
+/** For the column editor: shows the stored formula with column names */
+const formulaDisplay = (canonical, cols, sources, sourceColumns) => (0, compile_1.displayFormula)(canonical, refsOf(cols), sources, sourceColumns);
+exports.formulaDisplay = formulaDisplay;
+/** Describes a column's sources for managers (file / sheet names), and the formula in readable form */
+async function describeFormula(col, cols) {
+    const cfg = (0, exports.formulaCfgOf)((0, cellValue_1.toColumnDef)(col));
+    if (!cfg)
+        return null;
+    const sourceColumns = new Map();
+    const sources = [];
+    for (const s of cfg.sources ?? []) {
+        let info = null;
+        try {
+            sourceColumns.set(s.sheetId.toLowerCase(), refsOf(await (0, cellWriter_1.loadColumns)(s.sheetId)));
+            const r = await (0, db_1.q)(`SELECT sh.sheet_id, sh.sheet_name, f.file_id, f.file_name FROM Sheets sh JOIN Files f ON f.file_id = sh.file_id WHERE sh.sheet_id = @s`, { s: db_1.T.uuid(s.sheetId) });
+            info = r[0] ?? null;
+        }
+        catch { /* source gone */ }
+        sources.push({ alias: s.alias, sheetId: s.sheetId, sheetName: info?.sheet_name ?? null, fileId: info?.file_id ?? null, fileName: info?.file_name ?? null });
+    }
+    let display = cfg.expr;
+    try {
+        display = (0, exports.formulaDisplay)(cfg.expr, cols, cfg.sources, sourceColumns);
+    }
+    catch { /* keep canonical */ }
+    return { display, sources };
+}
+/** A source sheet changed → recalculate the sheets that read it (debounced; one run per sheet at a time) */
+const pending = new Map();
+const DEBOUNCE_MS = 3000;
+function scheduleReaders(user, sourceSheetId, depth = 0) {
+    (0, exports.invalidateSource)(sourceSheetId);
+    if (depth > 5)
+        return;
+    void readersOf(sourceSheetId).then((readers) => {
+        for (const r of readers) {
+            const prev = pending.get(r);
+            if (prev)
+                clearTimeout(prev);
+            pending.set(r, setTimeout(() => {
+                pending.delete(r);
+                (0, exports.invalidateSource)(sourceSheetId);
+                recomputeSheet(user, r).then(() => scheduleReaders(user, r, depth + 1)).catch((e) => logger_1.logger.error(`formula dependents recompute failed: ${e?.message}`));
+            }, DEBOUNCE_MS));
+        }
+    }).catch((e) => logger_1.logger.error(`formula readers lookup failed: ${e?.message}`));
+}
+//# sourceMappingURL=service.js.map
