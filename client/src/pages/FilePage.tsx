@@ -67,13 +67,13 @@ function NoAccessView({ info, onRetry }: { info: ReturnType<typeof apiError>; on
 }
 
 const TOOLS_KEY = 'ds.sheetTools';
-/** Tools (header, toolbar, filter bar) shown? The viewer's last choice on this device; a phone on its side starts with the data only. */
+/** Tools (header, toolbar, filter bar) shown? The viewer's last choice on this device; a phone starts with the data only. */
 function initialTools() {
   try {
     const v = localStorage.getItem(TOOLS_KEY);
     if (v === 'on' || v === 'off') return v === 'on';
   } catch { /* storage blocked: use the default */ }
-  return !window.matchMedia?.('(max-height: 500px)').matches;
+  return !window.matchMedia?.('(max-width: 767px), (max-height: 500px)').matches;
 }
 /** A label that phones drop to keep the toolbar on one line (the button keeps it as its name / tooltip) */
 const Lbl = ({ children }: { children: string }) => <span className="hidden sm:inline">{children}</span>;
