@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAiPanel } from '@/modules/ai/useAiPanel';
-import { Bell, Sparkles, CheckCheck, ChevronDown, FileSpreadsheet, Folder, Lock, LogOut, Menu, Palette, Search, UserCircle } from 'lucide-react';
+import { Bell, Sparkles, CheckCheck, ChevronDown, FileSpreadsheet, Folder, Lock, LogOut, Menu, Palette, Search, UserCircle, X } from 'lucide-react';
 import { searchApi, SearchResult } from '@/api/endpoints';
 import { useDebounce } from '@/hooks';
 import { cn } from '@/lib/cn';
@@ -12,7 +12,7 @@ import { useUi } from '@/store/ui';
 import { Avatar } from '../ui/misc';
 import { MenuList, Popover } from '../ui/Popover';
 
-function GlobalSearch() {
+function GlobalSearch({ autoFocus, onDone }: { autoFocus?: boolean; onDone?: () => void }) {
   const nav = useNavigate();
   const input = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -35,14 +35,14 @@ function GlobalSearch() {
     return () => { live = false; };
   }, [dq]);
 
-  const go = (path: string) => { setOpen(false); setQ(''); input.current?.blur(); nav(path); };
+  const go = (path: string) => { setOpen(false); setQ(''); input.current?.blur(); onDone?.(); nav(path); };
   const hasResults = !!res && (res.files.length > 0 || res.folders.length > 0);
 
   return (
     <div ref={box} className="w-full max-w-md">
       <div className="ds-input flex h-10 items-center gap-2 px-3">
         <Search className="h-4 w-4 text-muted" />
-        <input ref={input} value={q} placeholder="ค้นหาไฟล์หรือโฟลเดอร์…" className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none"
+        <input ref={input} value={q} autoFocus={autoFocus} placeholder="ค้นหาไฟล์หรือโฟลเดอร์…" className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none"
           onFocus={() => setOpen(true)} onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onKeyDown={(e) => { if (e.key === 'Enter' && q.trim()) go(`/search?q=${encodeURIComponent(q.trim())}`); if (e.key === 'Escape') { setOpen(false); input.current?.blur(); } }} />
         <kbd className="hidden rounded-md border border-line px-1.5 text-[10px] text-muted sm:block">Ctrl K</kbd>
@@ -84,7 +84,7 @@ function NotificationBell() {
   const { items, unread, markRead, markAll } = useNotifications();
   return (
     <>
-      <button ref={btn} onClick={() => setOpen(!open)} aria-label="การแจ้งเตือน" className="relative grid h-10 w-10 place-items-center rounded-full text-ink/75 hover:bg-ink/5 hover:text-ink">
+      <button ref={btn} onClick={() => setOpen(!open)} aria-label="การแจ้งเตือน" className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink/75 hover:bg-ink/5 hover:text-ink">
         <Bell className="h-5 w-5" />
         {unread > 0 && <span className="absolute right-1.5 top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white ring-2 ring-app">{unread > 99 ? '99+' : unread}</span>}
       </button>
@@ -120,7 +120,7 @@ function UserMenu() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button ref={btn} onClick={() => setOpen(!open)} className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2.5 hover:bg-ink/5">
+      <button ref={btn} onClick={() => setOpen(!open)} aria-label="เมนูผู้ใช้" className="flex shrink-0 items-center gap-2.5 rounded-full p-1 hover:bg-ink/5 md:pr-2.5">
         <Avatar name={user.displayName} src={user.avatarUrl} size={34} />
         <span className="hidden text-left leading-tight md:block">
           <span className="block max-w-[160px] truncate text-sm font-medium">{user.displayName}</span>
@@ -143,7 +143,7 @@ function UserMenu() {
 function AiButton() {
   const { open, toggle } = useAiPanel();
   return (
-    <button onClick={toggle} className={cn('flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-medium hover:bg-ink/5', open && 'bg-primary/10 text-primary')} aria-label="ผู้ช่วย AI" aria-pressed={open}>
+    <button onClick={toggle} className={cn('flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-sm font-medium hover:bg-ink/5 sm:px-3', open && 'bg-primary/10 text-primary')} aria-label="ผู้ช่วย AI" aria-pressed={open}>
       <Sparkles className="h-5 w-5" /><span className="hidden sm:inline">AI</span>
     </button>
   );
@@ -151,11 +151,21 @@ function AiButton() {
 
 export function TopBar() {
   const setMobile = useUi((s) => s.setMobileNav);
+  // phones: the search box is a button that opens a full-width field, so the icons on the right keep their room
+  const [searching, setSearching] = useState(false);
+  if (searching)
+    return (
+      <header className="ds-topbar flex h-14 shrink-0 items-center gap-2 px-3 sm:h-16 sm:px-8">
+        <div className="min-w-0 flex-1"><GlobalSearch autoFocus onDone={() => setSearching(false)} /></div>
+        <button onClick={() => setSearching(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5" aria-label="ปิดการค้นหา"><X className="h-5 w-5" /></button>
+      </header>
+    );
   return (
-    <header className="ds-topbar flex h-16 shrink-0 items-center gap-3 px-4 sm:px-8">
-      <button onClick={() => setMobile(true)} className="grid h-10 w-10 place-items-center rounded-xl hover:bg-ink/5 lg:hidden" aria-label="เปิดเมนู"><Menu className="h-5 w-5" /></button>
-      <GlobalSearch />
-      <div className="ml-auto flex items-center gap-1.5">
+    <header className="ds-topbar flex h-14 shrink-0 items-center gap-1.5 px-2 sm:h-16 sm:gap-3 sm:px-8">
+      <button onClick={() => setMobile(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 lg:hidden" aria-label="เปิดเมนู"><Menu className="h-5 w-5" /></button>
+      <div className="hidden min-w-0 flex-1 sm:block"><GlobalSearch /></div>
+      <button onClick={() => setSearching(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 sm:hidden" aria-label="ค้นหาไฟล์หรือโฟลเดอร์"><Search className="h-5 w-5" /></button>
+      <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
         <AiButton />
         <NotificationBell />
         <UserMenu />

@@ -29,25 +29,25 @@ export default function HomePage() {
 
   return (
     <Page>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
         <div>
-          <p className="text-sm text-muted">{new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-          <h1 className="text-[26px] font-semibold tracking-tight">กิจกรรมล่าสุด</h1>
+          <p className="text-xs text-muted sm:text-sm">{new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-[26px]">กิจกรรมล่าสุด</h1>
         </div>
         {canCreate && (
           <div className="flex gap-2">
-            <Button variant="secondary" icon={<FolderPlus className="h-4 w-4" />} onClick={() => setNewFolder(true)}>โฟลเดอร์ใหม่</Button>
-            <Button icon={<FilePlus2 className="h-4 w-4" />} onClick={() => nav('/files/new')}>สร้างไฟล์</Button>
+            <Button variant="secondary" className="max-sm:!h-9 max-sm:!px-3" icon={<FolderPlus className="h-4 w-4" />} onClick={() => setNewFolder(true)}>โฟลเดอร์ใหม่</Button>
+            <Button className="max-sm:!h-9 max-sm:!px-3" icon={<FilePlus2 className="h-4 w-4" />} onClick={() => nav('/files/new')}>สร้างไฟล์</Button>
           </div>
         )}
       </div>
 
       {roots.length > 0 && (
-        <div className="mb-7 flex gap-3 overflow-x-auto pb-1">
+        <div className="mb-5 flex gap-2 overflow-x-auto pb-1 sm:mb-7 sm:gap-3">
           {roots.map((f) => (
-            <Link key={f.id} to={`/folders/${f.id}`} className="ds-card flex min-w-[200px] items-center gap-3 px-3.5 py-3 transition-colors hover:border-primary/40">
-              <FolderGlyph color={f.color} size={34} locked={f.level === 0} />
-              <span className="min-w-0"><span className="block truncate text-sm font-semibold">{f.name}</span><span className="text-xs text-muted">{f.fileCount} ไฟล์ · {f.folderCount} โฟลเดอร์</span></span>
+            <Link key={f.id} to={`/folders/${f.id}`} className="ds-card flex min-w-[150px] max-w-[220px] shrink-0 items-center gap-2.5 px-3 py-2 transition-colors hover:border-primary/40 sm:min-w-[200px] sm:max-w-none sm:gap-3 sm:px-3.5 sm:py-3">
+              <FolderGlyph color={f.color} size={28} locked={f.level === 0} />
+              <span className="min-w-0"><span className="block truncate text-sm font-semibold">{f.name}</span><span className="block whitespace-nowrap text-[11px] text-muted sm:text-xs">{f.fileCount} ไฟล์ · {f.folderCount} โฟลเดอร์</span></span>
             </Link>
           ))}
         </div>
@@ -56,11 +56,11 @@ export default function HomePage() {
       <div className="grid gap-8 xl:grid-cols-[1fr_320px]">
         <section>
           {feed.loading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-theme" />)}</div>
+            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-theme" />)}</div>
           ) : !feed.data?.length ? (
             <div className="ds-card"><EmptyState icon={<Clock />} title="ยังไม่มีกิจกรรม" description="เมื่อมีการสร้างหรือแก้ไขไฟล์ที่คุณมีสิทธิ์ จะแสดงที่นี่" /></div>
           ) : (
-            <motion.div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" initial="h" animate="s" variants={{ s: { transition: { staggerChildren: 0.04 } } }}>
+            <motion.div className="grid gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3" initial="h" animate="s" variants={{ s: { transition: { staggerChildren: 0.04 } } }}>
               {feed.data.map((f) => (
                 <motion.div key={f.id} variants={{ h: { opacity: 0, y: 10 }, s: { opacity: 1, y: 0 } }}><ActivityCard file={f} /></motion.div>
               ))}

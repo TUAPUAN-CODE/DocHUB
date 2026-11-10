@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ChevronRight, Columns3, Copy, Download, Expand, History, Lock, MoreHorizontal, Pencil, Pin, PinOff, Plus, Redo2, RotateCcw, Search, Share2, Shrink, Trash2, Undo2, Upload, ZoomIn, ZoomOut,
+  ChevronLeft, ChevronRight, ChevronsUp, Columns3, Copy, SlidersHorizontal, Download, Expand, History, Lock, MoreHorizontal, Pencil, Pin, PinOff, Plus, Redo2, RotateCcw, Search, Share2, Shrink, Trash2, Undo2, Upload, ZoomIn, ZoomOut,
   ScanLine, Merge, Boxes, Cpu,
 } from 'lucide-react';
 import { apiError } from '@/api/client';
@@ -43,7 +43,7 @@ import { downloadCsv, downloadXlsx } from '@/lib/csv';
 import { fmtDateTime, levelToPerm } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
-import { confirmDialog, toast } from '@/store/ui';
+import { confirmDialog, toast, useUi } from '@/store/ui';
 import { Column, LV, Row, isBasicRole } from '@/types';
 
 function NoAccessView({ info, onRetry }: { info: ReturnType<typeof apiError>; onRetry: () => void }) {
@@ -65,6 +65,18 @@ function NoAccessView({ info, onRetry }: { info: ReturnType<typeof apiError>; on
     </div>
   );
 }
+
+const TOOLS_KEY = 'ds.sheetTools';
+/** Tools (header, toolbar, filter bar) shown? The viewer's last choice on this device; a phone on its side starts with the data only. */
+function initialTools() {
+  try {
+    const v = localStorage.getItem(TOOLS_KEY);
+    if (v === 'on' || v === 'off') return v === 'on';
+  } catch { /* storage blocked: use the default */ }
+  return !window.matchMedia?.('(max-height: 500px)').matches;
+}
+/** A label that phones drop to keep the toolbar on one line (the button keeps it as its name / tooltip) */
+const Lbl = ({ children }: { children: string }) => <span className="hidden sm:inline">{children}</span>;
 
 export default function FilePage() {
   const { id = '' } = useParams();
@@ -97,6 +109,16 @@ export default function FilePage() {
   const [exportMenu, setExportMenu] = useState(false);
   const freezeBtn = useRef<HTMLButtonElement>(null);
   const workspace = useRef<HTMLDivElement>(null);
+  const [tools, setTools] = useState(initialTools);
+  const toggleTools = () => setTools((v) => {
+    try { localStorage.setItem(TOOLS_KEY, v ? 'off' : 'on'); } catch { /* not saved: still toggles */ }
+    return !v;
+  });
+  // tools hidden → the app's top bar steps aside too; put it back when leaving the page
+  useEffect(() => {
+    useUi.getState().setFocusMode(!tools);
+    return () => useUi.getState().setFocusMode(false);
+  }, [tools]);
 
   useEffect(() => { setSearch(''); }, [sheetId]);
   useEffect(() => { if (view.query.search !== dsearch) view.setQuery({ search: dsearch }); }, [dsearch]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -189,22 +211,31 @@ export default function FilePage() {
   const barColumns = barSel ? view.columns.filter((c) => barSel.includes(c.id) || view.query.filters.some((f) => f.columnId === c.id) || view.query.sorts.some((s) => s.columnId === c.id)) : view.columns;
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] flex-col px-3 pb-3 sm:px-6">
-      <div className="flex shrink-0 flex-wrap items-center gap-3 pb-2 pt-1">
-        <FileGlyph color={f.color} size={40} />
+    <div className={cn('flex flex-col px-1.5 pb-1.5 sm:px-6 sm:pb-3', tools ? 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]' : 'h-[100dvh] pt-1.5')}>
+      {tools && <div className="flex shrink-0 items-center gap-2 px-1 pb-1.5 pt-1 sm:flex-wrap sm:gap-3 sm:px-0 sm:pb-2">
+        <span className="hidden sm:contents"><FileGlyph color={f.color} size={40} /></span>
         <div className="min-w-0 flex-1">
-          <nav className="flex flex-wrap items-center gap-1 text-xs text-muted">
+          <nav className="hidden flex-wrap items-center gap-1 text-xs text-muted sm:flex">
             <Link to="/browse" className="hover:text-ink">ไฟล์ทั้งหมด</Link>
             {file.data.breadcrumb.map((c) => <span key={c.id} className="flex items-center gap-1"><ChevronRight className="h-3 w-3" /><Link to={`/folders/${c.id}`} className="hover:text-ink">{c.name}</Link></span>)}
           </nav>
+          {/* phones: one line back to the folder the file is in */}
+          {(() => {
+            const parent = file.data.breadcrumb[file.data.breadcrumb.length - 1];
+            return (
+              <Link to={parent ? `/folders/${parent.id}` : '/browse'} className="flex min-w-0 items-center gap-0.5 text-xs text-muted sm:hidden">
+                <ChevronLeft className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{parent?.name ?? 'ไฟล์ทั้งหมด'}</span>
+              </Link>
+            );
+          })()}
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-xl font-semibold tracking-tight">{f.name}</h1>
+            <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">{f.name}</h1>
             <StarButton active={f.favorite} onToggle={async () => { await useData.getState().toggleFavorite('file', f.id); void file.reload(true); }} />
             <PermBadge perm={levelToPerm(level)} />
           </div>
         </div>
         {view.presence.length > 1 && <div className="flex items-center gap-2 text-xs text-muted"><AvatarStack users={view.presence} /><span className="hidden sm:inline">กำลังดูอยู่</span></div>}
-        {canManage && <Button variant="secondary" icon={<Share2 className="h-4 w-4" />} onClick={() => setModal('share')}>แชร์</Button>}
+        {canManage && <Button variant="secondary" className="shrink-0 max-sm:!h-9 max-sm:!px-2.5" aria-label="แชร์" title="แชร์" icon={<Share2 className="h-4 w-4" />} onClick={() => setModal('share')}><Lbl>แชร์</Lbl></Button>}
         <IconButton ref={moreBtn} label="ตัวเลือกไฟล์" onClick={() => setMore(true)}><MoreHorizontal className="h-5 w-5" /></IconButton>
         <Popover open={more} onClose={() => setMore(false)} anchor={moreBtn.current} placement="bottom-end" width={240}>
           <MenuList onClose={() => setMore(false)} items={[
@@ -219,27 +250,45 @@ export default function FilePage() {
             } }] : []),
           ]} />
         </Popover>
-      </div>
+      </div>}
 
-      <SheetTabs fileId={f.id} sheets={sheets} activeId={sheetId} dashboards={file.data.dashboards} canManage={canManage}
-        onSelect={(sid) => setSp({ sheet: sid }, { replace: true })}
-        onChanged={async (sid) => { await file.reload(true); if (sid) setSp({ sheet: sid }, { replace: true }); void view.loadDetail(); }} />
+      <div className="flex items-end gap-1">
+        <div className="min-w-0 flex-1">
+          <SheetTabs fileId={f.id} sheets={sheets} activeId={sheetId} dashboards={file.data.dashboards} canManage={canManage}
+            onSelect={(sid) => setSp({ sheet: sid }, { replace: true })}
+            onChanged={async (sid) => { await file.reload(true); if (sid) setSp({ sheet: sid }, { replace: true }); void view.loadDetail(); }} />
+        </div>
+        {(() => {
+          const narrowing = view.query.filters.length + (view.query.search ? 1 : 0); // shown on the button while the filter bar is hidden
+          return (
+            <button onClick={toggleTools} aria-pressed={!tools} aria-label={tools ? 'ซ่อนเครื่องมือ (ดูข้อมูลเต็มจอ)' : 'แสดงเครื่องมือ'} title={tools ? 'ซ่อนเครื่องมือ (ดูข้อมูลเต็มจอ)' : 'แสดงเครื่องมือ'}
+              className={cn('mb-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors',
+                tools ? 'text-muted hover:bg-surface hover:text-primary' : 'bg-primary text-white shadow-sm shadow-primary/30')}>
+              {tools ? <ChevronsUp className="h-4 w-4" /> : <SlidersHorizontal className="h-4 w-4" />}
+              <span>{tools ? 'ซ่อนเครื่องมือ' : 'เครื่องมือ'}</span>
+              {!tools && narrowing > 0 && <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-white px-1 text-[10px] font-semibold text-primary" title="มีตัวกรอง/คำค้นอยู่">{narrowing}</span>}
+            </button>
+          );
+        })()}
+      </div>
 
       <div ref={workspace} className={cn('ds-card flex min-h-0 flex-1 flex-col overflow-hidden !rounded-tl-none', full && '!rounded-none bg-app p-2')}>
         {!sheetId ? <EmptyState title="ไฟล์นี้ยังไม่มีชีต" /> : (
           <>
             {union && sheetId && <UnionBanner sheetId={sheetId} union={union} canManage={canManage} onSynced={() => { void view.loadDetail(); void view.loadRows(true); void file.reload(true); }} />}
-            <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-              <TextInput icon={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาในชีต…" className="!h-9 w-full sm:w-64" />
+            {tools && <>
+            {/* phones: one row that scrolls sideways (labels shortened to icons) instead of three rows over the data */}
+            <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line px-2 py-1.5 sm:flex-wrap sm:gap-2 sm:overflow-visible sm:px-3 sm:py-2 [&>*]:shrink-0">
+              <TextInput icon={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาในชีต…" className="!h-9 w-40 sm:w-64" />
               {canWrite && <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setRowForm({ row: null })}>เพิ่มแถว</Button>}
               {canWrite && selRows.length > 0 && <Button size="sm" variant="secondary" className="!text-danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => void deleteRows(selRows)}>{selRows.length > 1 ? `ลบ ${selRows.length} แถวที่เลือก` : 'ลบแถวที่เลือก'}</Button>}
-              {canWrite && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} onClick={() => setModal('import')}>นำเข้า</Button>}
+              {canWrite && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} aria-label="นำเข้า" title="นำเข้า" onClick={() => setModal('import')}><Lbl>นำเข้า</Lbl></Button>}
               {canWrite && !!view.detail?.settings?.scanProfiles?.length && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} onClick={() => setModal('scan')}>สแกน</Button>}
               {canWrite && !!view.detail?.settings?.mix && <Button size="sm" variant="secondary" icon={<Merge className="h-4 w-4" />} onClick={() => setModal('mix')}>ผสม</Button>}
               {!!view.detail?.settings?.lines && selRows.length === 1 && <Button size="sm" variant="secondary" icon={<Boxes className="h-4 w-4" />} onClick={() => setModal('lines')}>รายการในแถว</Button>}
-              {canManage && !union && <Button size="sm" variant="secondary" icon={<Columns3 className="h-4 w-4" />} onClick={() => setModal('columns')}>คอลัมน์</Button>}
-              {canManage && !union && <Button size="sm" variant="secondary" icon={<Cpu className="h-4 w-4" />} onClick={() => setModal('devices')}>อุปกรณ์</Button>}
-              {canManage && !union && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} onClick={() => setModal('scanmix')}>ตั้งค่าสแกน/ผสม</Button>}
+              {canManage && !union && <Button size="sm" variant="secondary" icon={<Columns3 className="h-4 w-4" />} aria-label="คอลัมน์" title="คอลัมน์" onClick={() => setModal('columns')}><Lbl>คอลัมน์</Lbl></Button>}
+              {canManage && !union && <Button size="sm" variant="secondary" icon={<Cpu className="h-4 w-4" />} aria-label="อุปกรณ์" title="อุปกรณ์" onClick={() => setModal('devices')}><Lbl>อุปกรณ์</Lbl></Button>}
+              {canManage && !union && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} aria-label="ตั้งค่าสแกน/ผสม" title="ตั้งค่าสแกน/ผสม" onClick={() => setModal('scanmix')}><Lbl>ตั้งค่าสแกน/ผสม</Lbl></Button>}
               <div className="mx-1 hidden h-6 w-px bg-line sm:block" />
               <IconButton label="ย้อนกลับ (Ctrl+Z)" onClick={() => void view.undo()} disabled={!view.canUndo}><Undo2 className="h-4 w-4" /></IconButton>
               <IconButton label="ทำซ้ำ (Ctrl+Y)" onClick={() => void view.redo()} disabled={!view.canRedo}><Redo2 className="h-4 w-4" /></IconButton>
@@ -285,6 +334,7 @@ export default function FilePage() {
             <FilterBar columns={barColumns} allColumns={view.columns} filters={view.query.filters} sorts={view.query.sorts} onConfigure={canManage ? () => setModal('filterbar') : undefined}
               onOpen={(colId, el) => setFilterFor({ colId, el })} onClearFilters={() => view.setQuery({ filters: [] })}
               onRemoveSort={(cid) => view.setQuery({ sorts: view.query.sorts.filter((s) => s.columnId !== cid) })} />
+            </>}
             <div className="relative min-h-0 flex-1">
               {(!view.detail || (view.loadingRows && !view.rows.length)) ? (
                 <div className="space-y-1.5 p-3">{Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
@@ -294,10 +344,10 @@ export default function FilePage() {
               )}
               {view.loadingRows && view.rows.length > 0 && <div className="absolute inset-x-0 top-0 h-0.5 animate-pulse bg-primary" />}
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-line px-3 py-2">
+            <div className="flex shrink-0 items-center gap-2 border-t border-line px-2 py-1 sm:flex-wrap sm:gap-3 sm:px-3 sm:py-2">
               <Pager page={view.query.page} pageSize={view.prefs.pageSize} total={view.total} onPage={(p) => view.setQuery({ page: p })} />
-              <Select value={view.prefs.pageSize} onChange={(e) => { view.setPrefs({ pageSize: Number(e.target.value) }); view.setQuery({ page: 1 }); }} className="ml-auto w-32 [&>select]:!h-8 [&>select]:text-xs">
-                {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n} แถว/หน้า</option>)}
+              <Select value={view.prefs.pageSize} onChange={(e) => { view.setPrefs({ pageSize: Number(e.target.value) }); view.setQuery({ page: 1 }); }} aria-label="จำนวนแถวต่อหน้า" title="จำนวนแถวต่อหน้า" className="ml-auto w-[7.5rem] shrink-0 sm:w-32 [&>select]:!h-8 [&>select]:text-xs">
+                {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n} แถว</option>)}
               </Select>
             </div>
           </>

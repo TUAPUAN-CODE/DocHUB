@@ -117,14 +117,15 @@ export function Pager({ page, pageSize, total, onPage }: { page: number; pageSiz
     else if (nums[nums.length - 1] !== '…') nums.push('…');
   }
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-muted">
-      <span>แสดง {total === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(total, page * pageSize)} จาก {total.toLocaleString()} รายการ</span>
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[13px] text-muted">
+      {/* phones: "1–45 / 45" and arrows, so the pager fits on one line */}
+      <span className="whitespace-nowrap"><span className="hidden sm:inline">แสดง </span>{total === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(total, page * pageSize)}<span className="hidden sm:inline"> จาก </span><span className="sm:hidden"> / </span>{total.toLocaleString()}<span className="hidden sm:inline"> รายการ</span></span>
       <div className="flex items-center gap-1">
-        <button disabled={page <= 1} onClick={() => onPage(page - 1)} className="h-8 rounded-lg px-2.5 hover:bg-ink/5 disabled:opacity-40">ก่อนหน้า</button>
+        <button disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="หน้าก่อนหน้า" className="h-8 rounded-lg px-2 hover:bg-ink/5 disabled:opacity-40 sm:px-2.5"><span className="sm:hidden">‹</span><span className="hidden sm:inline">ก่อนหน้า</span></button>
         {nums.map((n, i) => n === '…' ? <span key={i} className="px-1">…</span> : (
           <button key={i} onClick={() => onPage(n)} className={cn('h-8 min-w-8 rounded-lg px-2 font-medium', n === page ? 'bg-primary text-white' : 'hover:bg-ink/5 text-ink')}>{n}</button>
         ))}
-        <button disabled={page >= pages} onClick={() => onPage(page + 1)} className="h-8 rounded-lg px-2.5 hover:bg-ink/5 disabled:opacity-40">ถัดไป</button>
+        <button disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="หน้าถัดไป" className="h-8 rounded-lg px-2 hover:bg-ink/5 disabled:opacity-40 sm:px-2.5"><span className="sm:hidden">›</span><span className="hidden sm:inline">ถัดไป</span></button>
       </div>
     </div>
   );

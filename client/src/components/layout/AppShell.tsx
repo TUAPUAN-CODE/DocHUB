@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { useLocation, useOutlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useUi } from '@/store/ui';
 import { Spinner } from '../ui/misc';
 import { AiPanel } from '@/modules/ai/AiPanel';
 import { OpenFileOverlay } from './OpenFileOverlay';
@@ -10,11 +11,12 @@ import { TopBar } from './TopBar';
 export function AppShell() {
   const outlet = useOutlet();
   const { pathname } = useLocation();
+  const focus = useUi((s) => s.focusMode);
   return (
     <div className="flex h-full" style={{ background: 'var(--sidebar-bg)' }}>
       <Sidebar />
       <main id="main-panel" className="main-panel flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar />
+        {!focus && <TopBar />}
         <div id="page-scroll" className="relative min-h-0 flex-1 overflow-y-auto">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={pathname} className="min-h-full" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
