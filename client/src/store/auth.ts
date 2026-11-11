@@ -66,7 +66,8 @@ export const useAuth = create<AuthState>((set) => ({
     resetThemeToDefault();
     set({ user: null, status: 'guest' });
   },
-  setUser: (user) => set({ user }),
+  // keep the pages of the left bar when an answer without them (e.g. profile save) replaces the user
+  setUser: (user) => set((st) => ({ user: { ...user, pages: user.pages ?? st.user?.pages } })),
 }));
 
 setAuthLostHandler(() => {

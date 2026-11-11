@@ -15,11 +15,12 @@ function Profile() {
   const setUser = useAuth((s) => s.setUser);
   const [name, setName] = useState(user.displayName);
   const [email, setEmail] = useState(user.email ?? '');
+  const [username, setUsername] = useState(user.username);
   const [avatar, setAvatar] = useState(user.avatarUrl);
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
-    try { setUser(await usersApi.updateProfile({ displayName: name, email: email.trim() || null, avatarUrl: avatar })); toast.success('บันทึกโปรไฟล์แล้ว'); } catch (e) { toast.error(e); } finally { setBusy(false); }
+    try { setUser(await usersApi.updateProfile({ displayName: name, username: username.trim(), email: email.trim() || null, avatarUrl: avatar })); toast.success('บันทึกโปรไฟล์แล้ว'); } catch (e) { toast.error(e); } finally { setBusy(false); }
   };
   return (
     <div className="ds-card ds-card-pad max-w-2xl space-y-5">
@@ -41,9 +42,11 @@ function Profile() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="ชื่อที่แสดง" required><TextInput value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <Field label="ชื่อผู้ใช้ (ใช้เข้าสู่ระบบ)" required hint={username.trim() !== user.username ? 'เปลี่ยนแล้วครั้งต่อไปให้เข้าสู่ระบบด้วยชื่อใหม่' : 'a-z 0-9 . _ - อย่างน้อย 3 ตัว'}>
+          <TextInput value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" /></Field>
         <Field label="อีเมล" hint="ไม่บังคับ — ไม่มีอีเมลเว้นว่างได้"><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
       </div>
-      <Button onClick={save} loading={busy} disabled={!name.trim()}>บันทึกโปรไฟล์</Button>
+      <Button onClick={save} loading={busy} disabled={!name.trim() || username.trim().length < 3}>บันทึกโปรไฟล์</Button>
     </div>
   );
 }

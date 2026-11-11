@@ -31,7 +31,7 @@ function UserModal({ open, onClose, user, onSaved, tags }: { open: boolean; onCl
     try {
       const before = (user?.tags ?? []).map((t) => t.id).sort().join();
       if (user) {
-        await usersApi.update(user.id, { email: f.email.trim() || null, displayName: f.displayName, role: f.role });
+        await usersApi.update(user.id, { ...(f.username.trim() !== user.username ? { username: f.username.trim() } : {}), email: f.email.trim() || null, displayName: f.displayName, role: f.role });
         if ([...tagIds].sort().join() !== before) await tagsApi.setUserTags(user.id, tagIds);
       } else {
         const created = await usersApi.create({ ...f, email: f.email.trim() || null });
@@ -47,7 +47,7 @@ function UserModal({ open, onClose, user, onSaved, tags }: { open: boolean; onCl
       footer={<><Button variant="secondary" onClick={onClose}>ยกเลิก</Button><Button onClick={submit} loading={busy}>{user ? 'บันทึก' : 'สร้างผู้ใช้'}</Button></>}>
       <div className="space-y-4">
         <Field label="ชื่อที่แสดง" required><TextInput value={f.displayName} onChange={(e) => setF({ ...f, displayName: e.target.value })} autoFocus /></Field>
-        <Field label="ชื่อผู้ใช้" required hint="a-z 0-9 . _ - อย่างน้อย 3 ตัว"><TextInput value={f.username} disabled={!!user} onChange={(e) => setF({ ...f, username: e.target.value })} /></Field>
+        <Field label="ชื่อผู้ใช้" required hint="a-z 0-9 . _ - อย่างน้อย 3 ตัว"><TextInput value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} /></Field>
         <Field label="อีเมล" hint="ไม่บังคับ — ไม่มีอีเมลเว้นว่างได้"><TextInput type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
         {!user && <Field label="รหัสผ่านเริ่มต้น" required hint="อย่างน้อย 8 ตัวอักษร"><TextInput type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="new-password" /></Field>}
         <Field label="บทบาท" hint={ROLE_HINT[f.role]}>

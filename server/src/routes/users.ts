@@ -13,6 +13,16 @@ const router = Router();
 const zEmail = z.string().trim().max(255).transform((v) => v.toLowerCase())
   .refine((v) => v === '' || z.string().email().safeParse(v).success, 'อีเมลไม่ถูกต้อง')
   .transform((v) => v || null);
+/** sign-in name: editable by the user (profile) and by an admin (users page) */
+const zUsername = z.string().trim().min(3, 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร').max(100).regex(/^[a-zA-Z0-9._-]+$/, 'ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ -');
+async function assertUsernameFree(username: string, exceptId: string) {
+  const taken = await q1(
+    `SELECT 1 AS x WHERE EXISTS (SELECT 1 FROM Users WHERE username = @u AND user_id <> @id)
+       OR EXISTS (SELECT 1 FROM AccountRequests WHERE status = 'pending' AND username = @u)`,
+    { u: username, id: T.uuid(exceptId) },
+  );
+  if (taken) throw conflict(`ชื่อผู้ใช้ "${username}" ถูกใช้แล้ว กรุณาเลือกชื่ออื่น`);
+}
 const adminOnly = requireRole('admin');
 const zRole = z.enum(ROLES as [Role, ...Role[]]);
 
@@ -67,16 +77,20 @@ router.put(
         displayName: z.string().trim().min(1).max(200),
         email: zEmail.nullish(),
         avatarUrl: z.string().max(1000).nullish(),
+        username: zUsername.optional(),
       }),
       req.body,
     );
+    if (body.username) await assertUsernameFree(body.username, req.user!.id);
     const email = body.email ?? null;
     if (email && (await q1(`SELECT user_id FROM Users WHERE email = @e AND user_id <> @id`, { e: email, id: T.uuid(req.user!.id) })))
       throw conflict('อีเมลนี้ถูกใช้งานแล้ว');
     await q(
-      `UPDATE Users SET display_name = @n, email = @e, avatar_url = @a, updated_at = SYSUTCDATETIME() WHERE user_id = @id`,
-      { n: body.displayName, e: T.text(email), a: T.text(body.avatarUrl ?? null), id: T.uuid(req.user!.id) },
+      `UPDATE Users SET display_name = @n, email = @e, avatar_url = @a, username = COALESCE(@un, username), updated_at = SYSUTCDATETIME() WHERE user_id = @id`,
+      { n: body.displayName, e: T.text(email), a: T.text(body.avatarUrl ?? null), un: T.text(body.username ?? null), id: T.uuid(req.user!.id) },
     );
+    if (body.username && body.username !== req.user!.username)
+      await audit({ userId: req.user!.id, action: 'user_update', entityType: 'user', entityId: req.user!.id, oldValue: { username: req.user!.username }, newValue: { username: body.username } }, req);
     invalidateUserCache(req.user!.id);
     ok(res, mapUser(await getUser(req.user!.id)));
   }),
@@ -168,6 +182,7 @@ router.put(
     const body = parse(
       z.object({
         email: zEmail.nullish(), // '' clears it
+        username: zUsername.optional(),
         displayName: z.string().trim().min(1).max(200).optional(),
         role: zRole.optional(),
         isActive: z.boolean().optional(),
@@ -183,21 +198,22 @@ router.put(
     if (self && body.role && ROLE_ID[body.role] < ROLE_ID[before.role as Role]) throw badRequest('ไม่สามารถลดสิทธิ์ของตัวเองได้');
     const losingAdmin = isAdminRole(before.role) && ((body.role && !isAdminRole(body.role)) || body.isActive === false);
     if (losingAdmin && (await activeAdminCount([id])) === 0) throw badRequest('ระบบต้องมี Admin ที่ใช้งานได้อย่างน้อย 1 คน');
+    if (body.username) await assertUsernameFree(body.username, id);
     if (body.email) {
       const dup = await q1(`SELECT 1 AS x FROM Users WHERE email = @e AND user_id <> @id`, { e: body.email, id: T.uuid(id) });
       if (dup) throw conflict('อีเมลนี้ถูกใช้แล้ว');
     }
     await withTx(async (tx) => {
       await q(
-        `UPDATE Users SET email = CASE WHEN @setE = 1 THEN @e ELSE email END, display_name = COALESCE(@n, display_name),
+        `UPDATE Users SET email = CASE WHEN @setE = 1 THEN @e ELSE email END, display_name = COALESCE(@n, display_name), username = COALESCE(@un, username),
            is_active = COALESCE(@a, is_active), updated_at = SYSUTCDATETIME() WHERE user_id = @id`,
-        { setE: T.bit(body.email !== undefined), e: T.text(body.email ?? null), n: T.text(body.displayName ?? null), a: T.bit(body.isActive ?? null), id: T.uuid(id) },
+        { setE: T.bit(body.email !== undefined), un: T.text(body.username ?? null), e: T.text(body.email ?? null), n: T.text(body.displayName ?? null), a: T.bit(body.isActive ?? null), id: T.uuid(id) },
         tx,
       );
       if (body.role && body.role !== before.role) await setRole(tx, id, body.role, req.user!.id);
       if (body.isActive === false) await q(`UPDATE RefreshTokens SET revoked_at = SYSUTCDATETIME() WHERE user_id = @id AND revoked_at IS NULL`, { id: T.uuid(id) }, tx);
       await audit({ userId: req.user!.id, action: 'user_update', entityType: 'user', entityId: id,
-        oldValue: { role: before.role, isActive: !!before.is_active, email: before.email, displayName: before.display_name },
+        oldValue: { role: before.role, isActive: !!before.is_active, email: before.email, displayName: before.display_name, username: before.username },
         newValue: body }, req, tx);
     });
     invalidateUserCache(id);
