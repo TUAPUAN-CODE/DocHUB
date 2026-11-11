@@ -21,6 +21,25 @@ Quality Highlight Report/                 (โฟลเดอร์ — มี�
 
 แดชบอร์ด **Quality Highlight**: ช่องค้นหา Sub Doc No. / Short Code → แสดงทุกแถวที่ตรง (Sub Doc No. เดียวกันรวมเป็นการ์ดเดียว) พร้อม Material, Short Code, ให้Spread, วันที่/ผู้แก้ และรูป · ด้านขวาแสดง **Rev ล่าสุด และสิ่งที่เปลี่ยน** จาก Rev ก่อนหน้า · บนมือถือวิดเจ็ตเรียงลงมาทีละชิ้นเต็มความกว้าง
 
+## Quality Highlight - Incoming (วัตถุดิบรับเข้า)
+
+ไฟล์ **Quality Highlight - Incoming** ในโฟลเดอร์เดียวกัน (Quality Highlight Report / Data) — Master Data, Rev.1 เริ่มต้น (ยังไม่มีข้อมูล)
+
+| คอลัมน์ในชีต Incoming | ชนิด | หมายเหตุ |
+|---|---|---|
+| Material | ข้อความ (บังคับ) | ใช้ค้นหาในแดชบอร์ด |
+| Description | ข้อความยาว | |
+| รูปภาพ | รูปภาพ | หลายรูปต่อแถว |
+| วันที่ Update ข้อมูล | วันที่ | ระบบเติมให้เอง |
+| Update By | ข้อความ | ระบบเติมชื่อผู้แก้ไขให้เอง |
+
+แดชบอร์ด **Quality Highlight Incoming**: พิมพ์ Material (บางส่วนก็ได้) → การ์ดแสดง **ทุกคอลัมน์ที่เหลือของชีต** และรูป —
+เพิ่มคอลัมน์ใหม่ในชีตแล้วขึ้นในการ์ดเอง (วิดเจ็ต *ค้นหารายละเอียด* → “แสดงทุกคอลัมน์ที่เหลือ”, `config.fieldColumnsAll`) · ด้านขวาเป็น Rev ล่าสุด
+
+- ใส่ให้เองหลัง `git pull` จาก `database/seed/quality_highlight_incoming.sql` (โครงสร้างเท่านั้น ไม่มีข้อมูลบริษัท) — ครั้งเดียวต่อฐานข้อมูล,
+  ข้ามถ้ามีไฟล์ชื่อนี้อยู่แล้ว · log: `Seed quality_highlight_incoming.sql: inserted`
+- สร้างจาก `server/scripts/buildQualityHighlightIncoming.ts` (ผ่าน API) แล้ว export ด้วย `exportSeedSql.ts` (คำสั่งอยู่หัวไฟล์สคริปต์)
+
 ## ติดตั้งบน server (cmd ที่ `I:\DocHUB`)
 
 ```

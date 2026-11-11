@@ -32,6 +32,8 @@ async function openMd(r, fileName) {
   await p.getByText(fileName, { exact: true }).first().click(); await r.settle(1800);
 }
 const QH_DASH = '1e6bcab4-c396-44a7-9522-48c85ae4ae3e';
+const QI_FILE = '54d453cc-9f4c-4fee-a9c6-a8705dfad684'; // Quality Highlight - Incoming (seed quality_highlight_incoming.sql)
+const QI_DASH = 'f1dec61e-7270-435a-92c7-98279a338ea9';
 /** pick a value from a SearchSelect popover */
 async function choose(r, button, text) {
   await button.click();
@@ -1049,6 +1051,33 @@ module.exports = [
           await r.shot({ title: 'ตรวจรายการที่เปลี่ยน แล้วออก Rev', text: 'หน้าต่างแสดงสิ่งที่เปลี่ยน: ค่าเดิมขีดฆ่าสีแดง → ค่าใหม่สีเขียว · แถวเพิ่มใหม่ · แถวที่ลบ\nใส่หมายเหตุ แล้วกด **ออก Rev.N+1**', marks: [{ el: issue, label: 'กด ออก Rev', place: 'above' }] });
           await issue.click(); await r.settle(1200);
           await r.shot({ title: 'แดชบอร์ดแสดง Rev ใหม่ทันที', text: 'Rev ใหม่ถูกบันทึก (ย้อนดู Rev เก่าได้ทุกเมื่อ: เมนู ⋯ ของไฟล์ → “Rev ของชีตนี้” หรือเลือกในวิดเจ็ต Rev บนแดชบอร์ด)', marks: [{ el: p.getByRole('button', { name: /^Rev\.\d+/ }).first(), label: 'Rev ล่าสุด', place: 'below' }] });
+        },
+      },
+      {
+        id: 'qh-incoming', title: 'Quality Highlight Incoming: ค้นหาจาก Material', summary: 'เก็บ Description และรูปของวัตถุดิบรับเข้า แล้วค้นจากแดชบอร์ดด้วย Material', as: 'admin',
+        run: async (r) => {
+          const p = r.page;
+          const f = await r.call('GET', `/files/${QI_FILE}`);
+          const sheet = f.sheets[0].id;
+          const sh = await r.call('GET', `/sheets/${sheet}`);
+          const col = (n) => (sh.columns ?? []).find((c) => c.name === n);
+          // demo rows (demo database only) so there is something to find
+          const have = await r.call('POST', `/sheets/${sheet}/rows/query`, { page: 1, pageSize: 5 });
+          if (!(have.rows ?? []).length) {
+            for (const [m, d] of [['MAT-10021', 'ปลาทูน่าแช่แข็ง — ตรวจอุณหภูมิแกนกลาง ≤ -18°C ก่อนรับ · ตรวจกลิ่น/สี ตามคู่มือรับวัตถุดิบ'], ['MAT-20540', 'ถุงบรรจุ PET — ตรวจรอยซีลและพิมพ์ Lot ทุกพาเลท']])
+              await r.call('POST', `/sheets/${sheet}/rows`, { values: { [col('Material').id]: m, [col('Description').id]: d } });
+          }
+          await r.go(`/files/${QI_FILE}`, 1500);
+          await r.shot({
+            title: 'ไฟล์ Quality Highlight - Incoming',
+            text: 'อยู่ที่ **ไฟล์ทั้งหมด → Quality Highlight Report → Data** · คอลัมน์ **Material · Description · รูปภาพ · วันที่ Update ข้อมูล · Update By** (2 ช่องหลังระบบเติมให้เองเมื่อเพิ่ม/แก้แถว)\nเพิ่มข้อมูลด้วย **+ เพิ่มแถว** หรือพิมพ์ในแถว * ล่างสุด (จอคอม) · ใส่รูปได้หลายรูปต่อแถว',
+            marks: [{ el: p.locator('thead th').filter({ hasText: 'Material' }).first(), label: 'Material', place: 'below' }, { el: p.locator('thead th').filter({ hasText: 'Description' }).first(), label: 'Description', place: 'below' }],
+          });
+          await r.go(`/files/${QI_FILE}/dashboards/${QI_DASH}`, 1800);
+          const search = p.getByPlaceholder(/Material/).first();
+          await search.fill('10021'); await r.settle(1500);
+          await r.shot({ title: 'แดชบอร์ด: พิมพ์ Material', text: 'เปิดแดชบอร์ด **Quality Highlight Incoming** (เมนู แดชบอร์ด) แล้วพิมพ์ **Material** (บางส่วนก็ได้) → แสดง Description, รูป และผู้แก้ล่าสุด', marks: [{ el: box(search), label: 'พิมพ์ Material', place: 'below' }] });
+          await r.note({ title: 'เพิ่มคอลัมน์ได้ แดชบอร์ดแสดงเอง', text: 'ถ้าเพิ่มคอลัมน์ใหม่ในชีต (เช่น Supplier, เกณฑ์รับ) ช่องนั้นจะขึ้นในการ์ดของแดชบอร์ดเองโดยไม่ต้องแก้แดชบอร์ด\n(ตั้งไว้ที่วิดเจ็ต: “แสดงทุกคอลัมน์ที่เหลือ”) · แก้ข้อมูลแล้วออก Rev ได้เหมือน Quality Highlight - Master' });
         },
       },
     ],

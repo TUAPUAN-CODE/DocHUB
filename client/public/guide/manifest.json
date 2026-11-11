@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-11T09:16:38.019Z",
+ "generatedAt": "2026-11-11T09:36:23.484Z",
  "topics": [
   {
    "id": "start",
@@ -3092,6 +3092,60 @@
          "place": "below"
         }
        ]
+      }
+     ]
+    },
+    {
+     "id": "qh-incoming",
+     "title": "Quality Highlight Incoming: ค้นหาจาก Material",
+     "summary": "เก็บ Description และรูปของวัตถุดิบรับเข้า แล้วค้นจากแดชบอร์ดด้วย Material",
+     "device": "desktop",
+     "steps": [
+      {
+       "title": "ไฟล์ Quality Highlight - Incoming",
+       "text": "อยู่ที่ **ไฟล์ทั้งหมด → Quality Highlight Report → Data** · คอลัมน์ **Material · Description · รูปภาพ · วันที่ Update ข้อมูล · Update By** (2 ช่องหลังระบบเติมให้เองเมื่อเพิ่ม/แก้แถว)\nเพิ่มข้อมูลด้วย **+ เพิ่มแถว** หรือพิมพ์ในแถว * ล่างสุด (จอคอม) · ใส่รูปได้หลายรูปต่อแถว",
+       "image": "qh-incoming-1-c9b81165.webp",
+       "w": 1280,
+       "h": 800,
+       "marks": [
+        {
+         "x": 345,
+         "y": 309,
+         "w": 180,
+         "h": 38,
+         "label": "Material",
+         "place": "below"
+        },
+        {
+         "x": 525,
+         "y": 309,
+         "w": 460,
+         "h": 38,
+         "label": "Description",
+         "place": "below"
+        }
+       ]
+      },
+      {
+       "title": "แดชบอร์ด: พิมพ์ Material",
+       "text": "เปิดแดชบอร์ด **Quality Highlight Incoming** (เมนู แดชบอร์ด) แล้วพิมพ์ **Material** (บางส่วนก็ได้) → แสดง Description, รูป และผู้แก้ล่าสุด",
+       "image": "qh-incoming-2-9e98f985.webp",
+       "w": 1280,
+       "h": 800,
+       "marks": [
+        {
+         "x": 361,
+         "y": 249,
+         "w": 509,
+         "h": 32,
+         "label": "พิมพ์ Material",
+         "place": "below"
+        }
+       ]
+      },
+      {
+       "title": "เพิ่มคอลัมน์ได้ แดชบอร์ดแสดงเอง",
+       "text": "ถ้าเพิ่มคอลัมน์ใหม่ในชีต (เช่น Supplier, เกณฑ์รับ) ช่องนั้นจะขึ้นในการ์ดของแดชบอร์ดเองโดยไม่ต้องแก้แดชบอร์ด\n(ตั้งไว้ที่วิดเจ็ต: “แสดงทุกคอลัมน์ที่เหลือ”) · แก้ข้อมูลแล้วออก Rev ได้เหมือน Quality Highlight - Master"
       }
      ]
     }
