@@ -52,12 +52,13 @@ export function ItemCard({ item, onMenu, onStar, draggable }: Common) {
     <div ref={ref} {...props} onClick={() => open(ref.current)} onContextMenu={(e) => { e.preventDefault(); onMenu(e, item); }}
       className={cn('ds-card group relative cursor-pointer overflow-hidden transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md',
         over && 'ring-2 ring-primary ring-offset-2 ring-offset-app')}>
-      {item.kind === 'file' && <div className="h-28 border-b border-line"><FileThumb id={d.id} color={d.color} /></div>}
-      <div className="flex items-start gap-3 p-3.5">
+      {/* phones: no preview picture, so a screen lists several files */}
+      {item.kind === 'file' && <div className="hidden h-28 border-b border-line sm:block"><FileThumb id={d.id} color={d.color} /></div>}
+      <div className="flex items-start gap-3 p-3 sm:p-3.5">
         {item.kind === 'folder' ? <FolderGlyph color={d.color} size={38} locked={locked} /> : <FileGlyph color={d.color} size={34} locked={locked} />}
         <div className="min-w-0 flex-1">
           {item.kind === 'file' && item.data.folderName && <p className="truncate text-xs font-medium" style={{ color: d.color }}>{item.data.folderName}</p>}
-          <p className="truncate text-[15px] font-semibold leading-snug">{d.name}</p>
+          <p className="line-clamp-2 break-words text-sm font-semibold leading-snug sm:truncate sm:text-[15px]">{d.name}</p>
           {item.kind === 'file' && item.data.docType && <DocTypeBadge type={item.data.docType} className="mt-1" />}
           <p className="mt-0.5 truncate text-xs text-muted">
             {item.kind === 'folder'
@@ -122,19 +123,20 @@ export function ActivityCard({ file }: { file: FileItem }) {
         <div className="flex items-start gap-2.5">
           <FileGlyph color={file.color} size={26} />
           <div className="min-w-0 flex-1" title={['ไฟล์ทั้งหมด', ...(file.pathParts ?? []).map((p) => p.name)].join(' / ')}>
-            <p className="flex flex-wrap items-center gap-x-1 text-[11px] leading-snug text-muted">
+            {/* phones: only the file's own folder on one line (the whole path is in the tooltip / folder page) */}
+            <p className="flex items-center gap-x-1 text-[11px] leading-snug text-muted max-sm:overflow-hidden sm:flex-wrap">
               <FolderOpen className="h-3 w-3 shrink-0" style={{ color: file.color }} />
-              <span>ไฟล์ทั้งหมด</span>
+              <span className="max-sm:hidden">ไฟล์ทั้งหมด</span>
               {(file.pathParts ?? [{ id: file.folderId, name: file.folderName ?? '' }]).map((p, i, a) => (
-                <span key={p.id} className="inline-flex items-center gap-1">
-                  <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
-                  <span className={i === a.length - 1 ? 'font-semibold' : ''} style={i === a.length - 1 ? { color: file.color } : undefined}>{p.name}</span>
+                <span key={p.id} className={cn('inline-flex min-w-0 items-center gap-1', i < a.length - 1 && 'max-sm:hidden')}>
+                  <ChevronRight className="h-3 w-3 shrink-0 opacity-50 max-sm:hidden" />
+                  <span className={cn('min-w-0 max-sm:truncate', i === a.length - 1 && 'font-semibold')} style={i === a.length - 1 ? { color: file.color } : undefined}>{p.name}</span>
                 </span>
               ))}
             </p>
           </div>
         </div>
-        <p className="mt-1.5 line-clamp-2 text-[15px] font-semibold leading-snug sm:mt-2 sm:min-h-[2.6em]">{file.name}</p>
+        <p className="mt-1.5 line-clamp-2 break-words text-sm font-semibold leading-snug sm:mt-2 sm:min-h-[2.6em] sm:text-[15px]">{file.name}</p>
         {file.docType && <DocTypeBadge type={file.docType} className="mt-1" />}
         <p className="mt-1 truncate text-[11px] text-muted sm:whitespace-normal">{file.sheetCount != null && <>{file.sheetCount} ชีต · </>}สร้างโดย {file.createdByName ?? '—'}{file.createdAt ? ` · ${fmtDateTime(file.createdAt)}` : ''}</p>
         <div className="mt-2 flex items-center gap-2 text-xs text-muted sm:mt-3">

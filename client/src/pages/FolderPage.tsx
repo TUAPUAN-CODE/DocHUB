@@ -128,7 +128,7 @@ export default function FolderPage() {
       </div>
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-theme" />)}</div>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-theme" />)}</div>
       ) : !items.length ? (
         <div className="ds-card">
           {folder && level === 0 ? (
@@ -141,7 +141,7 @@ export default function FolderPage() {
           )}
         </div>
       ) : view === 'grid' ? (
-        <motion.div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" initial="h" animate="s" variants={{ s: { transition: { staggerChildren: 0.025 } } }}>
+        <motion.div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4" initial="h" animate="s" variants={{ s: { transition: { staggerChildren: 0.025 } } }}>
           {items.map((it) => (
             <motion.div key={it.kind + it.data.id} variants={{ h: { opacity: 0, y: 8 }, s: { opacity: 1, y: 0 } }}>
               <ItemCard item={it} onMenu={actions.openMenu} onStar={actions.star} draggable={it.data.level >= LV.manage} />

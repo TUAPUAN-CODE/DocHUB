@@ -217,6 +217,7 @@ export function TableForm({ b, onChange, sheets }: { b: TableBlock; onChange: (p
         <Field label="ชีตที่แสดง"><Select value={b.sheetId} onChange={(e) => { const s = sheets.find((x) => x.id === e.target.value); onChange({ sheetId: e.target.value, sheetName: s?.name ?? '', columns: [], summary: [] }); }}><option value="">— เลือกชีต —</option>{sheets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
         <Field label="คอลัมน์ในตาราง (เรียงตามลำดับด้านล่าง)"><ColumnPicker cols={b.columns} available={cols} onChange={(c) => onChange({ columns: c })} showWidth /></Field>
         <Toggle checked={b.useCurrentFilters} onChange={(v) => onChange({ useCurrentFilters: v })} label="ใช้ตัวกรอง/การเรียง ที่ผู้ใช้เลือกอยู่ตอนส่งออก" />
+        <Toggle checked={!!b.rowLines} onChange={(v) => onChange({ rowLines: v })} label="เฉพาะรายการของแถวนี้ (แบบฟอร์มต่อแถวของหัวเอกสาร → ชีตรายการ)" />
         <Field label="ข้อความหัวตาราง (ไม่บังคับ)"><TextInput value={b.caption ?? ''} onChange={(e) => onChange({ caption: e.target.value })} placeholder="เช่น รายการตรวจสอบประจำวัน" /></Field>
       </Group>
       <Group title="การแบ่งหน้า">

@@ -53,14 +53,14 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="grid gap-8 xl:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section>
           {feed.loading ? (
             <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-theme" />)}</div>
           ) : !feed.data?.length ? (
             <div className="ds-card"><EmptyState icon={<Clock />} title="ยังไม่มีกิจกรรม" description="เมื่อมีการสร้างหรือแก้ไขไฟล์ที่คุณมีสิทธิ์ จะแสดงที่นี่" /></div>
           ) : (
-            <motion.div className="grid gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3" initial="h" animate="s" variants={{ s: { transition: { staggerChildren: 0.04 } } }}>
+            <motion.div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3" initial="h" animate="s" variants={{ s: { transition: { staggerChildren: 0.04 } } }}>
               {feed.data.map((f) => (
                 <motion.div key={f.id} variants={{ h: { opacity: 0, y: 10 }, s: { opacity: 1, y: 0 } }}><ActivityCard file={f} /></motion.div>
               ))}

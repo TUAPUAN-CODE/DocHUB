@@ -3,9 +3,10 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, ChevronsUp, Columns3, Copy, SlidersHorizontal, Download, Expand, History, Lock, MoreHorizontal, Pencil, Pin, PinOff, Plus, Redo2, RotateCcw, Search, Share2, Shrink, Trash2, Undo2, Upload, ZoomIn, ZoomOut,
-  ScanLine, Merge, Boxes, Cpu, Tag,
+  ScanLine, Merge, Boxes, Cpu, Tag, ListChecks, CornerLeftUp,
 } from 'lucide-react';
 import { apiError } from '@/api/client';
+import { linesApi } from '@/modules/scan/api';
 import { filesApi, pdfApi, requestsApi, rowsApi } from '@/api/endpoints';
 import { defaultTemplate, PdfTemplate } from '@/lib/pdf/types';
 import type { ExportValues } from '@/lib/pdf/build';
@@ -87,6 +88,38 @@ export default function FilePage() {
   const [linesRow, setLinesRow] = useState<Row | null>(null);
   const linesCfg = view.detail?.settings?.lines;
   const openLines = (r: Row) => { setRowView(null); setLinesRow(r); setModal('lines'); };
+  /*
+   * The link between a header sheet and its line sheet, shown in a column next to the row number:
+   * header sheet → "N รายการ" (opens the lines) · line sheet → the header it belongs to (opens that row).
+   */
+  const [lineCounts, setLineCounts] = useState<Record<string, number>>({});
+  const [headerSheet, setHeaderSheet] = useState<{ sheetId: string; sheetName: string } | null>(null);
+  const [parents, setParents] = useState<Record<string, { rowId: string; label: string }>>({});
+  const lineSheetName = linesCfg ? sheets.find((x) => x.id.toLowerCase() === String(linesCfg.lineSheetId).toLowerCase())?.name ?? 'รายการ' : null;
+  useEffect(() => { setHeaderSheet(null); if (sheetId && !linesCfg) linesApi.headerSheet(sheetId).then(setHeaderSheet).catch(() => undefined); }, [sheetId, !!linesCfg]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rowKey = view.rows.map((r) => r.id).join();
+  const loadLinks = () => {
+    if (!sheetId || !view.rows.length) return;
+    const ids = view.rows.map((r) => r.id);
+    if (linesCfg) linesApi.counts(sheetId, ids).then(setLineCounts).catch(() => undefined);
+    else if (headerSheet) linesApi.parents(sheetId, headerSheet.sheetId, ids).then(setParents).catch(() => undefined);
+  };
+  useEffect(loadLinks, [rowKey, headerSheet, !!linesCfg]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rowLink = linesCfg ? {
+    label: lineSheetName ?? 'รายการ',
+    render: (r: Row) => {
+      const n = lineCounts[r.id.toLowerCase()] ?? 0;
+      return <button onClick={() => openLines(r)} title={`เปิดรายการในแถว (${lineSheetName})`} className={cn('inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.95em] font-medium hover:bg-primary/10', n ? 'text-primary' : 'text-muted')}>
+        <ListChecks className="h-[1.05em] w-[1.05em] shrink-0" />{n ? `${n} รายการ` : 'เพิ่มรายการ'}</button>;
+    },
+  } : headerSheet ? {
+    label: headerSheet.sheetName,
+    render: (r: Row) => {
+      const p = parents[r.id.toLowerCase()];
+      return p ? <button onClick={() => setSp({ sheet: headerSheet.sheetId, row: p.rowId })} title={`เปิดหัวเอกสารของรายการนี้ (${headerSheet.sheetName})`} className="inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.95em] font-medium text-primary hover:bg-primary/10">
+        <CornerLeftUp className="h-[1.05em] w-[1.05em] shrink-0" /><span className="truncate">{p.label}</span></button> : <span className="px-1.5 text-[0.95em] text-muted">—</span>;
+    },
+  } : undefined;
   const linesHeader = (linesRow ? view.rows.find((r) => r.id === linesRow.id) ?? linesRow : null) ?? view.rows.find((r) => r.id === selRows[0]) ?? null;
   // ?row=<id> (a Search result): open that row once the sheet is there
   const linkRow = sp.get('row');
@@ -376,7 +409,8 @@ export default function FilePage() {
                 <div className="space-y-1.5 p-3">{Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
               ) : (
                 <SpreadsheetGrid view={view} canWrite={canWrite} canManage={canManage && !union} onOpenRow={(row) => setRowForm({ row })} onCellHistory={(row, col) => setCellHist({ row, col })}
-                  onRowHistory={setRowHist} onFilterColumn={(colId, el) => setFilterFor({ colId, el })} onColumnSettings={() => setModal('columns')} onDeleteRows={deleteRows} onSelectRows={setSelRows} onViewRow={setRowView} />
+                  onRowHistory={setRowHist} onFilterColumn={(colId, el) => setFilterFor({ colId, el })} onColumnSettings={() => setModal('columns')} onDeleteRows={deleteRows} onSelectRows={setSelRows} onViewRow={setRowView} rowLink={rowLink}
+                  onAddRow={canWrite && !union && !headerSheet ? view.addRow : undefined} />
               )}
               {view.loadingRows && view.rows.length > 0 && <div className="absolute inset-x-0 top-0 h-0.5 animate-pulse bg-primary" />}
             </div>
@@ -418,7 +452,7 @@ export default function FilePage() {
           <ScanMixSettings open={modal === 'scanmix'} onClose={() => setModal(null)} sheetId={sheetId} columns={view.columns} settings={view.detail.settings} fileId={f.id} fileName={f.name} onSaved={() => void view.loadDetail()} />
           <ScanDialog open={modal === 'scan'} onClose={() => setModal(null)} sheetId={sheetId} profiles={view.detail.settings?.scanProfiles ?? []} onDone={() => void view.loadRows(true)} />
           {view.detail.settings?.mix && <MixDialog open={modal === 'mix'} onClose={() => setModal(null)} sheetId={sheetId} cfg={view.detail.settings.mix} columns={view.columns} selectedRows={view.rows.filter((r) => selRows.includes(r.id))} onDone={() => void view.loadRows(true)} />}
-          {view.detail.settings?.lines && <LinesDialog open={modal === 'lines'} onClose={() => { setModal(null); setLinesRow(null); }} sheetId={sheetId}
+          {view.detail.settings?.lines && <LinesDialog open={modal === 'lines'} onClose={() => { setModal(null); setLinesRow(null); loadLinks(); }} sheetId={sheetId}
             headerRow={linesHeader} headerLabel={linesHeader && view.columns[0] ? displayValue(view.columns[0], linesHeader.values[view.columns[0].id] ?? null) : ''}
             cfg={view.detail.settings.lines} canWrite={canWrite} onDone={() => void view.loadRows(true)} headerColumns={view.columns} />}
           <DeviceBindingsDialog open={modal === 'devices'} onClose={() => setModal(null)} sheetId={sheetId} profiles={view.detail.settings?.scanProfiles ?? []} columns={view.allColumns} />
