@@ -46,13 +46,13 @@ async function owned(req) {
     const r = await (0, db_1.q1)(`SELECT * FROM Connectors WHERE connector_id = @i AND is_deleted = 0`, { i: db_1.T.uuid((0, http_1.pid)(req)) });
     if (!r)
         throw (0, http_1.notFound)('ไม่พบ connector');
-    if (r.created_by.toLowerCase() !== req.user.id.toLowerCase() && req.user.role !== 'admin')
+    if (r.created_by.toLowerCase() !== req.user.id.toLowerCase() && !(0, auth_1.isAdminRole)(req.user.role))
         throw (0, http_1.forbidden)('connector นี้เป็นของผู้ใช้อื่น');
     return r;
 }
 const needsAuthJson = (e) => ({ code: 'NEEDS_AUTH', kind: e.kind });
 router.get('/connectors', manage, (0, http_1.ah)(async (req, res) => {
-    const rows = await (0, db_1.q)(`SELECT * FROM Connectors WHERE is_deleted = 0 ${req.user.role === 'admin' ? '' : 'AND created_by = @u'} ORDER BY name`, { u: db_1.T.uuid(req.user.id) });
+    const rows = await (0, db_1.q)(`SELECT * FROM Connectors WHERE is_deleted = 0 ${(0, auth_1.isAdminRole)(req.user.role) ? '' : 'AND created_by = @u'} ORDER BY name`, { u: db_1.T.uuid(req.user.id) });
     (0, http_1.ok)(res, { items: rows.map(map), microsoft: (0, source_1.msConfigured)() });
 }));
 router.post('/connectors', manage, (0, http_1.ah)(async (req, res) => {
@@ -95,7 +95,7 @@ router.post('/connectors/preview', manage, (0, http_1.ah)(async (req, res) => {
     let enc = null;
     if (b.id) {
         const cur = await (0, db_1.q1)(`SELECT * FROM Connectors WHERE connector_id = @i AND is_deleted = 0`, { i: db_1.T.uuid(b.id) });
-        if (cur && (cur.created_by.toLowerCase() === req.user.id.toLowerCase() || req.user.role === 'admin'))
+        if (cur && (cur.created_by.toLowerCase() === req.user.id.toLowerCase() || (0, auth_1.isAdminRole)(req.user.role)))
             enc = cur.secret_enc;
     }
     if (b.credentials)

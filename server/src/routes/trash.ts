@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { q, q1, T, withTx } from '../config/db';
-import { requireRole } from '../middleware/auth';
+import { isAdminRole, requireRole } from '../middleware/auth';
 import { audit } from '../shared/audit';
 import { ah, badRequest, forbidden, notFound, ok, parse, pid, zId } from '../shared/http';
 import { invalidateFolders } from '../shared/permissions';
@@ -14,7 +14,7 @@ router.get(
   '/trash',
   ah(async (req, res) => {
     const u = req.user!;
-    const mine = u.role === 'admin' ? '' : 'AND (x.deleted_by = @u OR x.created_by = @u)';
+    const mine = isAdminRole(u.role) ? '' : 'AND (x.deleted_by = @u OR x.created_by = @u)';
     const folders = await q(
       `SELECT x.folder_id, x.folder_name, x.color, x.deleted_at, x.created_by, d.display_name AS deleted_by_name,
          (SELECT COUNT(*) FROM Files fi WHERE fi.delete_batch = x.delete_batch) AS file_count
@@ -54,7 +54,7 @@ router.post(
     if (type === 'folder') {
       const f = await q1(`SELECT * FROM Folders WHERE folder_id = @id AND is_deleted = 1`, { id: T.uuid(id) });
       if (!f) throw notFound('ไม่พบรายการในถังขยะ');
-      if (u.role !== 'admin' && f.deleted_by !== u.id && f.created_by !== u.id) throw forbidden();
+      if (!isAdminRole(u.role) && f.deleted_by !== u.id && f.created_by !== u.id) throw forbidden();
       await withTx(async (tx) => {
         const parent = f.parent_id ? await q1(`SELECT is_deleted FROM Folders WHERE folder_id = @p`, { p: T.uuid(f.parent_id) }, tx) : null;
         if (parent?.is_deleted) await q(`UPDATE Folders SET parent_id = NULL WHERE folder_id = @id`, { id: T.uuid(id) }, tx);
@@ -67,7 +67,7 @@ router.post(
       const f = await q1(`SELECT x.*, fo.is_deleted AS folder_deleted, fo.folder_name FROM Files x JOIN Folders fo ON fo.folder_id = x.folder_id
         WHERE x.file_id = @id AND x.is_deleted = 1`, { id: T.uuid(id) });
       if (!f) throw notFound('ไม่พบรายการในถังขยะ');
-      if (u.role !== 'admin' && f.deleted_by !== u.id && f.created_by !== u.id) throw forbidden();
+      if (!isAdminRole(u.role) && f.deleted_by !== u.id && f.created_by !== u.id) throw forbidden();
       if (f.folder_deleted) throw badRequest(`โฟลเดอร์ "${f.folder_name}" ถูกลบอยู่ กรุณากู้คืนโฟลเดอร์ก่อน`);
       await q(`UPDATE Files SET is_deleted = 0, deleted_at = NULL, deleted_by = NULL, delete_batch = NULL WHERE file_id = @id`, { id: T.uuid(id) });
       await audit({ userId: u.id, action: 'file_restore', entityType: 'file', entityId: id, fileId: id, newValue: { name: f.file_name } }, req);

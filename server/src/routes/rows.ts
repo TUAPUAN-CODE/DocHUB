@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { idList, jsonParam, q, q1, T, withTx } from '../config/db';
+import { isAdminRole } from '../middleware/auth';
 import { audit, auditMany } from '../shared/audit';
 import crypto from 'crypto';
 import { CellValue, normalizeValue, toColumnDef, toStorage } from '../shared/cellValue';
@@ -439,7 +440,7 @@ router.post(
   '/sheets/:id/rollback',
   ah(async (req, res) => {
     const sheetId = pid(req);
-    if (req.user!.role !== 'admin') throw forbidden('การย้อนข้อมูลทั้งชีตทำได้เฉพาะ Admin');
+    if (!isAdminRole(req.user!.role)) throw forbidden('การย้อนข้อมูลทั้งชีตทำได้เฉพาะ Admin');
     const { sheet } = await requireSheet(req.user!, sheetId, LV.manage);
     const body = parse(rollbackBody, req.body);
     const at = new Date(body.at);

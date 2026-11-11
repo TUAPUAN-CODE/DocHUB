@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import { useLocation, useOutlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { canSee } from '@/lib/pages';
+import { useAuth } from '@/store/auth';
 import { useUi } from '@/store/ui';
 import { Spinner } from '../ui/misc';
 import { AiPanel } from '@/modules/ai/AiPanel';
@@ -12,6 +14,7 @@ export function AppShell() {
   const outlet = useOutlet();
   const { pathname } = useLocation();
   const focus = useUi((s) => s.focusMode);
+  const aiAllowed = useAuth((s) => canSee(s.user, 'ai'));
   return (
     <div className="flex h-full" style={{ background: 'var(--sidebar-bg)' }}>
       <Sidebar />
@@ -26,7 +29,7 @@ export function AppShell() {
           </AnimatePresence>
         </div>
       </main>
-      <AiPanel />
+      {aiAllowed && <AiPanel />}
       <OpenFileOverlay />
     </div>
   );

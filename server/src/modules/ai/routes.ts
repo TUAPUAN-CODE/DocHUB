@@ -6,8 +6,10 @@ import { ah, badRequest, ok, parse } from '../../shared/http';
 import { decryptJson, encryptJson } from '../connectors/secret';
 import { callModel, Conn, Msg, Provider, PROVIDERS } from './providers';
 import { Ctx, runTool, TOOLS } from './tools';
+import { requirePage } from '../pageAccess/service';
 
 const router = Router();
+router.use('/ai', requirePage('ai')); // AI button: admin + root by default (จัดการสิทธิ์)
 const provSchema = z.enum(['gemini', 'anthropic', 'openai']);
 const MAX_STEPS = 8;
 

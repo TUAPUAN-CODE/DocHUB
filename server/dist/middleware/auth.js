@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isAtLeast = exports.requireRole = exports.authenticate = exports.ROLE_SQL = exports.isBasicRole = exports.ROLE_ID = exports.ROLES = void 0;
+exports.isAtLeast = exports.requireRole = exports.authenticate = exports.ROLE_SQL = exports.isAdminRole = exports.isBasicRole = exports.ADMIN_GRANTABLE = exports.ROLE_ID = exports.ROLES = void 0;
 exports.invalidateUserCache = invalidateUserCache;
 exports.loadAuthUser = loadAuthUser;
 exports.signAccessToken = signAccessToken;
@@ -13,11 +13,16 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const db_1 = require("../config/db");
 const http_1 = require("../shared/http");
-exports.ROLES = ['viewer', 'user', 'master', 'admin'];
-exports.ROLE_ID = { viewer: 0, user: 1, master: 2, admin: 3 };
+exports.ROLES = ['viewer', 'user', 'master', 'admin', 'root'];
+exports.ROLE_ID = { viewer: 0, user: 1, master: 2, admin: 3, root: 4 };
+/** Roles an admin may give (root is given by a root only) */
+exports.ADMIN_GRANTABLE = ['viewer', 'user', 'master', 'admin'];
 /** Roles without any builder / manager privileges */
 const isBasicRole = (r) => r === 'user' || r === 'viewer';
 exports.isBasicRole = isBasicRole;
+/** admin or root: everything in the system (role_id >= 3 in SQL) */
+const isAdminRole = (r) => r === 'admin' || r === 'root';
+exports.isAdminRole = isAdminRole;
 /** Highest role of a user (alias u = Users) */
 exports.ROLE_SQL = `(SELECT TOP 1 r.role_name FROM UserRoles ur JOIN Roles r ON r.role_id = ur.role_id
   WHERE ur.user_id = u.user_id ORDER BY r.role_id DESC)`;
@@ -83,8 +88,9 @@ const authenticate = (req, _res, next) => {
         .catch(next);
 };
 exports.authenticate = authenticate;
+/** root passes every role check (it is above admin) */
 const requireRole = (...roles) => (req, _res, next) => {
-    if (!req.user || !roles.includes(req.user.role))
+    if (!req.user || !(roles.includes(req.user.role) || req.user.role === 'root'))
         return next((0, http_1.forbidden)());
     next();
 };

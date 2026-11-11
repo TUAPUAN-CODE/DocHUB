@@ -65,7 +65,7 @@ async function tagGrants(kind, id) {
     const table = kind === 'file' ? 'FileTagAccess' : 'FolderTagAccess';
     const col = kind === 'file' ? 'file_id' : 'folder_id';
     return (0, db_1.q)(`SELECT t.tag_id, t.tag_name, t.color, ta.permission, ta.granted_at, ta.expires_at, gb.display_name AS granted_by_name,
-       (SELECT COUNT(*) FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = t.tag_id) AS member_count
+       (SELECT COUNT(*) FROM UserTagsAll ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = t.tag_id) AS member_count
      FROM ${table} ta JOIN Tags t ON t.tag_id = ta.tag_id LEFT JOIN Users gb ON gb.user_id = ta.granted_by
      WHERE ta.${col} = @id ORDER BY t.tag_name`, { id: db_1.T.uuid(id) });
 }
@@ -85,7 +85,7 @@ async function upsertTagGrant(kind, targetId, g, by) {
      ON t.${col} = s.target_id AND t.tag_id = s.tag_id
      WHEN MATCHED THEN UPDATE SET permission = @p, granted_by = @by, granted_at = SYSUTCDATETIME(), expires_at = @e
      WHEN NOT MATCHED THEN INSERT (${col}, tag_id, permission, granted_by, expires_at) VALUES (s.target_id, s.tag_id, @p, @by, @e);`, { id: db_1.T.uuid(targetId), tag: db_1.T.uuid(g.tagId), p: g.permission, by: db_1.T.uuid(by), e: db_1.T.dt(g.expiresAt ?? null) });
-    const members = (await (0, db_1.q)(`SELECT ut.user_id FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = @t`, { t: db_1.T.uuid(g.tagId) }))
+    const members = (await (0, db_1.q)(`SELECT ut.user_id FROM UserTagsAll ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = @t`, { t: db_1.T.uuid(g.tagId) }))
         .map((r) => r.user_id);
     return { name: tag.tag_name, members };
 }

@@ -24,7 +24,10 @@ const BASE = arg('--base', 'http://localhost:4000').replace(/\/+$/, '');
 const OUT = path.resolve(arg('--out', path.join(__dirname, '../../public/guide')));
 const ONLY = (arg('--only', '') || '').split(',').map((s) => s.trim()).filter(Boolean);
 let apiToken = null; // one API sign-in for the whole run (the server allows 30 sign-ins per 15 minutes)
-const ACCOUNTS = { admin: ['admin', 'Admin@123'], master: ['master', 'Master@123'], user: ['user', 'User@1234'] };
+/** today in Thailand as ddmmyyyy: the root account's password is Root@<the day the server created it> (ROOT_PASSWORD overrides) */
+const thaiStamp = () => { const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(new Date()); const g = (t) => p.find((x) => x.type === t).value; return g('day') + g('month') + g('year'); };
+const ACCOUNTS = { admin: ['admin', 'Admin@123'], master: ['master', 'Master@123'], user: ['user', 'User@1234'], root: ['root', process.env.ROOT_PASSWORD || `Root@${thaiStamp()}`] };
+const tokens = {}; // API sign-in per account, once per run
 
 class Run {
   constructor(browser, conv, guide) { this.browser = browser; this.conv = conv; this.guide = guide; this.steps = []; this.api = null; }
@@ -61,6 +64,35 @@ class Run {
     }
     const r = await fetch(`${BASE}/api${p}`, { method, headers: { 'content-type': 'application/json', authorization: `Bearer ${apiToken}` }, body: body && JSON.stringify(body) });
     return (await r.json()).data;
+  }
+
+  /** REST call as another account (a user asks for a tag, a master posts news …) */
+  async callAs(as, method, p, body) {
+    if (!tokens[as]) {
+      const [u, pw] = ACCOUNTS[as];
+      const r = await fetch(`${BASE}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: u, password: pw }) });
+      tokens[as] = (await r.json()).data.accessToken;
+    }
+    const r = await fetch(`${BASE}/api${p}`, { method, headers: { 'content-type': 'application/json', authorization: `Bearer ${tokens[as]}` }, body: body && JSON.stringify(body) });
+    return (await r.json()).data;
+  }
+
+  /** upload a picture as an account (→ "/uploads/…") */
+  async upload(as, buf, name = 'picture.png') {
+    await this.callAs(as, 'GET', '/auth/me');
+    const fd = new FormData();
+    fd.append('file', new Blob([buf], { type: 'image/png' }), name);
+    const r = await fetch(`${BASE}/api/uploads/image`, { method: 'POST', headers: { authorization: `Bearer ${tokens[as]}` }, body: fd });
+    return (await r.json()).data.url;
+  }
+
+  /** a PNG drawn from HTML (a sample picture to attach, e.g. a news poster) */
+  async picture(html, width = 960, height = 540) {
+    const pg = await (await this.browser.newContext({ viewport: { width, height } })).newPage();
+    await pg.setContent(`<html><body style="margin:0;font-family:Prompt,Kanit,sans-serif">${html}</body></html>`);
+    const buf = await pg.screenshot();
+    await pg.context().close();
+    return buf;
   }
 
   /** public sign-up request (no account) */

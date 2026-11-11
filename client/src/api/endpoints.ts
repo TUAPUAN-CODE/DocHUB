@@ -17,11 +17,11 @@ export const usersApi = {
   list: (params: Record<string, any>) =>
     get<{ items: User[]; total: number; page: number; pageSize: number; stats: { total: number; active: number } }>('/users', params),
   lookup: (q: string) => get<User[]>('/users/lookup', { q }),
-  create: (b: { username: string; email: string; displayName: string; password: string; role: Role }) => post<User>('/users', b),
-  update: (id: string, b: Partial<{ email: string; displayName: string; role: Role; isActive: boolean }>) => put<User>(`/users/${id}`, b),
+  create: (b: { username: string; email: string | null; displayName: string; password: string; role: Role }) => post<User>('/users', b),
+  update: (id: string, b: Partial<{ email: string | null; displayName: string; role: Role; isActive: boolean }>) => put<User>(`/users/${id}`, b),
   resetPassword: (id: string, password: string) => post(`/users/${id}/reset-password`, { password }),
   bulk: (ids: string[], action: 'activate' | 'deactivate' | 'set_role', role?: Role) => post('/users/bulk', { ids, action, role }),
-  updateProfile: (b: { displayName: string; email: string; avatarUrl?: string | null }) => put<User>('/users/me/profile', b),
+  updateProfile: (b: { displayName: string; email: string | null; avatarUrl?: string | null }) => put<User>('/users/me/profile', b),
 };
 
 export interface FolderContents { folder: FolderItem | null; breadcrumb: Crumb[]; level: number; subfolders: FolderItem[]; files: FileItem[] }
@@ -146,6 +146,7 @@ export const accessApi = {
 
 export const tagsApi = {
   list: () => get<Tag[]>('/tags'),
+  mine: () => get<Tag[]>('/tags/mine'),
   create: (b: { name: string; color?: string | null; description?: string | null }) => post<Tag>('/tags', b),
   update: (id: string, b: { name: string; color?: string | null; description?: string | null }) => put<Tag>(`/tags/${id}`, b),
   remove: (id: string) => del(`/tags/${id}`),

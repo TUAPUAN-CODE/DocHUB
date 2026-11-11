@@ -6,6 +6,7 @@ const http_1 = require("../../shared/http");
 const mappers_1 = require("../../shared/mappers");
 const permissions_1 = require("../../shared/permissions");
 const rowQuery_1 = require("../../services/rowQuery");
+const service_1 = require("../pageAccess/service");
 /**
  * "Search" (menu Search): one word or phrase → every row of every sheet the user can read whose data contains it,
  * grouped by file / sheet. Union sheets are skipped (their rows are copies of other sheets' rows).
@@ -13,7 +14,7 @@ const rowQuery_1 = require("../../services/rowQuery");
 const router = (0, express_1.Router)();
 const MAX_ROWS = 200;
 const PREVIEW_COLS = 4;
-router.get('/search/data', (0, http_1.ah)(async (req, res) => {
+router.get('/search/data', (0, service_1.requirePage)('search'), (0, http_1.ah)(async (req, res) => {
     const text = String(req.query.q ?? '').trim().slice(0, 100);
     if (text.length < 2)
         throw (0, http_1.badRequest)('พิมพ์อย่างน้อย 2 ตัวอักษร');

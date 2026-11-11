@@ -2,15 +2,17 @@ import { forwardRef, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, Texta
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-export function Field({ label, hint, error, required, children, className }: {
-  label?: ReactNode; hint?: ReactNode; error?: string | null; required?: boolean; children: ReactNode; className?: string;
+/** group: the content is several buttons (tag chips, an upload tile …) — a <div>, so a tap on the title does not press the first one */
+export function Field({ label, hint, error, required, children, className, group }: {
+  label?: ReactNode; hint?: ReactNode; error?: string | null; required?: boolean; children: ReactNode; className?: string; group?: boolean;
 }) {
+  const Tag = group ? 'div' : 'label';
   return (
-    <label className={cn('block', className)}>
+    <Tag className={cn('block', className)} {...(group ? { role: 'group' } : {})}>
       {label && <span className="mb-1.5 block text-[13px] font-medium text-ink/85">{label}{required && <span className="ml-0.5 text-danger">*</span>}</span>}
       {children}
       {error ? <span className="mt-1 block text-xs text-danger">{error}</span> : hint ? <span className="mt-1 block text-xs text-muted">{hint}</span> : null}
-    </label>
+    </Tag>
   );
 }
 

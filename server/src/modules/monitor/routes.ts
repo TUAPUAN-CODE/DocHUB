@@ -2,7 +2,7 @@ import os from 'os';
 import { Router } from 'express';
 import { q } from '../../config/db';
 import { env } from '../../config/env';
-import { requireRole } from '../../middleware/auth';
+import { requirePage } from '../pageAccess/service';
 import { ah, ok } from '../../shared/http';
 import { logger } from '../../shared/logger';
 import { onlineSockets } from '../../socket';
@@ -49,7 +49,7 @@ async function cloudflareDays() {
 
 router.get(
   '/monitor/traffic',
-  requireRole('admin'),
+  requirePage('monitor'), // admin by default; a root can give it to other roles (จัดการสิทธิ์)
   ah(async (_req, res) => {
     const rows = await q(
       `SELECT hour_start, source, requests, errors, slow, bytes FROM TrafficHourly WHERE hour_start >= DATEADD(day, -400, SYSUTCDATETIME()) ORDER BY hour_start`,

@@ -88,6 +88,11 @@ async function broadcastPresence(sheetId: string) {
   }
 }
 
+/** every signed-in browser (e.g. the page permissions changed) */
+export function emitToAll(event: string, payload: unknown) {
+  io?.emit(event, payload);
+}
+
 export function emitToUser(userId: string, event: string, payload: unknown) {
   io?.to(`user:${userId}`).emit(event, payload);
 }

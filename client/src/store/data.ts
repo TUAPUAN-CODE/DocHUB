@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { accountRequestsApi, FavoriteItem, favoritesApi, foldersApi, requestsApi } from '@/api/endpoints';
-import type { FolderItem } from '@/types';
+import { newsApi } from '@/modules/news/api';
+import { tagRequestsApi } from '@/modules/tags/api';
+import { isAdminRole, type FolderItem } from '@/types';
 import { toast } from './ui';
 
 interface DataState {
@@ -9,6 +11,12 @@ interface DataState {
   pendingReviews: number;
   /** admin: requests for a new account waiting for approval */
   pendingAccounts: number;
+  /** master / admin: tag requests sent to me */
+  pendingTagRequests: number;
+  /** news posts I have not seen yet */
+  newsUnread: number;
+  loadNews: () => Promise<void>;
+  setNewsUnread: (n: number) => void;
   loadFavorites: () => Promise<void>;
   loadTree: () => Promise<void>;
   loadPending: () => Promise<void>;
@@ -21,6 +29,16 @@ export const useData = create<DataState>((set, get) => ({
   tree: [],
   pendingReviews: 0,
   pendingAccounts: 0,
+  pendingTagRequests: 0,
+  newsUnread: 0,
+  loadNews: async () => {
+    try {
+      const { useAuth } = await import('./auth');
+      const { canSee } = await import('@/lib/pages');
+      set({ newsUnread: canSee(useAuth.getState().user, 'news') ? (await newsApi.unreadCount()).count : 0 });
+    } catch { /* ignore */ }
+  },
+  setNewsUnread: (n) => set({ newsUnread: n }),
   loadFavorites: async () => {
     try {
       set({ favorites: await favoritesApi.list() });
@@ -37,7 +55,10 @@ export const useData = create<DataState>((set, get) => ({
     } catch { /* ignore */ }
     try {
       const { useAuth } = await import('./auth'); // (auth imports this store)
-      set({ pendingAccounts: useAuth.getState().user?.role === 'admin' ? (await accountRequestsApi.pendingCount()).count : 0 });
+      set({ pendingAccounts: isAdminRole(useAuth.getState().user?.role) ? (await accountRequestsApi.pendingCount()).count : 0 });
+    } catch { /* ignore */ }
+    try {
+      set({ pendingTagRequests: (await tagRequestsApi.pendingCount()).count });
     } catch { /* ignore */ }
   },
   toggleFavorite: async (type, id) => {

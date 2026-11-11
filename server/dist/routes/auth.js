@@ -15,6 +15,9 @@ const auth_1 = require("../middleware/auth");
 const audit_1 = require("../shared/audit");
 const http_1 = require("../shared/http");
 const mappers_1 = require("../shared/mappers");
+const module_1 = require("../modules/pageAccess/module");
+/** + the pages of the left bar (and features) the user's role sees */
+const withPages = async (u) => ({ ...u, pages: await (0, module_1.pagesFor)(u.role) });
 const router = (0, express_1.Router)();
 const COOKIE = 'dsp_rt';
 const sha = (s) => crypto_1.default.createHash('sha256').update(s).digest('hex');
@@ -51,7 +54,7 @@ router.post('/login', loginLimiter, (0, http_1.ah)(async (req, res) => {
     const authUser = await (0, auth_1.loadAuthUser)(u.user_id);
     await issueRefresh(res, u.user_id, req.headers['user-agent']);
     await (0, audit_1.audit)({ userId: u.user_id, action: 'login', entityType: 'user', entityId: u.user_id }, req);
-    (0, http_1.ok)(res, { accessToken: (0, auth_1.signAccessToken)(authUser), user: (0, mappers_1.mapUser)(u) });
+    (0, http_1.ok)(res, { accessToken: (0, auth_1.signAccessToken)(authUser), user: await withPages((0, mappers_1.mapUser)(u)) });
 }));
 router.post('/refresh', (0, http_1.ah)(async (req, res) => {
     const raw = req.cookies?.[COOKIE];
@@ -80,7 +83,7 @@ router.post('/refresh', (0, http_1.ah)(async (req, res) => {
     await (0, db_1.q)(`UPDATE RefreshTokens SET revoked_at = COALESCE(revoked_at, SYSUTCDATETIME()) WHERE token_id = @id`, { id: db_1.T.uuid(id) });
     await issueRefresh(res, user.id, req.headers['user-agent']);
     const full = await (0, db_1.q1)(`SELECT u.*, ${auth_1.ROLE_SQL} AS role FROM Users u WHERE u.user_id = @id`, { id: db_1.T.uuid(user.id) });
-    (0, http_1.ok)(res, { accessToken: (0, auth_1.signAccessToken)(user), user: (0, mappers_1.mapUser)(full) });
+    (0, http_1.ok)(res, { accessToken: (0, auth_1.signAccessToken)(user), user: await withPages((0, mappers_1.mapUser)(full)) });
 }));
 router.post('/logout', (0, http_1.ah)(async (req, res) => {
     const raw = req.cookies?.[COOKIE];
@@ -92,7 +95,7 @@ router.post('/logout', (0, http_1.ah)(async (req, res) => {
 }));
 router.get('/me', auth_1.authenticate, (0, http_1.ah)(async (req, res) => {
     const u = await (0, db_1.q1)(`SELECT u.*, ${auth_1.ROLE_SQL} AS role FROM Users u WHERE u.user_id = @id`, { id: db_1.T.uuid(req.user.id) });
-    (0, http_1.ok)(res, (0, mappers_1.mapUser)(u));
+    (0, http_1.ok)(res, await withPages((0, mappers_1.mapUser)(u)));
 }));
 router.post('/change-password', auth_1.authenticate, (0, http_1.ah)(async (req, res) => {
     const { currentPassword, newPassword } = (0, http_1.parse)(zod_1.z.object({ currentPassword: zod_1.z.string().min(1), newPassword: zod_1.z.string().min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร').max(200) }), req.body);

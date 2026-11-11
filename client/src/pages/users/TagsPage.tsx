@@ -10,7 +10,8 @@ import { SearchSelect } from '@/components/ui/SearchSelect';
 import { TagChip } from '@/components/ui/TagChip';
 import { useLoad } from '@/hooks';
 import { confirmDialog, toast } from '@/store/ui';
-import type { Tag } from '@/types';
+import { useAuth } from '@/store/auth';
+import { isAdminRole, type Tag } from '@/types';
 import { UsersTabs } from './UsersTabs';
 
 function TagModal({ open, onClose, tag, onSaved }: { open: boolean; onClose: () => void; tag: Tag | null; onSaved: () => void }) {
@@ -35,7 +36,7 @@ function TagModal({ open, onClose, tag, onSaved }: { open: boolean; onClose: () 
       description="ใช้จัดกลุ่มผู้ใช้ เช่น แผนก / ไลน์ผลิต / กะ — แชร์ไฟล์ให้ Tag แล้วทุกคนใน Tag เข้าถึงได้"
       footer={<><Button variant="secondary" onClick={onClose}>ยกเลิก</Button><Button onClick={submit} loading={busy} disabled={!name.trim()}>{tag ? 'บันทึก' : 'สร้าง Tag'}</Button></>}>
       <div className="space-y-4">
-        <Field label="ชื่อ Tag" required><TextInput autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={100} placeholder="เช่น QC, ไลน์ PF1, กะดึก" /></Field>
+        <Field label="ชื่อ Tag" required hint={tag?.isSystem ? 'Tag ของระบบ — เปลี่ยนชื่อไม่ได้' : undefined}><TextInput autoFocus value={name} disabled={!!tag?.isSystem} onChange={(e) => setName(e.target.value)} maxLength={100} placeholder="เช่น QC, ไลน์ PF1, กะดึก" /></Field>
         <Field label="สี"><ColorInput value={color} onChange={(c) => setColor(c ?? '#1552F0')} /></Field>
         <Field label="คำอธิบาย"><TextArea rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={500} /></Field>
         {name.trim() && <div className="text-sm text-muted">ตัวอย่าง: <TagChip tag={{ name: name.trim(), color }} size="md" /></div>}
@@ -62,7 +63,7 @@ function MembersModal({ tag, onClose, onChanged }: { tag: Tag | null; onClose: (
       footer={<Button variant="secondary" onClick={onClose}>ปิด</Button>}>
       <div className="rounded-2xl bg-ink/[.03] p-3">
         <SearchSelect value={pick} onChange={(v) => { setPick(v); void add(v); }} placeholder="ค้นหาผู้ใช้เพื่อเพิ่มเข้า Tag…"
-          load={async (q) => (await usersApi.lookup(q)).filter((u) => !members.some((m) => m.id === u.id)).map((u) => ({ value: u.id, label: u.displayName, sub: `${u.username} · ${u.email}` }))} />
+          load={async (q) => (await usersApi.lookup(q)).filter((u) => !members.some((m) => m.id === u.id)).map((u) => ({ value: u.id, label: u.displayName, sub: u.email ? `${u.username} · ${u.email}` : u.username }))} />
       </div>
       <div className="mt-3 max-h-[50vh] overflow-y-auto">
         {loading && !data ? <div className="space-y-2 py-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10" />)}</div>
@@ -82,7 +83,9 @@ function MembersModal({ tag, onClose, onChanged }: { tag: Tag | null; onClose: (
   );
 }
 
-export default function TagsPage() {
+/** Create / edit tags and their members — admin and master (the "จัดการ Tag" tab of /tags, and จัดการผู้ใช้ → Tag) */
+export function TagManager() {
+  const canDelete = useAuth((s) => isAdminRole(s.user?.role));
   const { data, loading, reload } = useLoad(() => tagsApi.list(), []);
   const [edit, setEdit] = useState<{ tag: Tag | null } | null>(null);
   const [members, setMembers] = useState<Tag | null>(null);
@@ -96,10 +99,11 @@ export default function TagsPage() {
   };
   const tags = data ?? [];
   return (
-    <Page>
-      <PageHeader icon={<Users />} title="จัดการผู้ใช้" subtitle="Tag ใช้จัดกลุ่มผู้ใช้ แล้วแชร์ไฟล์/โฟลเดอร์ให้ทั้งกลุ่มในครั้งเดียว"
-        actions={<Button icon={<Plus className="h-4 w-4" />} onClick={() => setEdit({ tag: null })}>สร้าง Tag</Button>} />
-      <UsersTabs />
+    <>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted">Tag ใช้จัดกลุ่มผู้ใช้ แล้วแชร์ไฟล์ / โฟลเดอร์ / ข่าว ให้ทั้งกลุ่มในครั้งเดียว · Tag <b>All</b> = ทุกคน</p>
+        <Button icon={<Plus className="h-4 w-4" />} onClick={() => setEdit({ tag: null })}>สร้าง Tag</Button>
+      </div>
       {loading && !data ? <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-theme" />)}</div>
         : !tags.length ? (
           <div className="ds-card"><EmptyState icon={<Tags />} title="ยังไม่มี Tag" description="สร้าง Tag เช่น แผนก หรือไลน์ผลิต แล้วใส่ผู้ใช้เข้าไป จากนั้นเลือก Tag ตอนแชร์ไฟล์"
@@ -109,13 +113,16 @@ export default function TagsPage() {
             {tags.map((t) => (
               <div key={t.id} className="ds-card ds-card-pad flex flex-col gap-3">
                 <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1"><TagChip tag={t} size="md" />{t.description && <p className="mt-2 text-sm text-muted">{t.description}</p>}</div>
+                  <div className="min-w-0 flex-1">
+                    <span className="inline-flex items-center gap-1.5"><TagChip tag={t} size="md" />{t.isSystem && <span className="rounded-full bg-ink/5 px-2 py-0.5 text-[11px] text-muted">Tag ของระบบ</span>}</span>
+                    {t.description && <p className="mt-2 text-sm text-muted">{t.description}</p>}
+                  </div>
                   <button onClick={() => setEdit({ tag: t })} className="rounded-lg p-1.5 text-muted hover:bg-ink/5 hover:text-ink" aria-label={`แก้ไข ${t.name}`}><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => void remove(t)} className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger" aria-label={`ลบ ${t.name}`}><Trash2 className="h-4 w-4" /></button>
+                  {canDelete && !t.isSystem && <button onClick={() => void remove(t)} className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger" aria-label={`ลบ ${t.name}`}><Trash2 className="h-4 w-4" /></button>}
                 </div>
                 <div className="mt-auto flex items-center justify-between gap-2 text-sm">
-                  <span className="text-muted">สมาชิก {t.memberCount} คน{t.grantCount ? ` · แชร์อยู่ ${t.grantCount} รายการ` : ''}</span>
-                  <Button size="sm" variant="secondary" icon={<UserPlus className="h-3.5 w-3.5" />} onClick={() => setMembers(t)}>สมาชิก</Button>
+                  <span className="text-muted">{t.isSystem ? `ทุกคน (${t.memberCount} คน)` : `สมาชิก ${t.memberCount} คน`}{t.grantCount ? ` · แชร์อยู่ ${t.grantCount} รายการ` : ''}</span>
+                  {!t.isSystem && <Button size="sm" variant="secondary" icon={<UserPlus className="h-3.5 w-3.5" />} onClick={() => setMembers(t)}>สมาชิก</Button>}
                 </div>
               </div>
             ))}
@@ -123,6 +130,16 @@ export default function TagsPage() {
         )}
       <TagModal open={!!edit} onClose={() => setEdit(null)} tag={edit?.tag ?? null} onSaved={() => void reload(true)} />
       <MembersModal tag={members} onClose={() => setMembers(null)} onChanged={() => void reload(true)} />
+    </>
+  );
+}
+
+export default function TagsPage() {
+  return (
+    <Page>
+      <PageHeader icon={<Users />} title="จัดการผู้ใช้" subtitle="Tag ใช้จัดกลุ่มผู้ใช้ แล้วแชร์ไฟล์/โฟลเดอร์ให้ทั้งกลุ่มในครั้งเดียว" />
+      <UsersTabs />
+      <TagManager />
     </Page>
   );
 }

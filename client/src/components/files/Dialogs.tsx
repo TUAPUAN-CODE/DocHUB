@@ -144,7 +144,7 @@ function GrantRow({ g, editable, onChange, onRemove }: { g: AccessGrant; editabl
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2"><span className="truncate text-sm font-medium">{g.displayName}</span><RoleBadge role={g.role} /></div>
         <div className="truncate text-xs text-muted">
-          {g.source === 'owner' ? 'เจ้าของ' : g.source === 'folder_owner' ? `ผู้สร้างโฟลเดอร์ ${g.folderName}` : g.source === 'folder' ? `สืบทอดจากโฟลเดอร์ ${g.folderName}` : g.email}
+          {g.source === 'owner' ? 'เจ้าของ' : g.source === 'folder_owner' ? `ผู้สร้างโฟลเดอร์ ${g.folderName}` : g.source === 'folder' ? `สืบทอดจากโฟลเดอร์ ${g.folderName}` : g.email ?? `@${g.username}`}
           {g.expiresAt && <span className={cn('ml-2 inline-flex items-center gap-1', g.expired && 'text-danger')}><CalendarClock className="h-3 w-3" />{g.expired ? 'หมดอายุแล้ว' : `ถึง ${fmtDateTime(g.expiresAt)}`}</span>}
         </div>
       </div>
@@ -241,7 +241,7 @@ export function ShareDialog({ open, onClose, target }: { open: boolean; onClose:
         <div className="min-w-0 flex-1">
           {mode === 'user' ? (
             <SearchSelect value={userId} onChange={(v) => setUserId(v)} placeholder="ค้นหาผู้ใช้เพื่อเพิ่ม…"
-              load={async (q) => (await usersApi.lookup(q)).map((u) => ({ value: u.id, label: u.displayName, sub: `${u.username} · ${u.email}` }))} />
+              load={async (q) => (await usersApi.lookup(q)).map((u) => ({ value: u.id, label: u.displayName, sub: u.email ? `${u.username} · ${u.email}` : u.username }))} />
           ) : (
             <Select value={tagId} onChange={(e) => setTagId(e.target.value)} aria-label="เลือก Tag">
               <option value="">{allTags?.length ? 'เลือก Tag…' : 'ยังไม่มี Tag (Admin สร้างได้ที่ จัดการผู้ใช้ → Tag)'}</option>

@@ -101,7 +101,7 @@ export default function AccountRequestsPage() {
                         : <span className="text-xs text-muted">@{r.username}</span>}
                       <StatusDot tone={STATUS[r.status].tone} label={STATUS[r.status].label} />
                     </div>
-                    <div className="mt-0.5 break-all text-sm text-muted">{r.email}</div>
+                    <div className="mt-0.5 break-all text-sm text-muted">{r.email ?? "(ไม่มีอีเมล)"}</div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                       <span className="text-muted">ขอระดับ</span><RoleBadge role={r.requestedRole} />
                       {r.grantedRole && <><span className="text-muted">· ได้รับ</span><RoleBadge role={r.grantedRole} /></>}

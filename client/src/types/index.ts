@@ -1,22 +1,26 @@
-export type Role = 'viewer' | 'user' | 'master' | 'admin';
+export type Role = 'viewer' | 'user' | 'master' | 'admin' | 'root';
 /** viewer / user cannot build files, folders or manage sharing */
 export const isBasicRole = (r?: Role | string | null) => r === 'user' || r === 'viewer';
+/** admin or root (root = admin + the page permissions screen) */
+export const isAdminRole = (r?: Role | string | null) => r === 'admin' || r === 'root';
 export type Perm = 'none' | 'read' | 'write' | 'manage';
 export const LV = { none: 0, read: 1, write: 2, manage: 3 } as const;
 
 export interface User {
-  id: string; username: string; email: string; displayName: string; avatarUrl: string | null; role: Role;
+  id: string; username: string; email: string | null; displayName: string; avatarUrl: string | null; role: Role;
   isActive?: boolean; lastLoginAt?: string | null; createdAt?: string | null; tags?: TagRef[];
+  /** pages of the left bar / features the role sees (signed-in user only, set by a root on จัดการสิทธิ์) */
+  pages?: string[];
 }
 export interface TagRef { id: string; name: string; color: string }
-export interface Tag extends TagRef { description: string | null; memberCount: number; grantCount?: number; createdAt: string }
+export interface Tag extends TagRef { description: string | null; memberCount: number; grantCount?: number; createdAt: string; isSystem?: boolean }
 /** a file / folder shared with everyone who has a tag */
 export interface TagGrant {
   tagId: string; name: string; color: string; memberCount: number; permission: Perm; grantedAt: string | null; grantedByName: string | null;
   expiresAt: string | null; expired: boolean; source: 'file' | 'folder'; folderId?: string; folderName?: string;
 }
 export interface AccountRequest {
-  id: string; username: string | null; email: string; displayName: string; provider: 'microsoft' | 'google' | null; requestedRole: Role;
+  id: string; username: string | null; email: string | null; displayName: string; provider: 'microsoft' | 'google' | null; requestedRole: Role;
   note: string | null; status: 'pending' | 'approved' | 'rejected'; grantedRole: Role | null; userId: string | null;
   reviewerName: string | null; reviewNote: string | null; reviewedAt: string | null; createdAt: string;
 }
@@ -106,7 +110,7 @@ export interface SortSpec { columnId: string; dir: 'asc' | 'desc' }
 export interface NotificationItem { id: string; type: string; title: string; message: string; link: string | null; isRead: boolean; createdAt: string }
 
 export interface AccessGrant {
-  userId: string; username: string; displayName: string; email: string; avatarUrl: string | null; role: Role; permission: Perm;
+  userId: string; username: string; displayName: string; email: string | null; avatarUrl: string | null; role: Role; permission: Perm;
   grantedAt: string | null; grantedByName: string | null; expiresAt: string | null; expired: boolean;
   source: 'owner' | 'file' | 'folder' | 'folder_owner'; folderId?: string; folderName?: string;
 }

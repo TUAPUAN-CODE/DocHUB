@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const zod_1 = require("zod");
 const db_1 = require("../config/db");
+const auth_1 = require("../middleware/auth");
 const audit_1 = require("../shared/audit");
 const crypto_1 = __importDefault(require("crypto"));
 const cellValue_1 = require("../shared/cellValue");
@@ -388,7 +389,7 @@ router.post('/rows/:id/rollback', (0, http_1.ah)(async (req, res) => {
 }));
 router.post('/sheets/:id/rollback', (0, http_1.ah)(async (req, res) => {
     const sheetId = (0, http_1.pid)(req);
-    if (req.user.role !== 'admin')
+    if (!(0, auth_1.isAdminRole)(req.user.role))
         throw (0, http_1.forbidden)('การย้อนข้อมูลทั้งชีตทำได้เฉพาะ Admin');
     const { sheet } = await (0, permissions_1.requireSheet)(req.user, sheetId, permissions_1.LV.manage);
     const body = (0, http_1.parse)(rollbackBody, req.body);

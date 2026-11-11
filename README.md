@@ -190,6 +190,8 @@ Metal Detector form F3QCPF06 with the program / sensitivity tables of both plant
 
 In-app manual (menu คู่มือ): step-by-step guides with annotated screenshots of the real app, printable as PDF — [`docs/GUIDE.md`](docs/GUIDE.md) (Thai).
 
+News board (posts seen by the people of their tags; tag All = everyone), tag requests sent to a chosen admin / master, the root role with its page-permission screen (which role sees which page of the left bar and the AI button), optional e-mail: [`docs/NEWS_TAGS_ROOT.md`](docs/NEWS_TAGS_ROOT.md) (Thai).
+
 Account requests, user tags (share a file or folder with everyone in a tag), links to a file or folder that bring people back after signing in, and dialogs that close only from their own buttons: [`docs/ACCOUNTS_TAGS.md`](docs/ACCOUNTS_TAGS.md) (Thai).
 
 `client/dist` and `server/dist` are committed: a server running `ecosystem.production.config.js` updates with `git pull` alone (PM2 restarts the API when `server/dist` changes).

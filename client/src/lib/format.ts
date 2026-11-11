@@ -83,7 +83,7 @@ export function colorFor(s: string) {
 export const SWATCHES = PALETTE;
 
 export const PERM_LABEL: Record<string, string> = { none: 'ไม่มีสิทธิ์', read: 'ดูข้อมูล', write: 'แก้ไขข้อมูล', manage: 'จัดการ' };
-export const ROLE_LABEL: Record<string, string> = { viewer: 'Viewer (ดูอย่างเดียว)', user: 'User (กรอกข้อมูล)', master: 'Master', admin: 'Admin' };
+export const ROLE_LABEL: Record<string, string> = { viewer: 'Viewer (ดูอย่างเดียว)', user: 'User (กรอกข้อมูล)', master: 'Master', admin: 'Admin', root: 'Root' };
 export const levelToPerm = (l: number) => (['none', 'read', 'write', 'manage'] as const)[Math.max(0, Math.min(3, l))];
 
 export const ACTION_LABEL: Record<string, string> = {

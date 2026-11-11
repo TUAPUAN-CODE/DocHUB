@@ -46,7 +46,7 @@ import { displayValue, fmtDateTime, levelToPerm } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { confirmDialog, toast, useUi } from '@/store/ui';
-import { Column, LV, Row, isBasicRole } from '@/types';
+import { Column, LV, Row, isAdminRole, isBasicRole } from '@/types';
 
 const TOOLS_KEY = 'ds.sheetTools';
 /** Tools (header, toolbar, filter bar) shown? The viewer's last choice on this device; a phone starts with the data only. */
@@ -321,7 +321,7 @@ export default function FilePage() {
               </Popover>
               <div className="ml-auto flex items-center gap-1">
                 {canWrite && <IconButton label="แถวที่ถูกลบ" onClick={() => setModal('trash')}><Trash2 className="h-4 w-4" /></IconButton>}
-                {role === 'admin' && <IconButton label="ย้อนข้อมูลทั้งชีต" onClick={() => setModal('rollback')}><RotateCcw className="h-4 w-4" /></IconButton>}
+                {isAdminRole(role) && <IconButton label="ย้อนข้อมูลทั้งชีต" onClick={() => setModal('rollback')}><RotateCcw className="h-4 w-4" /></IconButton>}
                 <IconButton ref={exportBtn} label="ส่งออกไฟล์" onClick={() => setExportMenu(true)}><Download className="h-4 w-4" /></IconButton>
                 <Popover open={exportMenu} onClose={() => setExportMenu(false)} anchor={exportBtn.current} placement="bottom-end" width={280}>
                   <MenuList onClose={() => setExportMenu(false)} items={[

@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ConfirmHost, Toaster } from '@/components/ui/Feedback';
 import { Spinner } from '@/components/ui/misc';
 import { useAuth } from '@/store/auth';
+import { canSee } from '@/lib/pages';
 import LoginPage, { nextPath } from '@/pages/LoginPage';
 import HomePage from '@/pages/HomePage';
 import FolderPage from '@/pages/FolderPage';
@@ -30,6 +31,9 @@ const TracebackPage = lazy(() => import('@/pages/TracebackPage'));
 const DevicesPage = lazy(() => import('@/pages/DevicesPage'));
 const GuidePage = lazy(() => import('@/modules/guide/GuidePage'));
 const MonitorPage = lazy(() => import('@/modules/monitor/MonitorPage'));
+const NewsPage = lazy(() => import('@/modules/news/NewsPage'));
+const TagHubPage = lazy(() => import('@/modules/tags/TagHubPage'));
+const PermissionsPage = lazy(() => import('@/modules/pageAccess/PermissionsPage'));
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const status = useAuth((s) => s.status);
@@ -43,7 +47,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
 }
 function RequireRole({ roles, children }: { roles: string[]; children: ReactNode }) {
   const role = useAuth((s) => s.user?.role);
-  return role && roles.includes(role) ? <>{children}</> : <Navigate to="/" replace />;
+  return role && (roles.includes(role) || role === 'root') ? <>{children}</> : <Navigate to="/" replace />;
+}
+/** a page of the left bar: the role must have it (จัดการสิทธิ์, lib/pages.tsx) */
+function RequirePage({ page, children }: { page: string; children: ReactNode }) {
+  const ok = useAuth((s) => canSee(s.user, page));
+  return ok ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 export default function App() {
@@ -66,28 +75,31 @@ export default function App() {
         <Route path="/s/:token" element={<Suspense fallback={<div className="grid h-full place-items-center"><Spinner /></div>}><PublicSharePage /></Suspense>} />
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
           <Route index element={<HomePage />} />
-          <Route path="browse" element={<FolderPage />} />
+          <Route path="browse" element={<RequirePage page="browse"><FolderPage /></RequirePage>} />
+          <Route path="news" element={<RequirePage page="news"><NewsPage /></RequirePage>} />
+          <Route path="tags" element={<RequirePage page="tags"><TagHubPage /></RequirePage>} />
+          <Route path="permissions" element={<RequireRole roles={['root']}><PermissionsPage /></RequireRole>} />
           <Route path="folders/:id" element={<FolderPage />} />
           <Route path="files/new" element={<RequireRole roles={['master', 'admin']}><FileBuilderPage /></RequireRole>} />
           <Route path="files/:id" element={<FilePage />} />
           <Route path="files/:fileId/dashboards/:dashId" element={<DashboardPage />} />
           <Route path="files/:fileId/pdf" element={<PdfDesignerPage />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="access-requests" element={<AccessRequestsPage />} />
-          <Route path="audit" element={<RequireRole roles={['master', 'admin']}><AuditPage /></RequireRole>} />
-          <Route path="users" element={<RequireRole roles={['admin']}><UsersPage /></RequireRole>} />
-          <Route path="users/requests" element={<RequireRole roles={['admin']}><AccountRequestsPage /></RequireRole>} />
-          <Route path="users/tags" element={<RequireRole roles={['admin']}><TagsPage /></RequireRole>} />
-          <Route path="trash" element={<TrashPage />} />
-          <Route path="dashboards" element={<DashboardsPage />} />
-          <Route path="approvals" element={<ApprovalsPage />} />
-          <Route path="connectors" element={<RequireRole roles={['master', 'admin']}><ConnectorsPage /></RequireRole>} />
-          <Route path="traceback" element={<TracebackPage />} />
-          <Route path="devices" element={<RequireRole roles={['master', 'admin']}><DevicesPage /></RequireRole>} />
+          <Route path="access-requests" element={<RequirePage page="access-requests"><AccessRequestsPage /></RequirePage>} />
+          <Route path="audit" element={<RequirePage page="audit"><AuditPage /></RequirePage>} />
+          <Route path="users" element={<RequirePage page="users"><UsersPage /></RequirePage>} />
+          <Route path="users/requests" element={<RequirePage page="users"><AccountRequestsPage /></RequirePage>} />
+          <Route path="users/tags" element={<RequirePage page="users"><TagsPage /></RequirePage>} />
+          <Route path="trash" element={<RequirePage page="trash"><TrashPage /></RequirePage>} />
+          <Route path="dashboards" element={<RequirePage page="dashboards"><DashboardsPage /></RequirePage>} />
+          <Route path="approvals" element={<RequirePage page="approvals"><ApprovalsPage /></RequirePage>} />
+          <Route path="connectors" element={<RequirePage page="connectors"><ConnectorsPage /></RequirePage>} />
+          <Route path="traceback" element={<RequirePage page="search"><TracebackPage /></RequirePage>} />
+          <Route path="devices" element={<RequirePage page="devices"><DevicesPage /></RequirePage>} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="monitor" element={<RequireRole roles={['admin']}><MonitorPage /></RequireRole>} />
-          <Route path="guide" element={<GuidePage />} />
-          <Route path="guide/:id" element={<GuidePage />} />
+          <Route path="monitor" element={<RequirePage page="monitor"><MonitorPage /></RequirePage>} />
+          <Route path="guide" element={<RequirePage page="guide"><GuidePage /></RequirePage>} />
+          <Route path="guide/:id" element={<RequirePage page="guide"><GuidePage /></RequirePage>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

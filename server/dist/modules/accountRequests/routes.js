@@ -16,8 +16,9 @@ const http_1 = require("../../shared/http");
 const notify_1 = require("../../shared/notify");
 const routes_1 = require("../tags/routes");
 const service_1 = require("./service");
-const zRole = zod_1.z.enum(auth_1.ROLES);
-const ROLE_TH = { viewer: 'Viewer (ดูอย่างเดียว)', user: 'User (กรอกข้อมูล)', master: 'Master', admin: 'Admin' };
+// root is never asked for nor given here (a root gives it on the users page)
+const zRole = zod_1.z.enum(auth_1.ADMIN_GRANTABLE);
+const ROLE_TH = { viewer: 'Viewer (ดูอย่างเดียว)', user: 'User (กรอกข้อมูล)', master: 'Master', admin: 'Admin', root: 'Root' };
 const PROVIDER_TH = { microsoft: 'Microsoft', google: 'Google' };
 /* ---------------- public: ask for an account ---------------- */
 exports.publicRouter = (0, express_1.Router)();
@@ -37,7 +38,8 @@ exports.publicRouter.get('/signup/oauth', (0, http_1.ah)(async (req, res) => {
 }));
 const signupSchema = zod_1.z.object({
     displayName: zod_1.z.string().trim().min(1, 'กรุณากรอกชื่อ-นามสกุล').max(200),
-    email: zod_1.z.string().trim().toLowerCase().email('อีเมลไม่ถูกต้อง').max(255).optional(),
+    // optional: some staff have no e-mail ('' = none)
+    email: zod_1.z.string().trim().toLowerCase().max(255).refine((v) => v === '' || zod_1.z.string().email().safeParse(v).success, 'อีเมลไม่ถูกต้อง').optional(),
     username: zod_1.z.string().trim().min(3, 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร').max(100).regex(/^[a-zA-Z0-9._-]+$/, 'ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ -').optional(),
     password: zod_1.z.string().min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร').max(200).optional(),
     oauthToken: zod_1.z.string().max(4000).optional(),
@@ -49,26 +51,24 @@ exports.publicRouter.post('/signup', signupLimiter, (0, http_1.ah)(async (req, r
     const oauth = b.oauthToken ? (0, service_1.readSignupToken)(b.oauthToken) : null;
     if (b.oauthToken && !oauth)
         throw (0, http_1.badRequest)('ลิงก์ขอสร้างบัญชีหมดอายุ กรุณาเข้าสู่ระบบด้วย Microsoft อีกครั้ง');
-    const email = (oauth?.email ?? b.email ?? '').toLowerCase();
-    if (!email)
-        throw (0, http_1.badRequest)('กรุณากรอกอีเมล');
+    const email = (oauth?.email ?? b.email ?? '').toLowerCase() || null;
     if (!oauth && (!b.username || !b.password))
         throw (0, http_1.badRequest)('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
-    if (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE email = @e`, { e: email }))
+    if (email && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE email = @e`, { e: email })))
         throw (0, http_1.conflict)('อีเมลนี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบ (ลืมรหัสผ่านติดต่อผู้ดูแลระบบ)');
     if (b.username && !oauth && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE username = @u`, { u: b.username })))
         throw (0, http_1.conflict)('ชื่อผู้ใช้นี้ถูกใช้แล้ว กรุณาเลือกชื่ออื่น');
     const pending = await (0, db_1.q1)(`SELECT TOP 1 request_id FROM AccountRequests WHERE status = 'pending'
-       AND (email = @e ${b.username && !oauth ? 'OR username = @u' : ''} ${oauth ? 'OR (provider = @p AND provider_subject = @s)' : ''})`, { e: email, u: db_1.T.text(b.username ?? null), p: db_1.T.text(oauth?.p ?? null), s: db_1.T.text(oauth?.sub ?? null) });
+       AND ((@e IS NOT NULL AND email = @e) ${b.username && !oauth ? 'OR username = @u' : ''} ${oauth ? 'OR (provider = @p AND provider_subject = @s)' : ''})`, { e: db_1.T.text(email), u: db_1.T.text(b.username ?? null), p: db_1.T.text(oauth?.p ?? null), s: db_1.T.text(oauth?.sub ?? null) });
     if (pending)
         throw (0, http_1.conflict)('มีคำขอสร้างบัญชีนี้รอการอนุมัติอยู่แล้ว');
     const hash = oauth ? null : await bcryptjs_1.default.hash(b.password, 12);
     await (0, db_1.q)(`INSERT INTO AccountRequests (username, email, display_name, password_hash, provider, provider_subject, requested_role, note)
        VALUES (@u, @e, @n, @h, @p, @s, @r, @note)`, {
-        u: db_1.T.text(oauth ? null : b.username), e: email, n: b.displayName, h: db_1.T.text(hash),
+        u: db_1.T.text(oauth ? null : b.username), e: db_1.T.text(email), n: b.displayName, h: db_1.T.text(hash),
         p: db_1.T.text(oauth?.p ?? null), s: db_1.T.text(oauth?.sub ?? null), r: b.requestedRole, note: db_1.T.text(b.note || null),
     });
-    await (0, service_1.notifyAdmins)('คำขอสร้างบัญชีใหม่', `${b.displayName} (${email}${oauth ? ` · ${PROVIDER_TH[oauth.p]}` : ''}) ขอบัญชีระดับ ${ROLE_TH[b.requestedRole]}`);
+    await (0, service_1.notifyAdmins)('คำขอสร้างบัญชีใหม่', `${b.displayName} (${email ?? b.username ?? '-'}${oauth ? ` · ${PROVIDER_TH[oauth.p]}` : ''}) ขอบัญชีระดับ ${ROLE_TH[b.requestedRole]}`);
     (0, http_1.ok)(res, { requested: true, via: oauth?.p ?? null }, 201);
 }));
 /* ---------------- admin: review ---------------- */
@@ -112,7 +112,7 @@ router.post('/account-requests/:id/approve', adminOnly, (0, http_1.ah)(async (re
             throw (0, http_1.notFound)('ไม่พบคำขอ');
         if (r.status !== 'pending')
             throw (0, http_1.conflict)('คำขอนี้ได้รับการพิจารณาไปแล้ว');
-        if (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE email = @e`, { e: r.email }, tx))
+        if (r.email && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE email = @e`, { e: r.email }, tx)))
             throw (0, http_1.conflict)(`อีเมล ${r.email} มีบัญชีอยู่แล้ว — ปฏิเสธคำขอนี้แทน`);
         let username = r.username;
         if (username && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE username = @u`, { u: username }, tx)))
@@ -120,7 +120,7 @@ router.post('/account-requests/:id/approve', adminOnly, (0, http_1.ah)(async (re
         if (!username)
             username = await (0, service_1.uniqueUsername)(String(r.email).split('@')[0]);
         const hash = r.password_hash ?? (await bcryptjs_1.default.hash(crypto_1.default.randomBytes(24).toString('hex'), 10)); // Microsoft / Google: signs in there
-        const u = await (0, db_1.q1)(`INSERT INTO Users (username, email, password_hash, display_name, created_by) OUTPUT inserted.user_id VALUES (@u, @e, @h, @n, @by)`, { u: username, e: r.email, h: hash, n: r.display_name, by: db_1.T.uuid(req.user.id) }, tx);
+        const u = await (0, db_1.q1)(`INSERT INTO Users (username, email, password_hash, display_name, created_by) OUTPUT inserted.user_id VALUES (@u, @e, @h, @n, @by)`, { u: username, e: db_1.T.text(r.email ?? null), h: hash, n: r.display_name, by: db_1.T.uuid(req.user.id) }, tx);
         const newId = u.user_id;
         await (0, db_1.q)(`INSERT INTO UserRoles (user_id, role_id, assigned_by) VALUES (@u, @r, @by)`, { u: db_1.T.uuid(newId), r: auth_1.ROLE_ID[b.role], by: db_1.T.uuid(req.user.id) }, tx);
         if (r.provider && r.provider_subject && !(await (0, db_1.q1)(`SELECT 1 AS x FROM OAuthIdentities WHERE provider = @p AND subject = @s`, { p: r.provider, s: r.provider_subject }, tx)))

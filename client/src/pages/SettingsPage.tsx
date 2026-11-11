@@ -14,12 +14,12 @@ function Profile() {
   const user = useAuth((s) => s.user)!;
   const setUser = useAuth((s) => s.setUser);
   const [name, setName] = useState(user.displayName);
-  const [email, setEmail] = useState(user.email);
+  const [email, setEmail] = useState(user.email ?? '');
   const [avatar, setAvatar] = useState(user.avatarUrl);
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
-    try { setUser(await usersApi.updateProfile({ displayName: name, email, avatarUrl: avatar })); toast.success('บันทึกโปรไฟล์แล้ว'); } catch (e) { toast.error(e); } finally { setBusy(false); }
+    try { setUser(await usersApi.updateProfile({ displayName: name, email: email.trim() || null, avatarUrl: avatar })); toast.success('บันทึกโปรไฟล์แล้ว'); } catch (e) { toast.error(e); } finally { setBusy(false); }
   };
   return (
     <div className="ds-card ds-card-pad max-w-2xl space-y-5">
@@ -41,9 +41,9 @@ function Profile() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="ชื่อที่แสดง" required><TextInput value={name} onChange={(e) => setName(e.target.value)} /></Field>
-        <Field label="อีเมล" required><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+        <Field label="อีเมล" hint="ไม่บังคับ — ไม่มีอีเมลเว้นว่างได้"><TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
       </div>
-      <Button onClick={save} loading={busy} disabled={!name.trim() || !email.trim()}>บันทึกโปรไฟล์</Button>
+      <Button onClick={save} loading={busy} disabled={!name.trim()}>บันทึกโปรไฟล์</Button>
     </div>
   );
 }
