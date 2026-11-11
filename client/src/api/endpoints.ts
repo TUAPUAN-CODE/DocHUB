@@ -18,10 +18,10 @@ export const usersApi = {
     get<{ items: User[]; total: number; page: number; pageSize: number; stats: { total: number; active: number } }>('/users', params),
   lookup: (q: string) => get<User[]>('/users/lookup', { q }),
   create: (b: { username: string; email: string | null; displayName: string; password: string; role: Role }) => post<User>('/users', b),
-  update: (id: string, b: Partial<{ email: string | null; displayName: string; role: Role; isActive: boolean }>) => put<User>(`/users/${id}`, b),
+  update: (id: string, b: Partial<{ username: string; email: string | null; displayName: string; role: Role; isActive: boolean }>) => put<User>(`/users/${id}`, b),
   resetPassword: (id: string, password: string) => post(`/users/${id}/reset-password`, { password }),
   bulk: (ids: string[], action: 'activate' | 'deactivate' | 'set_role', role?: Role) => post('/users/bulk', { ids, action, role }),
-  updateProfile: (b: { displayName: string; email: string | null; avatarUrl?: string | null }) => put<User>('/users/me/profile', b),
+  updateProfile: (b: { displayName: string; username?: string; email: string | null; avatarUrl?: string | null }) => put<User>('/users/me/profile', b),
 };
 
 export interface FolderContents { folder: FolderItem | null; breadcrumb: Crumb[]; level: number; subfolders: FolderItem[]; files: FileItem[] }
