@@ -1156,7 +1156,7 @@ module.exports = [
           await docRow.locator('td').nth(2).click(); await r.settle(300);
           await role(p, 'button', 'ส่งออก').click(); await r.settle(400);
           const pdfItem = p.getByRole('menuitem', { name: /PDF — ใบตรวจ F3QCPF06/ }).first();
-          await r.shot({ title: 'พิมพ์ใบตรวจเป็น PDF', text: 'คลิกแถวของใบที่ต้องการ (เลือกหลายใบได้ แต่ละใบขึ้นหน้าใหม่) แล้วกด **ส่งออก → PDF — ใบตรวจ F3QCPF06** · ในตารางผลการตรวจของ PDF มีเฉพาะ**รายการของใบนั้น**', marks: [{ el: pdfItem, label: 'PDF ใบตรวจ', place: 'left' }] });
+          await r.shot({ title: 'พิมพ์ใบตรวจเป็น PDF', text: 'คลิกแถวของใบที่ต้องการ (เลือกหลายใบได้ ใบละหน้า) แล้วกด **ส่งออก → PDF — ใบตรวจ F3QCPF06 (แบบฟอร์ม Excel A4 แนวตั้ง)** · หน้าตาเหมือนแบบฟอร์ม Excel: หัวกระดาษ · ตาราง 33 บรรทัด (มีเฉพาะ**รายการของใบนั้น**) · หมายเหตุ · ผู้ลงชื่อ', marks: [{ el: pdfItem, label: 'PDF ใบตรวจ', place: 'left' }] });
           await p.keyboard.press('Escape'); await r.settle(300);
           await role(p, 'button', 'รายการตรวจ').click(); await r.settle(1200);
           await r.shot({ title: 'ชีตรายการตรวจบอกว่าเป็นของใบไหน', text: 'ชีต **รายการตรวจ** มีคอลัมน์ **หัวเอกสาร** บอกเลขที่ใบตรวจของแต่ละรายการ กดเพื่อไปที่ใบนั้น', marks: [{ el: p.locator('tbody tr').first().getByRole('button').filter({ hasText: /MD-/ }).first(), label: 'ใบตรวจของรายการนี้', place: 'right' }] });

@@ -101,6 +101,35 @@ function aggregate(rows: Row[], col: Column, agg: string): string {
   return displayValue({ ...col, dataType: 'float', validation: { ...col.validation, decimals: agg === 'avg' ? 2 : col.validation?.decimals ?? (col.dataType === 'float' ? 2 : 0) } } as Column, v);
 }
 
+/**
+ * The header rows of a table: the heading levels (b.headerGroups, top first) and then the column headers. A single-column heading with
+ * no label is merged with the cells under it (rowSpan), so e.g. "เวลา" fills the height of the two-level heading next to it.
+ */
+export function groupHeaderRows(b: Pick<TableBlock, 'headerGroups' | 'header'>, header: any[]): any[][] {
+  const n = header.length;
+  const levels = (b.headerGroups ?? []).filter((lv) => lv.length && lv.reduce((t, g) => t + Math.max(1, g.span || 1), 0) === n);
+  if (!levels.length) return [header];
+  const style = { bold: b.header.bold, color: b.header.color, fontSize: b.header.fontSize, alignment: 'center' };
+  const rows: any[][] = levels.map(() => Array.from({ length: n }, () => ({})));
+  const last = [...header];
+  const emptyAt = (li: number, ci: number) => { let at = 0; for (const g of levels[li]) { const sp = Math.max(1, g.span || 1); if (ci < at + sp) return sp === 1 && !g.label.trim(); at += sp; } return false; };
+  levels.forEach((lv, li) => {
+    let at = 0;
+    for (const g of lv) {
+      const sp = Math.max(1, g.span || 1);
+      if (!(sp === 1 && !g.label.trim())) rows[li][at] = { text: g.label, colSpan: sp > 1 ? sp : undefined, ...style };
+      at += sp;
+    }
+  });
+  // a column whose headings are empty from some level down: its own header moves up to that level and spans the rows below
+  for (let ci = 0; ci < n; ci++) {
+    let top = levels.length;
+    while (top > 0 && emptyAt(top - 1, ci)) top--;
+    if (top < levels.length) { rows[top][ci] = { ...header[ci], rowSpan: levels.length - top + 1 }; last[ci] = {}; }
+  }
+  return [...rows, last];
+}
+
 function tableBlock(b: TableBlock, c: BuildCtx) {
   const sd = c.tables.get(b.id);
   if (!sd) return { text: 'ยังไม่ได้เลือกชีตของตาราง', italics: true, color: '#9CA3AF', margin: margin(b) };
@@ -113,6 +142,7 @@ function tableBlock(b: TableBlock, c: BuildCtx) {
     ...(b.showRowNumber ? [{ text: b.rowNumberHeader || '#', bold: b.header.bold, color: b.header.color, fontSize: b.header.fontSize, alignment: 'center' }] : []),
     ...cols.map(({ ref, col }) => ({ text: ref.header || col.name, bold: b.header.bold, color: b.header.color, fontSize: b.header.fontSize, alignment: (ref.align ?? b.header.align) as any })),
   ];
+  const headRows = groupHeaderRows(b, header);
   const widths: any[] = [...(b.showRowNumber ? [pt(9)] : []), ...cols.map(({ ref, col }) => (ref.widthMm ? Math.max(8, pt(ref.widthMm) - 2 * pt(b.padding * 0.7)) /* a column's width includes its own padding */ : col.dataType === 'image' ? pt(b.imageSizeMm * Math.min(b.maxImagesPerCell, 2) + 4) : '*'))];
   const body = (rows: Row[], startNo: number) => rows.map((r, i) => [
     ...(b.showRowNumber ? [{ text: String(startNo + i + 1), alignment: 'center', fontSize: b.body.fontSize, color: '#6B7280' }] : []),
@@ -124,7 +154,8 @@ function tableBlock(b: TableBlock, c: BuildCtx) {
         return nodes.length ? { stack: [...nodes.map((n: any) => ({ ...n, margin: [0, 0, 0, 2] })), ...(more > 0 ? [{ text: `+${more}`, fontSize: 8, color: '#6B7280' }] : [])] } : { text: '' };
       }
       const alert = col.validation?.alert ? alertColor(col.validation.alert, r.values, c.now.getTime()) : null; // colour alerts, as of the time of printing
-      return { text: displayValue(col, v), alignment: cellAlign(col, ref), fontSize: b.body.fontSize, color: b.body.color, lineHeight: b.body.lineHeight, ...(alert ? { fillColor: alert.color } : {}) };
+      const shown = ref.firstWord ? (Array.isArray(v) ? v.map((x) => String(x).trim().split(/\s+/)[0]).join(', ') : displayValue(col, v).trim().split(/\s+/)[0] ?? '') : displayValue(col, v);
+      return { text: shown, alignment: cellAlign(col, ref), fontSize: b.body.fontSize, color: b.body.color, lineHeight: b.body.lineHeight, ...(alert ? { fillColor: alert.color } : {}) };
     }),
   ]);
   const summaryRow = () => {
@@ -148,16 +179,19 @@ function tableBlock(b: TableBlock, c: BuildCtx) {
   const layout = (hasSummary: boolean, nRows: number) => ({
     hLineWidth: () => b.border.width, vLineWidth: () => b.border.width, hLineColor: () => b.border.color, vLineColor: () => b.border.color,
     paddingLeft: () => pt(b.padding * 0.7), paddingRight: () => pt(b.padding * 0.7), paddingTop: () => pt(b.padding * 0.55), paddingBottom: () => pt(b.padding * 0.55),
-    fillColor: (i: number) => (i === 0 ? b.header.bg : hasSummary && i === nRows - 1 ? '#EEF2FF' : b.body.zebra && i % 2 === 0 ? b.body.zebra : null),
+    fillColor: (i: number) => (i < headRows.length ? b.header.bg : hasSummary && i === nRows - 1 ? '#EEF2FF' : b.body.zebra && i % 2 === 0 ? b.body.zebra : null),
   });
 
   chunks.forEach((rows, ci) => {
     const last = ci === chunks.length - 1;
     const sum = last ? summaryRow() : null;
     const bodyRows = body(rows, ci * (rpp ?? 0));
-    const all = [header, ...(bodyRows.length ? bodyRows : [[{ text: 'ไม่มีข้อมูล', colSpan: header.length, alignment: 'center', color: '#9CA3AF', fontSize: b.body.fontSize }, ...Array(header.length - 1).fill({})]]), ...(sum ? [sum] : [])];
+    // a paper form: empty lines up to minRows (on every page when the table is split by rowsPerPage)
+    const pad = Math.max(0, (b.minRows ?? 0) - bodyRows.length);
+    for (let i = 0; i < pad; i++) bodyRows.push(header.map(() => ({ text: ' ', fontSize: b.body.fontSize, lineHeight: b.body.lineHeight })));
+    const all = [...headRows, ...(bodyRows.length ? bodyRows : [[{ text: 'ไม่มีข้อมูล', colSpan: header.length, alignment: 'center', color: '#9CA3AF', fontSize: b.body.fontSize }, ...Array(header.length - 1).fill({})]]), ...(sum ? [sum] : [])];
     const node: any = {
-      table: { headerRows: b.repeatHeader ? 1 : 0, widths: widths.map((x) => x), body: all, dontBreakRows: true },
+      table: { headerRows: b.repeatHeader ? headRows.length : 0, widths: widths.map((x) => x), body: all, dontBreakRows: true },
       layout: layout(!!sum, all.length), margin: [ml, 0, avail - w - ml, last ? pt(b.marginBottom) : 0],
     };
     if (ci > 0) node.pageBreak = 'before';

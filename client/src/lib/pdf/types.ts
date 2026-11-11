@@ -35,7 +35,7 @@ export interface PageBreakBlock extends BlockBase { type: 'pageBreak' }
 export interface ColumnsBlock extends BlockBase {
   type: 'columns'; gap: number; cols: { widthPct: number; blocks: (TextBlock | ImageBlock)[] }[];
 }
-export interface TableCol { columnId: string; columnName: string; header?: string; widthMm?: number | null; align?: Align }
+export interface TableCol { columnId: string; columnName: string; header?: string; widthMm?: number | null; align?: Align; /** print only the first word of each value (e.g. F0 of “F0 Sensitivity test”) */ firstWord?: boolean }
 export type Agg = 'sum' | 'avg' | 'count' | 'min' | 'max';
 export interface TableBlock extends BlockBase {
   type: 'table'; sheetId: string; sheetName: string; columns: TableCol[];
@@ -50,6 +50,14 @@ export interface TableBlock extends BlockBase {
   /** a line of text before the table (supports tokens) */ caption?: string;
   /** form per row (perRow) on a header sheet: only the lines of the printed row (หัวเอกสาร → รายการ) */
   rowLines?: boolean;
+  /**
+   * headings above the column headers, top level first (like merged cells in Excel); each level's spans add up to the number of
+   * columns (the row-number column counts). A heading with an empty label over a single column lets that column's own header
+   * take the empty space (merged downwards).
+   */
+  headerGroups?: { label: string; span: number }[][] | null;
+  /** print at least this many rows (empty lines to write on, like a paper form); null = only the data */
+  minRows?: number | null;
 }
 export interface FieldsBlock extends BlockBase {
   type: 'fields'; columns: TableCol[]; perRow: 1 | 2 | 3; label: TextStyle; value: TextStyle; border: { color: string; width: number } | null; imageSizeMm: number;
