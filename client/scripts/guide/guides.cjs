@@ -15,6 +15,8 @@ const QH_FILE = 'a6e60e98-364e-4585-a4d0-eb09e3964ad2';
 const MD_FOLDER = 'DAILY METAL DETECTOR SENSITIVITY TEST REPORT';
 const MD_FILE = 'DAILY METAL DETECTOR SENSITIVITY TEST REPORT (F3QCPF06)';
 const MD_PROG = 'Program และค่า Sensitivity ของเครื่อง Metal Detector';
+const MDP_FILE = 'af0b3ece-bb7b-41b0-8351-b1d26d8eea2c'; // บันทึกการแก้ไขเครื่อง Metal Detector (F3QCPP28), seed metal_detector_record_problem.sql
+const MDP_DASH = 'f1fc4992-3f46-4f93-83b0-a9c323671e3f';
 /** people in tag MD (who may sign the metal detector form) */
 async function mdMembers(r) {
   const md = (await r.call('GET', '/tags')).find((t) => t.name === 'MD');
@@ -1160,6 +1162,32 @@ module.exports = [
           await p.keyboard.press('Escape'); await r.settle(300);
           await role(p, 'button', 'รายการตรวจ').click(); await r.settle(1200);
           await r.shot({ title: 'ชีตรายการตรวจบอกว่าเป็นของใบไหน', text: 'ชีต **รายการตรวจ** มีคอลัมน์ **หัวเอกสาร** บอกเลขที่ใบตรวจของแต่ละรายการ กดเพื่อไปที่ใบนั้น', marks: [{ el: p.locator('tbody tr').first().getByRole('button').filter({ hasText: /MD-/ }).first(), label: 'ใบตรวจของรายการนี้', place: 'right' }] });
+        },
+      },
+      {
+        id: 'md-problem', title: 'บันทึกปัญหาเครื่อง MD และดูสรุป (MD Record Problem)', summary: 'บันทึกการแก้ไขเครื่อง (F3QCPP28) เลือกจาก Dropdown · แดชบอร์ด Pareto / Pie / รายวัน กรองได้ทุกอย่าง', as: 'admin',
+        run: async (r) => {
+          const p = r.page;
+          await r.go(`/files/${MDP_FILE}`, 1500);
+          await r.shot({
+            title: 'ไฟล์บันทึกการแก้ไขเครื่อง Metal Detector',
+            text: 'อยู่ที่ **ไฟล์ทั้งหมด → DAILY METAL DETECTOR SENSITIVITY TEST REPORT → MD Record Problem** · 1 แถว = 1 ปัญหา\n**กะ · MD Type · MD No. · กลุ่มปัญหา** เลือกจาก Dropdown (เพิ่มตัวเลือกได้ที่ ตั้งค่าคอลัมน์) · เพิ่มด้วย **+ เพิ่มแถว** หรือพิมพ์ในแถว * ล่างสุด',
+            marks: [{ el: p.locator('thead th').filter({ hasText: 'กลุ่มปัญหา' }).first(), label: 'เลือกจาก Dropdown', place: 'below' }],
+          });
+          await r.go(`/files/${MDP_FILE}/dashboards/${MDP_DASH}`, 3000);
+          await r.shot({
+            title: 'แดชบอร์ด MD Record Problem',
+            text: 'แถวบนคือ**ตัวกรอง**: ช่วงวันที่ · กะ · MD Type · MD No. · กลุ่มปัญหา · ผู้บันทึก · ผู้ตรวจสอบ — ทุกกราฟด้านล่างเปลี่ยนตามทันที\nPareto บอกว่า**เครื่องไหน / กลุ่มปัญหาไหน / กะไหน** เกิดปัญหามากที่สุด (เส้นแดง = % สะสม, เส้นประ 80%) · Pie = สัดส่วน',
+            marks: [{ el: p.getByRole('button', { name: 'DS', exact: true }).first(), label: 'แตะเพื่อกรอง', place: 'below' }],
+          });
+          const tbl = p.locator('table').filter({ hasText: 'MD No.' }).first();
+          await tbl.scrollIntoViewIfNeeded();
+          await tbl.locator('th', { hasText: 'MD ดักตัวเอง' }).click(); await r.settle(300);
+          await r.shot({
+            title: 'กราฟรายเดือน / รายปี / รายวัน และตารางที่เรียงได้',
+            text: 'มีกราฟจำนวนปัญหา**รายเดือน** (แยกสีตามกลุ่มปัญหา) **รายปี** และ**ต่อวัน** · ตารางสรุป**คลิกหัวคอลัมน์เพื่อเรียง** (คลิกซ้ำ = กลับด้าน) มีแถวรวมท้ายตาราง\nล่างสุดคือ**รายละเอียดทุกปัญหา** ค้นหาได้ทุกช่อง (เครื่อง ชื่อ Code …)',
+            marks: [{ el: tbl.locator('th', { hasText: 'MD ดักตัวเอง' }), label: 'คลิกเพื่อเรียง', place: 'below' }],
+          });
         },
       },
       {
