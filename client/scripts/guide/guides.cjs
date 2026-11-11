@@ -464,7 +464,7 @@ module.exports = [
         run: async (r) => {
           const p = r.page;
           await openDemoFile(r);
-          const cell = p.locator('tbody td').filter({ hasText: /^ธนกร$/ }).first();
+          const cell = p.locator('tbody td').filter({ hasText: /^ธนกร( \(แก้ไข\))?$/ }).first(); // (an interrupted run may have left the edited value)
           await r.shot({ title: 'ดับเบิลคลิกช่องที่จะแก้', text: 'หาแถวที่ต้องการ แล้ว**ดับเบิลคลิก**ที่ช่อง (บนมือถือแตะ 2 ครั้ง) หรือคลิกครั้งเดียวแล้วกด **Enter**', marks: [{ el: cell, label: 'ดับเบิลคลิกที่ช่อง' }] });
           await cell.dblclick(); await r.settle(400);
           await p.keyboard.press('Control+A'); await p.keyboard.type('ธนกร (แก้ไข)');
@@ -475,6 +475,9 @@ module.exports = [
             text: 'ค่าใหม่บันทึกทันทีไม่ต้องกดปุ่มบันทึก · ถ้าแก้ผิด กดปุ่ม **ย้อนกลับ** (หรือ Ctrl+Z)',
             marks: [{ el: p.locator('tbody td', { hasText: 'ธนกร (แก้ไข)' }).first(), label: 'ค่าใหม่' }, { el: role(p, 'button', 'ย้อนกลับ (Ctrl+Z)'), label: 'ย้อนกลับการแก้ไข', place: 'below' }],
           });
+          // put the example value back so the guide can run again
+          await p.locator('tbody td', { hasText: 'ธนกร (แก้ไข)' }).first().dblclick(); await r.settle(300);
+          await p.keyboard.press('Control+A'); await p.keyboard.type('ธนกร'); await p.keyboard.press('Enter'); await r.settle(700);
           const lineCell = p.locator('tbody tr').first().locator('td').nth(2);
           await lineCell.dblclick(); await r.settle(500);
           await r.shot({ title: 'ช่องแบบเลือกจากรายการ', text: 'ช่องที่เป็นรายการ (เช่น ไลน์) ดับเบิลคลิกแล้วจะมีรายการให้เลือก กดค่าที่ต้องการได้เลย', marks: [{ el: lineCell, label: 'ดับเบิลคลิก แล้วเลือกจากรายการ' }] });
