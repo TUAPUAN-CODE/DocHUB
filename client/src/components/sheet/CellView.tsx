@@ -1,6 +1,7 @@
 import { KeyboardEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { DateTimeInput } from '../ui/DateTimeInput';
 import { fmtDate, fmtDateTime, fmtNumber, fromLocalInput, optionLabel, toLocalInput } from '@/lib/format';
 import { useLookupOptions } from '@/lib/lookup';
 import type { CellValue, Column, SelectOption } from '@/types';
@@ -95,7 +96,16 @@ export function CellEditor({ col, value, initial, anchor, onCommit, onCancel, ro
       </Popover>
     );
 
-  const type = col.dataType === 'date' ? 'date' : col.dataType === 'datetime' ? 'datetime-local' : 'text';
+  if (col.dataType === 'datetime')
+    return (
+      <Popover open anchor={anchor} onClose={() => (text === rawText(col, value) ? cancel() : finish(conv(text), null))} width={Math.max(290, anchor?.offsetWidth ?? 0)} offset={-((anchor?.offsetHeight ?? 0))}>
+        <div className="p-2" onKeyDown={(e) => keys(e)}>
+          <DateTimeInput value={text} onChange={setText} autoFocus />
+          <p className="mt-1.5 text-[11px] text-muted">เวลา 24 ชม. (00–23) พิมพ์ 1950 หรือ 19:50 · Enter บันทึก · Esc ยกเลิก</p>
+        </div>
+      </Popover>
+    );
+  const type = col.dataType === 'date' ? 'date' : 'text';
   return (
     <input autoFocus value={text} type={type} inputMode={col.dataType === 'int' || col.dataType === 'float' ? 'decimal' : undefined}
       onChange={(e) => setText(e.target.value)} onKeyDown={(e) => keys(e)}

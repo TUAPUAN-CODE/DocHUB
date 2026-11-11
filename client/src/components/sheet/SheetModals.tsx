@@ -18,6 +18,7 @@ import { Checkbox, Field, TextArea, TextInput } from '../ui/Inputs';
 import { Avatar, EmptyState, Skeleton } from '../ui/misc';
 import { isReadOnlyCol } from '@/lib/columnTypes';
 import { Modal } from '../ui/Modal';
+import { DateTimeInput } from '../ui/DateTimeInput';
 import { FieldInput } from './FieldInput';
 import { ImageGallery, toUrls } from './ImageCell';
 import { dependentsOf } from '@/lib/lookup';
@@ -267,7 +268,7 @@ export function RollbackModal({ open, onClose, sheetId, sheetName, onDone }: { o
       footer={<><Button variant="secondary" onClick={onClose}>ยกเลิก</Button><Button variant="secondary" onClick={doPreview} disabled={!at} loading={busy && !preview}>ดูผลกระทบ</Button>
         <Button variant="danger" onClick={apply} disabled={!preview || nothing || short > 0} loading={busy && !!preview}>ย้อนข้อมูล</Button></>}>
       <div className="space-y-4">
-        <Field label="ย้อนกลับไปยังเวลา" required><TextInput type="datetime-local" value={at} onChange={(e) => { setAt(e.target.value); setPreview(null); }} max={new Date().toISOString().slice(0, 16)} /></Field>
+        <Field label="ย้อนกลับไปยังเวลา" required><DateTimeInput value={at} onChange={(v) => { setAt(v); setPreview(null); }} max={new Date().toISOString().slice(0, 16)} /></Field>
         {preview && (
           <div className="grid grid-cols-3 gap-2 text-center">
             {[['เซลล์ที่จะเปลี่ยน', preview.cells], ['แถวที่จะลบ', preview.rowsToDelete], ['แถวที่จะกู้คืน', preview.rowsToRestore]].map(([l, n]) => (
