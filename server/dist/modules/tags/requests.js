@@ -81,7 +81,7 @@ router.post('/tag-requests', (0, http_1.ah)(async (req, res) => {
         type: 'tag_request',
         title: `คำขอ Tag "${tag.tag_name}"`,
         message: `${me.displayName} ขอเข้า Tag "${tag.tag_name}"${b.note ? ` — ${b.note}` : ''}`,
-        link: '/requests?tab=tags',
+        link: '/requests?tab=tags&box=review',
     });
     (0, http_1.ok)(res, mapReq(await (0, db_1.q1)(`${SELECT} WHERE r.request_id = @id`, { id: db_1.T.uuid(row.request_id) })), 201);
 }));
@@ -120,7 +120,7 @@ router.post('/tag-requests/:id/review', managers, (0, http_1.ah)(async (req, res
         type: 'tag_request_done',
         title: b.approve ? `ได้รับ Tag "${r.tag_name}" แล้ว` : `คำขอ Tag "${r.tag_name}" ไม่ผ่าน`,
         message: `${me.displayName} ${b.approve ? 'อนุมัติ' : 'ไม่อนุมัติ'}คำขอของคุณ${b.note ? ` — ${b.note}` : ''}`,
-        link: '/tags',
+        link: '/requests?tab=tags&box=mine',
     });
     (0, http_1.ok)(res, mapReq(await (0, db_1.q1)(`${SELECT} WHERE r.request_id = @id`, { id: db_1.T.uuid(id) })));
 }));

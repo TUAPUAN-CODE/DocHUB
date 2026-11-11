@@ -82,20 +82,21 @@ const module_4 = __importDefault(require("./modules/accountRequests/module"));
 const module_5 = __importDefault(require("./modules/dataSearch/module"));
 const module_6 = __importDefault(require("./modules/monitor/module"));
 const module_7 = __importDefault(require("./modules/pageAccess/module"));
-const module_8 = __importDefault(require("./modules/news/module"));
+const module_8 = __importDefault(require("./modules/appInfo/module"));
+const module_9 = __importDefault(require("./modules/news/module"));
 const rootAccount_1 = require("./scripts/rootAccount");
-const module_9 = __importDefault(require("./modules/exportArchive/module"));
-const module_10 = __importDefault(require("./modules/approvals/module"));
-const module_11 = __importDefault(require("./modules/ai/module"));
-const module_12 = __importStar(require("./modules/connectors/module"));
+const module_10 = __importDefault(require("./modules/exportArchive/module"));
+const module_11 = __importDefault(require("./modules/approvals/module"));
+const module_12 = __importDefault(require("./modules/ai/module"));
+const module_13 = __importStar(require("./modules/connectors/module"));
 require("./modules/alerts/module");
-const module_13 = __importDefault(require("./modules/scan/module"));
-const module_14 = __importDefault(require("./modules/mix/module"));
-const module_15 = __importDefault(require("./modules/lines/module"));
-const module_16 = __importDefault(require("./modules/trace/module"));
-const module_17 = __importDefault(require("./modules/formLayout/module"));
-const module_18 = __importStar(require("./modules/devices/module"));
-const module_19 = __importStar(require("./modules/lineAlerts/module"));
+const module_14 = __importDefault(require("./modules/scan/module"));
+const module_15 = __importDefault(require("./modules/mix/module"));
+const module_16 = __importDefault(require("./modules/lines/module"));
+const module_17 = __importDefault(require("./modules/trace/module"));
+const module_18 = __importDefault(require("./modules/formLayout/module"));
+const module_19 = __importStar(require("./modules/devices/module"));
+const module_20 = __importStar(require("./modules/lineAlerts/module"));
 const uploads_1 = __importDefault(require("./routes/uploads"));
 const users_1 = __importDefault(require("./routes/users"));
 const app = (0, express_1.default)();
@@ -123,12 +124,13 @@ app.use('/api/auth', auth_2.default);
 app.use('/api/auth', oauth_1.default);
 app.use('/api/auth', module_4.default.publicRouter);
 app.use('/api', share_1.sharePublicRouter);
-app.use('/api', module_19.default.webhook);
-app.use('/api', module_18.default.ingest);
+app.use('/api', module_8.default.publicRouter);
+app.use('/api', module_20.default.webhook);
+app.use('/api', module_19.default.ingest);
 app.use('/api', auth_1.authenticate);
 for (const r of [
     users_1.default, folders_1.default, files_1.default, sheets_1.default, columns_1.default, rows_1.default, cells_1.default, access_1.default, audit_1.default,
-    favorites_1.default, activity_1.default, search_1.default, notifications_1.default, themes_1.default, dashboards_1.default, uploads_1.default, trash_1.default, share_1.shareManageRouter, union_1.default, pdf_1.default, module_1.default.router, module_9.default.router, module_10.default.router, module_12.default.router, module_11.default.router, module_19.default.router, module_13.default.router, module_14.default.router, module_15.default.router, module_16.default.router, module_17.default.router, module_18.default.router, module_2.default.router, module_3.default.router, module_4.default.router, module_5.default.router, module_6.default.router, module_7.default.router, module_8.default.router,
+    favorites_1.default, activity_1.default, search_1.default, notifications_1.default, themes_1.default, dashboards_1.default, uploads_1.default, trash_1.default, share_1.shareManageRouter, union_1.default, pdf_1.default, module_1.default.router, module_10.default.router, module_11.default.router, module_13.default.router, module_12.default.router, module_20.default.router, module_14.default.router, module_15.default.router, module_16.default.router, module_17.default.router, module_18.default.router, module_19.default.router, module_2.default.router, module_3.default.router, module_4.default.router, module_5.default.router, module_6.default.router, module_7.default.router, module_9.default.router, module_8.default.router,
 ])
     app.use('/api', r);
 app.use('/api', (_req, res) => {
@@ -138,6 +140,7 @@ app.use(error_1.errorHandler);
 if (env_1.env.serveClientDir) {
     const dir = path_1.default.resolve(env_1.env.serveClientDir);
     if (fs_1.default.existsSync(path_1.default.join(dir, 'index.html'))) {
+        app.use(module_8.default.manifestRouter); // the configured app name under the phone icon
         app.use(express_1.default.static(dir, { index: false, maxAge: '1h' }));
         app.get('*', (_req, res) => res.sendFile(path_1.default.join(dir, 'index.html')));
         logger_1.logger.info(`Serving client from ${dir}`);
@@ -154,9 +157,9 @@ const server = http_1.default.createServer(app);
     server.listen(env_1.env.port, '0.0.0.0', () => logger_1.logger.info(`DataSheet Pro API listening on http://0.0.0.0:${env_1.env.port} (LAN: http://172.48.0.116:${env_1.env.port})`));
     // jobs that must run on ONE server: whoever holds the lease runs them, another server takes over if it stops (see services/leader.ts)
     (0, leader_1.leaderTask)('trash-purge', () => { void (0, purge_1.purgeExpiredTrash)(); const t = setInterval(() => void (0, purge_1.purgeExpiredTrash)(), 6 * 3600_000); return () => clearInterval(t); });
-    (0, leader_1.leaderTask)('line-alerts', module_19.startLineWorker);
-    (0, leader_1.leaderTask)('connectors', module_12.startConnectorScheduler);
-    (0, leader_1.leaderTask)('rfid-gateway', module_18.startGateway);
+    (0, leader_1.leaderTask)('line-alerts', module_20.startLineWorker);
+    (0, leader_1.leaderTask)('connectors', module_13.startConnectorScheduler);
+    (0, leader_1.leaderTask)('rfid-gateway', module_19.startGateway);
     for (const sig of ['SIGINT', 'SIGTERM'])
         process.on(sig, () => void (0, leader_1.releaseLeases)().finally(() => process.exit(0)));
 })

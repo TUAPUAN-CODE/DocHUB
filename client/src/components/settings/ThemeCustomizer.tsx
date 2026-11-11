@@ -9,6 +9,7 @@ import { useTheme } from '@/store/theme';
 import { confirmDialog, toast } from '@/store/ui';
 import { Button } from '../ui/Button';
 import { Field, Segmented, TextInput } from '../ui/Inputs';
+import { useAppInfo } from '@/store/appInfo';
 
 const COLOR_LABELS: Record<keyof ThemeColors, string> = {
   primary: 'สีหลัก', accent: 'สีเน้น', bg: 'พื้นหลังแอป', surface: 'พื้นการ์ด', text: 'ตัวอักษร', muted: 'ตัวอักษรรอง', border: 'เส้นขอบ',
@@ -88,7 +89,7 @@ function Preview({ t }: { t: Theme }) {
     <div className="overflow-hidden rounded-2xl border border-line" style={{ fontFamily: `'${t.fontFamily}', system-ui`, fontSize: t.fontSize }}>
       <div className="flex h-[300px]" style={{ background: s('sidebar').bg }}>
         <div className="w-[34%] py-4" style={{ color: s('sidebar').text }}>
-          <p className="px-4 pb-4 text-[13px] font-semibold">DataSheet Pro</p>
+          <p className="px-4 pb-4 text-[13px] font-semibold">{useAppInfo.getState().name}</p>
           {['หน้าแรก', 'ไฟล์ทั้งหมด', 'คำขอสิทธิ์'].map((l, i) => (
             <div key={l} className="ml-3 flex h-8 items-center rounded-l-full px-3 text-xs" style={i === 1 ? { background: t.colors.bg, color: t.colors.primary, fontWeight: 600 } : { opacity: 0.8 }}>{l}</div>
           ))}

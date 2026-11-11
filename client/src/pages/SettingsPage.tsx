@@ -1,13 +1,17 @@
-import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { KeyRound, Palette, Settings, Upload, UserCircle } from 'lucide-react';
-import { authApi, uploadsApi, usersApi } from '@/api/endpoints';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { KeyRound, Palette, Send, Settings, Type, Upload, UserCircle } from 'lucide-react';
+import { authApi, tagsApi, uploadsApi, usersApi } from '@/api/endpoints';
 import { Page } from '@/components/layout/AppShell';
 import { ThemeCustomizer } from '@/components/settings/ThemeCustomizer';
 import { Button } from '@/components/ui/Button';
 import { Field, Segmented, TextInput } from '@/components/ui/Inputs';
 import { Avatar, PageHeader, RoleBadge } from '@/components/ui/misc';
+import { TagChip } from '@/components/ui/TagChip';
+import { useLoad } from '@/hooks';
+import { useAppInfo } from '@/store/appInfo';
 import { useAuth } from '@/store/auth';
+import { isAdminRole } from '@/types';
 import { toast } from '@/store/ui';
 
 function Profile() {
@@ -51,6 +55,21 @@ function Profile() {
   );
 }
 
+/** my tags (with All) — ask for another one on คำขออนุมัติ → คำขอ Tag */
+function MyTagsCard() {
+  const { data } = useLoad(() => tagsApi.mine(), []);
+  return (
+    <div className="ds-card ds-card-pad mt-4 max-w-3xl">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold">Tag ของฉัน</h3>
+        <Link to="/requests?tab=tags&box=mine&ask=1" className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"><Send className="h-3.5 w-3.5" />ขอ Tag</Link>
+      </div>
+      <div className="flex flex-wrap gap-1.5">{(data ?? []).map((t) => <TagChip key={t.id} tag={t} size="md" />)}</div>
+      <p className="mt-3 text-xs text-muted">ทุกคนมี Tag <b>All</b> · ได้ Tag แล้วจะเห็นไฟล์และข่าวที่แชร์ให้ Tag นั้น · ติดตามคำขอได้ที่ <Link to="/requests?tab=tags&box=mine" className="text-primary hover:underline">คำขออนุมัติ → คำขอ Tag</Link></p>
+    </div>
+  );
+}
+
 function Password() {
   const [cur, setCur] = useState('');
   const [next, setNext] = useState('');
@@ -71,15 +90,40 @@ function Password() {
   );
 }
 
+/** admin: the app's name (left bar, sign-in page, browser tab, name under the phone icon) */
+function SystemName() {
+  const cur = useAppInfo((s) => s.name);
+  const save = useAppInfo((s) => s.save);
+  const [name, setName] = useState(cur);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setName(cur), [cur]);
+  const submit = async () => {
+    setBusy(true);
+    try { await save(name.trim()); toast.success('บันทึกชื่อระบบแล้ว', 'ทุกคนเห็นชื่อใหม่เมื่อเปิดหน้าเว็บครั้งถัดไป'); } catch (e) { toast.error(e); } finally { setBusy(false); }
+  };
+  return (
+    <div className="ds-card ds-card-pad max-w-md space-y-4">
+      <Field label="ชื่อระบบ" required hint="แสดงที่เมนูด้านซ้าย หน้าเข้าสู่ระบบ แท็บของ browser และชื่อใต้ไอคอนบนมือถือ (ไม่เกิน 40 ตัวอักษร)">
+        <TextInput value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="Quality" />
+      </Field>
+      <p className="rounded-xl bg-ink/[.04] px-3 py-2 text-xs text-muted">ไอคอนบนมือถือที่ติดตั้งไว้แล้วจะใช้ชื่อเดิมจนกว่าจะลบไอคอนแล้วเพิ่มใหม่ (ข้อจำกัดของมือถือ)</p>
+      <Button onClick={submit} loading={busy} disabled={!name.trim() || name.trim() === cur}>บันทึกชื่อระบบ</Button>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [sp, setSp] = useSearchParams();
-  const tab = (sp.get('tab') ?? 'appearance') as 'profile' | 'password' | 'appearance';
+  const admin = useAuth((s) => isAdminRole(s.user?.role));
+  const asked = (sp.get('tab') ?? 'appearance') as 'profile' | 'password' | 'appearance' | 'system';
+  const tab = asked === 'system' && !admin ? 'appearance' : asked;
   return (
     <Page>
       <PageHeader icon={<Settings />} title="ตั้งค่า" actions={
-        <Segmented value={tab} onChange={(v) => setSp({ tab: v })} options={[{ value: 'appearance', label: 'ธีมและรูปแบบ', icon: <Palette /> }, { value: 'profile', label: 'โปรไฟล์', icon: <UserCircle /> }, { value: 'password', label: 'รหัสผ่าน', icon: <KeyRound /> }]} />
+        <Segmented value={tab} onChange={(v) => setSp({ tab: v })} options={[{ value: 'appearance', label: 'ธีมและรูปแบบ', icon: <Palette /> }, { value: 'profile', label: 'โปรไฟล์', icon: <UserCircle /> }, { value: 'password', label: 'รหัสผ่าน', icon: <KeyRound /> },
+          ...(admin ? [{ value: 'system' as const, label: 'ชื่อระบบ', icon: <Type /> }] : [])]} />
       } />
-      {tab === 'profile' ? <Profile /> : tab === 'password' ? <Password /> : <ThemeCustomizer />}
+      {tab === 'profile' ? <><Profile /><MyTagsCard /></> : tab === 'password' ? <Password /> : tab === 'system' ? <SystemName /> : <ThemeCustomizer />}
     </Page>
   );
 }

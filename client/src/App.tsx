@@ -1,9 +1,10 @@
-import { lazy, ReactNode, Suspense, useEffect } from 'react';
+import { lazy, ReactNode, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { ConfirmHost, Toaster } from '@/components/ui/Feedback';
 import { Spinner } from '@/components/ui/misc';
 import { useAuth } from '@/store/auth';
+import { useAppInfo } from '@/store/appInfo';
 import { canSee } from '@/lib/pages';
 import LoginPage, { nextPath } from '@/pages/LoginPage';
 import HomePage from '@/pages/HomePage';
@@ -31,7 +32,6 @@ const GuidePage = lazy(() => import('@/modules/guide/GuidePage'));
 const MonitorPage = lazy(() => import('@/modules/monitor/MonitorPage'));
 const RequestsHubPage = lazy(() => import('@/pages/RequestsHubPage'));
 const NewsPage = lazy(() => import('@/modules/news/NewsPage'));
-const TagHubPage = lazy(() => import('@/modules/tags/TagHubPage'));
 const PermissionsPage = lazy(() => import('@/modules/pageAccess/PermissionsPage'));
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -48,6 +48,13 @@ function RequireRole({ roles, children }: { roles: string[]; children: ReactNode
   const role = useAuth((s) => s.user?.role);
   return role && (roles.includes(role) || role === 'root') ? <>{children}</> : <Navigate to="/" replace />;
 }
+/** the old Tag page (bookmarks, notifications): its parts now live on คำขออนุมัติ → คำขอ Tag */
+function TagsMoved() {
+  const { search } = useLocation();
+  // worked out once: while the page fades out it sees the new address, and must not redirect again
+  const [to] = useState(() => { const t = new URLSearchParams(search).get('tab'); return `/requests?tab=tags&box=${t === 'manage' ? 'manage' : t === 'requests' ? 'review' : 'mine'}`; });
+  return <Navigate to={to} replace />;
+}
 /** a page of the left bar: the role must have it (จัดการสิทธิ์, lib/pages.tsx) */
 function RequirePage({ page, children }: { page: string; children: ReactNode }) {
   const ok = useAuth((s) => canSee(s.user, page));
@@ -57,12 +64,13 @@ function RequirePage({ page, children }: { page: string; children: ReactNode }) 
 export default function App() {
   const status = useAuth((s) => s.status);
   const bootstrap = useAuth((s) => s.bootstrap);
-  useEffect(() => { void bootstrap(); }, [bootstrap]);
+  useEffect(() => { void bootstrap(); void useAppInfo.getState().load(); }, [bootstrap]);
+  const appName = useAppInfo((s) => s.name);
 
   if (status === 'loading')
     return (
       <div className="grid h-full place-items-center" style={{ background: 'rgb(var(--c-bg))' }}>
-        <div className="flex flex-col items-center gap-3 text-sm text-muted"><Spinner className="h-7 w-7" />กำลังโหลด DataSheet Pro…</div>
+        <div className="flex flex-col items-center gap-3 text-sm text-muted"><Spinner className="h-7 w-7" />กำลังโหลด {appName}…</div>
       </div>
     );
 
@@ -76,7 +84,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="browse" element={<RequirePage page="browse"><FolderPage /></RequirePage>} />
           <Route path="news" element={<RequirePage page="news"><NewsPage /></RequirePage>} />
-          <Route path="tags" element={<RequirePage page="tags"><TagHubPage /></RequirePage>} />
+          <Route path="tags" element={<TagsMoved />} />
           <Route path="permissions" element={<RequireRole roles={['root']}><PermissionsPage /></RequireRole>} />
           <Route path="folders/:id" element={<FolderPage />} />
           <Route path="files/new" element={<RequireRole roles={['master', 'admin']}><FileBuilderPage /></RequireRole>} />
