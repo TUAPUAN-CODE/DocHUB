@@ -7,7 +7,7 @@ import { ah, badRequest, notFound, ok, parse, pid, zId } from '../../shared/http
 import { LV, requireSheet } from '../../shared/permissions';
 import { emitToSheet } from '../../socket';
 import { diffCounts } from './diff';
-import { createRevision, getRevision, keyColumnIds, listRevisions, pendingCounts, pendingDiff } from './service';
+import { createRevision, getRevision, keyColumnIds, listRevisions, pendingCounts, pendingDiff, pendingFormatCount, sheetDocType } from './service';
 
 const router = Router();
 
@@ -16,8 +16,11 @@ router.get('/sheets/:id/revisions', ah(async (req, res) => {
   const sheetId = pid(req);
   const { level } = await requireSheet(req.user!, sheetId, LV.read, undefined, true);
   const revisions = await listRevisions(sheetId);
+  const docType = await sheetDocType(sheetId);
   const pending = revisions.length ? await pendingCounts(sheetId, revisions[0].createdAt) : null;
-  ok(res, { revisions, pending, keyColumnIds: await keyColumnIds(sheetId), canIssue: level >= LV.write });
+  // a form's data never waits for a revision; only its format does
+  ok(res, { revisions, pending: docType === 'record' ? null : pending, pendingFormat: revisions.length ? await pendingFormatCount(sheetId) : null,
+    docType, keyColumnIds: await keyColumnIds(sheetId), canIssue: level >= LV.write });
 }));
 
 /** Exactly what changed since the latest revision (what "ออก Rev" would record) */
@@ -58,7 +61,7 @@ router.post('/sheets/:id/revisions', ah(async (req, res) => {
   await audit({ userId: req.user!.id, action: 'revision_create', entityType: 'sheet', entityId: sheetId, fileId: sheet.file_id, sheetId,
     newValue: { revNo: r.revNo, note: body.note || null, rows: r.rowCount, ...(r.diff ? diffCounts(r.diff) : {}) } }, req);
   emitToSheet(sheetId, 'sheet:revision', { revNo: r.revNo });
-  ok(res, { revNo: r.revNo, rowCount: r.rowCount, diff: r.diff }, 201);
+  ok(res, { revNo: r.revNo, rowCount: r.rowCount, diff: r.diff, formatDiff: r.formatDiff, kind: r.kind }, 201);
 }));
 
 export default router;

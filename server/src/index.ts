@@ -38,7 +38,7 @@ import unionRoutes from './routes/union';
 import { shareManageRouter, sharePublicRouter } from './routes/share';
 import './modules/autostamp/module'; // before formulas: they may read the stamped date / name
 import formulaModule from './modules/formula/module';
-import revisionsModule from './modules/revisions/module';
+import revisionsModule, { ensureTypedBaselines } from './modules/revisions/module';
 import tagsModule from './modules/tags/module';
 import accountRequestsModule from './modules/accountRequests/module';
 import dataSearchModule from './modules/dataSearch/module';
@@ -117,6 +117,7 @@ getPool()
   .then(() => applyMigrations())
   .then(() => applySeeds().catch((e) => logger.error(`Seeds skipped: ${e?.message}`)))
   .then(() => ensureRootAccount().catch((e) => logger.error(`Root account not checked: ${e?.message}`)))
+  .then(() => ensureTypedBaselines().catch((e) => logger.error(`Doc types: first Revs not checked: ${e?.message}`)))
   .then(() => {
     monitorModule.startTrafficFlush();
     server.listen(env.port, '0.0.0.0', () =>

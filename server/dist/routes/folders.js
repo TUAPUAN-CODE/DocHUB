@@ -17,7 +17,7 @@ const mappers_1 = require("../shared/mappers");
 const permissions_1 = require("../shared/permissions");
 const router = (0, express_1.Router)();
 exports.FILES_SQL = `
-SELECT f.file_id, f.file_name, f.folder_id, f.description, f.icon, f.color, f.status, f.created_by, f.created_at, f.updated_at,
+SELECT f.file_id, f.file_name, f.folder_id, f.description, f.icon, f.color, f.status, f.doc_type, f.created_by, f.created_at, f.updated_at,
   cu.display_name AS created_by_name, fo.folder_name,
   (SELECT COUNT(*) FROM Sheets s WHERE s.file_id = f.file_id AND s.is_deleted = 0) AS sheet_count,
   la.created_at AS last_activity_at, la.action_type AS last_action, la.display_name AS last_activity_by,

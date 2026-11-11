@@ -16,8 +16,11 @@ router.get('/sheets/:id/revisions', (0, http_1.ah)(async (req, res) => {
     const sheetId = (0, http_1.pid)(req);
     const { level } = await (0, permissions_1.requireSheet)(req.user, sheetId, permissions_1.LV.read, undefined, true);
     const revisions = await (0, service_1.listRevisions)(sheetId);
+    const docType = await (0, service_1.sheetDocType)(sheetId);
     const pending = revisions.length ? await (0, service_1.pendingCounts)(sheetId, revisions[0].createdAt) : null;
-    (0, http_1.ok)(res, { revisions, pending, keyColumnIds: await (0, service_1.keyColumnIds)(sheetId), canIssue: level >= permissions_1.LV.write });
+    // a form's data never waits for a revision; only its format does
+    (0, http_1.ok)(res, { revisions, pending: docType === 'record' ? null : pending, pendingFormat: revisions.length ? await (0, service_1.pendingFormatCount)(sheetId) : null,
+        docType, keyColumnIds: await (0, service_1.keyColumnIds)(sheetId), canIssue: level >= permissions_1.LV.write });
 }));
 /** Exactly what changed since the latest revision (what "ออก Rev" would record) */
 router.get('/sheets/:id/revisions/pending', (0, http_1.ah)(async (req, res) => {
@@ -57,7 +60,7 @@ router.post('/sheets/:id/revisions', (0, http_1.ah)(async (req, res) => {
     await (0, audit_1.audit)({ userId: req.user.id, action: 'revision_create', entityType: 'sheet', entityId: sheetId, fileId: sheet.file_id, sheetId,
         newValue: { revNo: r.revNo, note: body.note || null, rows: r.rowCount, ...(r.diff ? (0, diff_1.diffCounts)(r.diff) : {}) } }, req);
     (0, socket_1.emitToSheet)(sheetId, 'sheet:revision', { revNo: r.revNo });
-    (0, http_1.ok)(res, { revNo: r.revNo, rowCount: r.rowCount, diff: r.diff }, 201);
+    (0, http_1.ok)(res, { revNo: r.revNo, rowCount: r.rowCount, diff: r.diff, formatDiff: r.formatDiff, kind: r.kind }, 201);
 }));
 exports.default = router;
 //# sourceMappingURL=routes.js.map

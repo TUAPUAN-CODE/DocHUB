@@ -9,7 +9,9 @@ import { cn } from '@/lib/cn';
 import { fmtDateTime } from '@/lib/format';
 import { toast } from '@/store/ui';
 import type { Column } from '@/types';
-import { RevDiff, revisionsApi, RevList, RevMeta } from './api';
+import { FormatDiff, formatCount, RevDiff, revisionsApi, RevList, RevMeta } from './api';
+import { docTypeOf } from './docTypes';
+import { FormatDiffView } from './FormatDiffView';
 import { RevDiffView } from './RevDiffView';
 
 type Pick = 'pending' | number;
@@ -23,7 +25,7 @@ export function RevisionsDialog({ open, onClose, sheetId, sheetName, columns, ca
 }) {
   const [list, setList] = useState<RevList | null>(null);
   const [pick, setPick] = useState<Pick>('pending');
-  const [detail, setDetail] = useState<{ meta?: RevMeta; diff: RevDiff | null; prevRevNo?: number | null; base?: RevMeta | null } | null>(null);
+  const [detail, setDetail] = useState<{ meta?: RevMeta; diff: RevDiff | null; formatDiff?: FormatDiff | null; prevRevNo?: number | null; base?: RevMeta | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState('');
   const [firstNo, setFirstNo] = useState('1');
@@ -38,7 +40,7 @@ export function RevisionsDialog({ open, onClose, sheetId, sheetName, columns, ca
     let live = true;
     setLoading(true);
     setDetail(null);
-    (pick === 'pending' ? revisionsApi.pending(sheetId).then((r) => ({ diff: r.diff, base: r.base })) : revisionsApi.get(sheetId, pick))
+    (pick === 'pending' ? revisionsApi.pending(sheetId).then((r) => ({ diff: r.diff, base: r.base, formatDiff: r.formatDiff })) : revisionsApi.get(sheetId, pick))
       .then((r) => live && setDetail(r))
       .catch((e) => live && toast.error(e))
       .finally(() => live && setLoading(false));
@@ -47,12 +49,17 @@ export function RevisionsDialog({ open, onClose, sheetId, sheetName, columns, ca
 
   const latest = list?.revisions[0] ?? null;
   const nextNo = latest ? latest.revNo + 1 : Math.max(0, Number(firstNo) || 1);
+  const isForm = list?.docType === 'record';
   const pendingTotal = detail && pick === 'pending' && detail.diff ? detail.diff.added.length + detail.diff.changed.length + detail.diff.removed.length : 0;
+  const pendingFmt = pick === 'pending' ? formatCount(detail?.formatDiff) : 0;
+  const colChanges = !!(detail?.diff?.columns.added.length || detail?.diff?.columns.removed.length || detail?.diff?.columns.renamed.length);
+  const canIssueNow = !latest || pendingFmt > 0 || (!isForm && (pendingTotal > 0 || colChanges));
+  const waiting = (list?.pending ? list.pending.added + list.pending.changed + list.pending.removed : 0) + (list?.pendingFormat ?? 0);
   const issue = async () => {
     setBusy(true);
     try {
       const r = await revisionsApi.create(sheetId, { note: note.trim() || null, firstRevNo: latest ? null : nextNo });
-      toast.success(`ออก Rev.${r.revNo} แล้ว`, r.diff ? `แก้ไข ${r.diff.changed.length} · เพิ่ม ${r.diff.added.length} · ลบ ${r.diff.removed.length}` : `บันทึกข้อมูลทั้งหมด ${r.rowCount} แถว`);
+      toast.success(`ออก Rev.${r.revNo} แล้ว`, r.kind === 'format' ? `รูปแบบเปลี่ยน ${formatCount(r.formatDiff)} รายการ` : r.diff ? `แก้ไข ${r.diff.changed.length} · เพิ่ม ${r.diff.added.length} · ลบ ${r.diff.removed.length}` : `บันทึกข้อมูลทั้งหมด ${r.rowCount} แถว`);
       setNote('');
       await loadList();
       setPick(r.revNo);
@@ -65,14 +72,16 @@ export function RevisionsDialog({ open, onClose, sheetId, sheetName, columns, ca
   };
 
   const items: { key: Pick; title: string; sub: string; badge?: string }[] = [
-    { key: 'pending', title: latest ? 'ยังไม่ออก Rev' : 'ออก Rev แรก', sub: latest ? `แก้ไขหลัง Rev.${latest.revNo}` : 'บันทึกข้อมูลปัจจุบันเป็น Rev แรก',
-      badge: list?.pending && list.pending.added + list.pending.changed + list.pending.removed ? String(list.pending.added + list.pending.changed + list.pending.removed) : undefined },
-    ...(list?.revisions ?? []).map((r) => ({ key: r.revNo as Pick, title: `Rev.${r.revNo}`, sub: `${fmtDateTime(r.createdAt)}${r.createdByName ? ` · ${r.createdByName}` : ''}` })),
+    { key: 'pending', title: latest ? 'ยังไม่ออก Rev' : 'ออก Rev แรก', sub: latest ? `แก้ไขหลัง Rev.${latest.revNo}` : isForm ? 'บันทึกรูปแบบฟอร์มปัจจุบันเป็น Rev แรก' : 'บันทึกข้อมูลปัจจุบันเป็น Rev แรก',
+      badge: waiting ? String(waiting) : undefined },
+    ...(list?.revisions ?? []).map((r) => ({ key: r.revNo as Pick, title: `Rev.${r.revNo}${r.kind === 'format' ? ' (แบบฟอร์ม)' : ''}`, sub: `${fmtDateTime(r.createdAt)}${r.createdByName ? ` · ${r.createdByName}` : ''}` })),
   ];
 
   return (
     <Modal open={open} onClose={onClose} size="xl" icon={<History className="h-5 w-5" />} title={`Rev ของชีต “${sheetName}”`}
-      description="ออก Rev เมื่อแก้ไขข้อมูลเสร็จ ระบบจะเก็บสำเนาไว้และบอกว่าต่างจาก Rev ก่อนหน้าอย่างไร" bodyClassName="!px-0 !py-0">
+      description={<>{list && <span className="mr-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ color: docTypeOf(list.docType).color, background: `${docTypeOf(list.docType).color}1a` }}>{docTypeOf(list.docType).short}</span>}
+        {isForm ? 'แบบฟอร์มบันทึก: ออก Rev เมื่อแก้รูปแบบฟอร์ม (คอลัมน์ ตัวเลือก Form layout PDF) — ข้อมูลที่ลงไม่ต้องออก Rev' : 'ออก Rev เมื่อแก้ไขข้อมูลหรือรูปแบบเสร็จ ระบบเก็บสำเนาไว้และบอกว่าต่างจาก Rev ก่อนหน้าอย่างไร'}</>}
+      bodyClassName="!px-0 !py-0">
       <div className="flex max-h-[72vh] min-h-[50vh] flex-col md:flex-row">
         {/* phones: a dropdown; larger screens: a list */}
         <div className="border-b border-line p-3 md:hidden">
@@ -98,24 +107,28 @@ export function RevisionsDialog({ open, onClose, sheetId, sheetName, columns, ca
                   {!latest && <Field label="เริ่มที่ Rev" hint="ไฟล์ Excel เดิมเป็น REV.8 → ใส่ 8"><TextInput inputMode="numeric" value={firstNo} onChange={(e) => setFirstNo(e.target.value.replace(/\D/g, ''))} className="!h-9 !w-28" /></Field>}
                   <TextArea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="หมายเหตุของ Rev นี้ (ไม่บังคับ) เช่น เพิ่ม Note จากปัญหาที่พบในไลน์" />
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs text-muted">{latest ? (pendingTotal ? `จะบันทึกการเปลี่ยนแปลง ${pendingTotal} แถวด้านล่างเป็น Rev.${nextNo}` : `ยังไม่มีการเปลี่ยนแปลงจาก Rev.${latest.revNo}`) : 'บันทึกข้อมูลทั้งหมดตอนนี้เป็น Rev แรก'}</p>
-                    <Button icon={<Tag className="h-4 w-4" />} loading={busy} disabled={!!latest && !pendingTotal && !detail.diff?.columns.added.length && !detail.diff?.columns.removed.length && !detail.diff?.columns.renamed.length} onClick={() => void issue()}>ออก Rev.{nextNo}</Button>
+                    <p className="text-xs text-muted">{!latest ? (isForm ? 'บันทึกรูปแบบฟอร์มตอนนี้เป็น Rev แรก' : 'บันทึกข้อมูลทั้งหมดตอนนี้เป็น Rev แรก')
+                      : canIssueNow ? `จะบันทึก${!isForm && pendingTotal ? ` การเปลี่ยนแปลง ${pendingTotal} แถว` : ''}${pendingFmt ? ` การเปลี่ยนรูปแบบ ${pendingFmt} รายการ` : ''} เป็น Rev.${nextNo}`
+                      : isForm ? `รูปแบบฟอร์มยังไม่เปลี่ยนจาก Rev.${latest.revNo} (ข้อมูลที่ลงไม่ต้องออก Rev)` : `ยังไม่มีการเปลี่ยนแปลงจาก Rev.${latest.revNo}`}</p>
+                    <Button icon={<Tag className="h-4 w-4" />} loading={busy} disabled={!canIssueNow} onClick={() => void issue()}>ออก Rev.{nextNo}</Button>
                   </div>
                 </div>
               )}
-              {detail.diff ? <RevDiffView diff={detail.diff} /> : <p className="py-6 text-center text-sm text-muted">ยังไม่เคยออก Rev — ออก Rev แรกเพื่อเริ่มติดตามการเปลี่ยนแปลง</p>}
+              {latest && <FormatDiffView diff={detail.formatDiff ?? null} />}
+              {!isForm && (detail.diff ? <RevDiffView diff={detail.diff} /> : !latest && <p className="py-6 text-center text-sm text-muted">ยังไม่เคยออก Rev — ออก Rev แรกเพื่อเริ่มติดตามการเปลี่ยนแปลง</p>)}
             </div>
           ) : detail.meta && (
             <div className="space-y-4">
               <div>
-                <p className="text-lg font-semibold">Rev.{detail.meta.revNo} <span className="text-sm font-normal text-muted">{fmtDateTime(detail.meta.createdAt)}{detail.meta.createdByName ? ` · ${detail.meta.createdByName}` : ''} · {detail.meta.rowCount.toLocaleString()} แถว</span></p>
+                <p className="text-lg font-semibold">Rev.{detail.meta.revNo}{detail.meta.kind === 'format' ? ' (แบบฟอร์ม)' : ''} <span className="text-sm font-normal text-muted">{fmtDateTime(detail.meta.createdAt)}{detail.meta.createdByName ? ` · ${detail.meta.createdByName}` : ''} · {detail.meta.rowCount.toLocaleString()} แถว{detail.meta.kind === 'format' ? 'ในชีตตอนออก Rev' : ''}</span></p>
                 {detail.meta.note && <p className="mt-1 whitespace-pre-wrap rounded-xl bg-ink/5 px-3 py-2 text-sm">{detail.meta.note}</p>}
                 <p className="mt-2 text-xs text-muted">{detail.prevRevNo !== null && detail.prevRevNo !== undefined ? `เทียบกับ Rev.${detail.prevRevNo}` : 'Rev แรก: บันทึกข้อมูลทั้งหมด ไม่มี Rev ก่อนหน้าให้เทียบ'}</p>
               </div>
+              <FormatDiffView diff={detail.formatDiff ?? null} empty={detail.meta.kind === 'format' ? 'Rev แรกของแบบฟอร์ม' : 'รูปแบบไม่เปลี่ยน'} />
               {detail.diff && <RevDiffView diff={detail.diff} />}
             </div>
           )}
-          {canManage && columns.length > 0 && (
+          {canManage && !isForm && columns.length > 0 && (
             <div className="mt-6 border-t border-line pt-3">
               <Field label="เรียกชื่อแถวในรายการเปลี่ยนแปลงด้วย" hint="เช่น Sub Doc No. + Short Code (ค่าเริ่มต้น: คอลัมน์แรก)">
                 <div className="flex flex-wrap gap-2">

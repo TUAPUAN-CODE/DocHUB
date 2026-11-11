@@ -35,6 +35,8 @@ export const mapFile = (r: any, level: number, favorite = false) => ({
   icon: r.icon,
   color: r.color,
   status: r.status,
+  /** master_data | record | null (ทั่วไป) — docs/DOC_TYPES.md */
+  docType: (r.doc_type ?? null) as 'master_data' | 'record' | null,
   createdBy: r.created_by,
   createdByName: r.created_by_name ?? null,
   createdAt: r.created_at,

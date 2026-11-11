@@ -76,7 +76,7 @@ const union_1 = __importDefault(require("./routes/union"));
 const share_1 = require("./routes/share");
 require("./modules/autostamp/module"); // before formulas: they may read the stamped date / name
 const module_1 = __importDefault(require("./modules/formula/module"));
-const module_2 = __importDefault(require("./modules/revisions/module"));
+const module_2 = __importStar(require("./modules/revisions/module"));
 const module_3 = __importDefault(require("./modules/tags/module"));
 const module_4 = __importDefault(require("./modules/accountRequests/module"));
 const module_5 = __importDefault(require("./modules/dataSearch/module"));
@@ -152,6 +152,7 @@ const server = http_1.default.createServer(app);
     .then(() => (0, migrate_1.applyMigrations)())
     .then(() => (0, migrate_1.applySeeds)().catch((e) => logger_1.logger.error(`Seeds skipped: ${e?.message}`)))
     .then(() => (0, rootAccount_1.ensureRootAccount)().catch((e) => logger_1.logger.error(`Root account not checked: ${e?.message}`)))
+    .then(() => (0, module_2.ensureTypedBaselines)().catch((e) => logger_1.logger.error(`Doc types: first Revs not checked: ${e?.message}`)))
     .then(() => {
     module_6.default.startTrafficFlush();
     server.listen(env_1.env.port, '0.0.0.0', () => logger_1.logger.info(`DataSheet Pro API listening on http://0.0.0.0:${env_1.env.port} (LAN: http://172.48.0.116:${env_1.env.port})`));

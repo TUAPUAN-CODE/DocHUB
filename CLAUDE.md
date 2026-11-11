@@ -54,4 +54,6 @@ are published as start-up seeds. Do not add other company data there without the
 - Pages of the left bar are listed in `server/src/modules/pageAccess/registry.ts` and `client/src/lib/pages.tsx` (same keys); a new page needs
   both, plus `RequirePage` in `App.tsx` (and `requirePage(key)` on its API when anyone may be given it). See docs/NEWS_TAGS_ROOT.md.
 - E-mail is optional (`Users.email` may be NULL): never assume it is there.
+- Files have a document type (`Files.doc_type`: master_data | record | NULL). Revisions also freeze the sheet's format; a `record` (form)
+  issues format-only revisions. A typed file gets a first Rev automatically. See docs/NEWS_TAGS_ROOT.md → ประเภทเอกสารและ Rev.
 - The dashboard on phones (stacked layout) brings font sizes down (`phoneSized`); keep inputs at 16 px or iPhone zooms in.

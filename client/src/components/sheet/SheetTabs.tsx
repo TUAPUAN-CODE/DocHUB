@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Copy, Layers, LayoutDashboard, MoveLeft, MoveRight, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Copy, History, Layers, LayoutDashboard, MoveLeft, MoveRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import { dashboardsApi, sheetsApi } from '@/api/endpoints';
 import { cn } from '@/lib/cn';
 import { confirmDialog, toast } from '@/store/ui';
@@ -9,9 +9,11 @@ import { MetaModal } from '../files/Dialogs';
 import { UnionDialog } from '../files/UnionDialog';
 import { Anchor, MenuList, Popover } from '../ui/Popover';
 
-export function SheetTabs({ fileId, sheets, activeId, dashboards, canManage, onSelect, onChanged }: {
+export function SheetTabs({ fileId, sheets, activeId, dashboards, canManage, onSelect, onChanged, onRevisions }: {
   fileId: string; sheets: Sheet[]; activeId: string | null; dashboards: { id: string; name: string }[]; canManage: boolean;
   onSelect: (id: string) => void; onChanged: (selectId?: string) => void;
+  /** ⋯ → Rev ของชีตนี้ (everyone who can open the file) */
+  onRevisions?: (sheet: Sheet) => void;
 }) {
   const nav = useNavigate();
   const [menu, setMenu] = useState<{ anchor: Anchor; sheet: Sheet } | null>(null);
@@ -43,13 +45,13 @@ export function SheetTabs({ fileId, sheets, activeId, dashboards, canManage, onS
     <div className="flex items-end gap-1 overflow-x-auto">
       {sheets.map((s) => (
         <button key={s.id} onClick={() => onSelect(s.id)} onDoubleClick={() => canManage && setEdit(s)}
-          onContextMenu={(e) => { if (!canManage) return; e.preventDefault(); setMenu({ anchor: { x: e.clientX, y: e.clientY }, sheet: s }); }}
+          onContextMenu={(e) => { if (!canManage && !onRevisions) return; e.preventDefault(); setMenu({ anchor: { x: e.clientX, y: e.clientY }, sheet: s }); }}
           className={cn('group relative flex h-9 shrink-0 items-center gap-2 rounded-t-xl px-3 text-sm font-medium transition-colors sm:h-10 sm:px-4',
             s.id === activeId ? 'bg-surface text-ink shadow-[0_-1px_0_rgb(var(--c-border))]' : 'text-muted hover:bg-surface/60 hover:text-ink')}>
           {s.isUnion ? <Layers className="h-3.5 w-3.5 text-primary" /> : <span className="h-2 w-2 rounded-full" style={{ background: s.tabColor ?? 'rgb(var(--c-muted) / .5)' }} />}
           <span className="max-w-[130px] truncate sm:max-w-[180px]">{s.name}</span>
-          {canManage && s.id === activeId && (
-            <span role="button" tabIndex={-1} onClick={(e) => { e.stopPropagation(); setMenu({ anchor: e.currentTarget, sheet: s }); }} className="rounded p-0.5 opacity-60 hover:bg-ink/10 hover:opacity-100">
+          {(canManage || (onRevisions && !s.isUnion)) && s.id === activeId && (
+            <span role="button" tabIndex={-1} aria-label={`ตัวเลือกชีต ${s.name}`} onClick={(e) => { e.stopPropagation(); setMenu({ anchor: e.currentTarget, sheet: s }); }} className="rounded p-0.5 opacity-60 hover:bg-ink/10 hover:opacity-100">
               <ChevronDown className="h-3.5 w-3.5" />
             </span>
           )}
@@ -83,12 +85,15 @@ export function SheetTabs({ fileId, sheets, activeId, dashboards, canManage, onS
       </Popover>
       <Popover open={!!menu} onClose={() => setMenu(null)} anchor={menu?.anchor ?? null} width={210}>
         {menu && <MenuList onClose={() => setMenu(null)} items={[
+          ...(onRevisions && !menu.sheet.isUnion ? [{ label: 'Rev ของชีตนี้', icon: <History />, onClick: () => onRevisions(menu.sheet) }, ...(canManage ? [{ divider: true }] : [])] : []),
+          ...(!canManage ? [] : [
           { label: 'เปลี่ยนชื่อ / สี', icon: <Pencil />, onClick: () => setEdit(menu.sheet) },
           ...(menu.sheet.isUnion ? [] : [{ label: 'คัดลอกโครงสร้าง', icon: <Copy />, onClick: () => void duplicate(menu.sheet) }]),
           { label: 'ย้ายไปทางซ้าย', icon: <MoveLeft />, onClick: () => void reorder(menu.sheet, -1) },
           { label: 'ย้ายไปทางขวา', icon: <MoveRight />, onClick: () => void reorder(menu.sheet, 1) },
           { divider: true },
           { label: 'ลบชีต', icon: <Trash2 />, danger: true, disabled: sheets.length <= 1, onClick: () => void remove(menu.sheet) },
+          ]),
         ]} />}
       </Popover>
       <MetaModal open={!!edit} onClose={() => setEdit(null)} withDescription={false} title={edit === 'new' ? 'เพิ่มชีตใหม่' : 'แก้ไขชีต'}

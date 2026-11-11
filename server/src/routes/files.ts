@@ -12,6 +12,7 @@ import { assertUniqueNames, insertColumn } from '../services/structure';
 import { parseTemplates, remapTemplates, sheetsOfFile } from '../services/pdfTemplates';
 import { runAfterSheetCopied } from '../services/hooks';
 import { FILES_SQL, favoriteSet } from './folders';
+import { ensureBaseline } from '../modules/revisions/docTypes';
 
 const router = Router();
 
@@ -90,6 +91,8 @@ router.get(
 const createSchema = fileMeta.extend({
   folderId: zId,
   sheets: z.array(sheetInput).min(1, 'ต้องมีอย่างน้อย 1 ชีต').max(50),
+  /** ประเภทเอกสาร (the web app asks for it; null = ทั่วไป) */
+  docType: z.enum(['master_data', 'record']).nullish(),
   access: z
     .array(z.object({ userId: zId, permission: permEnum, expiresAt: z.string().datetime().nullish() }))
     .max(500)
@@ -109,9 +112,9 @@ router.post(
 
     const fileId = await withTx(async (tx) => {
       const f = await q1(
-        `INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id
-         VALUES (@n, @fo, @d, COALESCE(@c, N'#16A34A'), COALESCE(@i, N'sheet'), @u)`,
-        { n: body.name, fo: T.uuid(body.folderId), d: T.text(body.description ?? null), c: T.text(body.color ?? null), i: T.text(body.icon ?? null), u: T.uuid(u.id) },
+        `INSERT INTO Files (file_name, folder_id, description, color, icon, created_by, doc_type) OUTPUT inserted.file_id
+         VALUES (@n, @fo, @d, COALESCE(@c, N'#16A34A'), COALESCE(@i, N'sheet'), @u, @dt)`,
+        { n: body.name, fo: T.uuid(body.folderId), d: T.text(body.description ?? null), c: T.text(body.color ?? null), i: T.text(body.icon ?? null), u: T.uuid(u.id), dt: T.text(body.docType ?? null) },
         tx,
       );
       const fid = f!.file_id as string;
@@ -135,6 +138,7 @@ router.post(
         newValue: { name: body.name, sheets: body.sheets.map((s) => ({ name: s.name, columns: s.columns.length })) } }, req, tx);
       return fid;
     });
+    if (body.docType) await ensureBaseline(fileId, u.id); // a typed file starts at Rev.1
     ok(res, { id: fileId }, 201);
   }),
 );
@@ -223,9 +227,9 @@ router.post(
     await requireFolder(u, folderId, LV.write);
     const newId = await withTx(async (tx) => {
       const f = await q1(
-        `INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id
-         VALUES (@n, @fo, @d, @c, @i, @u)`,
-        { n: body.name ?? `${file.file_name} (สำเนา)`, fo: T.uuid(folderId), d: T.text(file.description), c: file.color, i: file.icon, u: T.uuid(u.id) },
+        `INSERT INTO Files (file_name, folder_id, description, color, icon, created_by, doc_type) OUTPUT inserted.file_id
+         VALUES (@n, @fo, @d, @c, @i, @u, @dt)`,
+        { n: body.name ?? `${file.file_name} (สำเนา)`, fo: T.uuid(folderId), d: T.text(file.description), c: file.color, i: file.icon, u: T.uuid(u.id), dt: T.text(file.doc_type ?? null) },
         tx,
       );
       const sheets = await q(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: T.uuid(id) }, tx);
