@@ -34,6 +34,8 @@ import { RowViewModal } from '@/components/sheet/RowViewModal';
 import { SpreadsheetGrid } from '@/components/sheet/SpreadsheetGrid';
 import { pendingTotal, revisionsApi, RevList } from '@/modules/revisions/api';
 import { RevisionsDialog } from '@/modules/revisions/RevisionsDialog';
+import { DocTypeBadge, docTypeOf, FileDocTypeModal } from '@/modules/revisions/docTypes';
+import { docTypesApi } from '@/modules/revisions/api';
 import { useSheetView } from '@/components/sheet/useSheetView';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Select, TextInput } from '@/components/ui/Inputs';
@@ -121,7 +123,17 @@ export default function FilePage() {
     return () => clearTimeout(t);
   }, [sheetId, view.rows]); // eslint-disable-line react-hooks/exhaustive-deps
   const latestRev = revs?.revisions[0] ?? null;
-  const revPending = pendingTotal(revs?.pending ?? null);
+  // rows / changes waiting for a Rev: data (Master Data, ทั่วไป) + format changes (columns, options, form layout, PDF)
+  const revPending = pendingTotal(revs?.pending ?? null) + (revs?.pendingFormat ?? 0);
+  const isForm = revs?.docType === 'record';
+  const [docTypeOpen, setDocTypeOpen] = useState(false);
+  /** แบบฟอร์มบันทึก: the form Rev in force when the row was entered */
+  const formRevOf = (r: Row) => {
+    if (!isForm || !revs?.revisions.length) return null;
+    const t = new Date(r.createdAt).getTime();
+    const rev = revs.revisions.find((x) => new Date(x.createdAt).getTime() <= t);
+    return rev ? `Rev.${rev.revNo}` : `ก่อน Rev.${revs.revisions[revs.revisions.length - 1].revNo}`;
+  };
   // tools hidden → the app's top bar steps aside too; put it back when leaving the page
   useEffect(() => {
     useUi.getState().setFocusMode(!tools);
@@ -169,6 +181,11 @@ export default function FilePage() {
   const [pdfTpls, setPdfTpls] = useState<PdfTemplate[] | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
   useEffect(() => { if (exportMenu && !pdfTpls) pdfApi.get(id).then((r) => setPdfTpls(r.templates as PdfTemplate[])).catch(() => setPdfTpls([])); }, [exportMenu]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** PDF layouts as they were at earlier form Revs: print an old record the way it looked then */
+  const [oldTpls, setOldTpls] = useState<{ revNo: number; sheetName: string; template: PdfTemplate }[]>([]);
+  useEffect(() => {
+    if (exportMenu && file.data?.file.docType) docTypesApi.pdfRevisions(id).then((r) => setOldTpls(r.filter((x) => x.template) as typeof oldTpls)).catch(() => setOldTpls([]));
+  }, [exportMenu]); // eslint-disable-line react-hooks/exhaustive-deps
   const [exportDlg, setExportDlg] = useState<PdfTemplate | null>(null);
   const [archiveOpt, setArchiveOpt] = useState<ArchiveOptionValue>({ enabled: false, note: '' });
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -240,6 +257,7 @@ export default function FilePage() {
             <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">{f.name}</h1>
             <StarButton active={f.favorite} onToggle={async () => { await useData.getState().toggleFavorite('file', f.id); void file.reload(true); }} />
             <PermBadge perm={levelToPerm(level)} />
+            <DocTypeBadge type={f.docType} />
           </div>
         </div>
         {view.presence.length > 1 && <div className="flex items-center gap-2 text-xs text-muted"><AvatarStack users={view.presence} /><span className="hidden sm:inline">กำลังดูอยู่</span></div>}
@@ -250,6 +268,7 @@ export default function FilePage() {
             ...(canManage ? [{ label: 'เปลี่ยนชื่อ / สี', icon: <Pencil />, onClick: () => setModal('rename') }, { label: 'ออกแบบรูปแบบ PDF', icon: <Download />, onClick: () => nav(`/files/${f.id}/pdf`) }] : []),
             ...(!isBasicRole(role) ? [{ label: 'ทำสำเนาไฟล์', icon: <Copy />, onClick: () => setModal('dup') }] : []),
             ...(canManage ? [{ label: 'ประวัติการแก้ไขของไฟล์', icon: <History />, onClick: () => nav(`/audit?fileId=${f.id}`) }] : []),
+            ...(canManage && !isBasicRole(role) ? [{ label: `ประเภทเอกสาร: ${docTypeOf(f.docType).short}`, icon: <Tag />, onClick: () => setDocTypeOpen(true) }] : []),
             ...(sheetId ? [{ label: latestRev ? `Rev ของชีตนี้ (ล่าสุด Rev.${latestRev.revNo})` : 'ออก Rev / ประวัติ Rev ของชีตนี้', icon: <Tag />, onClick: () => setModal('revisions') }] : []),
             { label: 'ส่งออก Excel (.xlsx)', icon: <Download />, onClick: () => void exportRows('xlsx') },
             { label: 'ส่งออก CSV', icon: <Download />, onClick: () => void exportCsv() },
@@ -265,6 +284,7 @@ export default function FilePage() {
         <div className="min-w-0 flex-1">
           <SheetTabs fileId={f.id} sheets={sheets} activeId={sheetId} dashboards={file.data.dashboards} canManage={canManage}
             onSelect={(sid) => setSp({ sheet: sid }, { replace: true })}
+            onRevisions={(s) => { if (s.id !== sheetId) setSp({ sheet: s.id }, { replace: true }); setModal('revisions'); }}
             onChanged={async (sid) => { await file.reload(true); if (sid) setSp({ sheet: sid }, { replace: true }); void view.loadDetail(); }} />
         </div>
         {(() => {
@@ -300,8 +320,8 @@ export default function FilePage() {
               {canManage && !union && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} aria-label="ตั้งค่าสแกน/ผสม" title="ตั้งค่าสแกน/ผสม" onClick={() => setModal('scanmix')}><Lbl>ตั้งค่าสแกน/ผสม</Lbl></Button>}
               {latestRev && (
                 <Button size="sm" variant="secondary" icon={<Tag className="h-4 w-4" />} onClick={() => setModal('revisions')}
-                  title={revPending ? `แก้ไขแล้ว ${revPending} แถวหลัง Rev.${latestRev.revNo} — กดเพื่อออก Rev ใหม่` : `Rev ล่าสุด: Rev.${latestRev.revNo}`}>
-                  Rev.{latestRev.revNo}{revPending > 0 && <span className="rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">+{revPending}</span>}
+                  title={revPending ? `${isForm ? 'รูปแบบฟอร์มเปลี่ยน' : 'มีการแก้ไข'} ${revPending} รายการหลัง Rev.${latestRev.revNo} — กดเพื่อออก Rev ใหม่` : `${isForm ? 'แบบฟอร์ม ' : ''}Rev ล่าสุด: Rev.${latestRev.revNo}`}>
+                  {isForm ? 'แบบฟอร์ม ' : ''}Rev.{latestRev.revNo}{revPending > 0 && <span className="rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">+{revPending}</span>}
                 </Button>
               )}
               <div className="mx-1 hidden h-6 w-px bg-line sm:block" />
@@ -331,6 +351,7 @@ export default function FilePage() {
                     ...(pdfTpls === null ? [{ label: 'กำลังโหลดรูปแบบ PDF…', disabled: true }] : [
                       { label: 'PDF — รายงานมาตรฐาน', icon: <Download />, disabled: pdfBusy, onClick: () => startPdf(null) },
                       ...pdfTpls.map((t) => ({ label: `PDF — ${t.name}${t.mode === 'perRow' ? ' (ฟอร์มต่อแถว)' : ''}`, icon: <Download />, disabled: pdfBusy, onClick: () => startPdf(t) })),
+                      ...oldTpls.map((o) => ({ label: `PDF — ${o.template.name} (รูปแบบ Rev.${o.revNo})`, icon: <History />, disabled: pdfBusy, onClick: () => startPdf(o.template) })),
                     ]),
                     { divider: true },
                     { label: 'เอกสารที่ออกแล้ว…', icon: <Download />, onClick: () => setArchiveOpen(true) },
@@ -371,6 +392,8 @@ export default function FilePage() {
 
       {view.detail && sheetId && (
         <>
+          {file.data && <FileDocTypeModal file={docTypeOpen ? { id: file.data.file.id, name: file.data.file.name, docType: file.data.file.docType } : null}
+            onClose={() => setDocTypeOpen(false)} onSaved={() => { void file.reload(true); loadRevs(); }} />}
           <RevisionsDialog open={modal === 'revisions'} onClose={() => { setModal(null); loadRevs(); }} sheetId={sheetId} sheetName={view.detail.sheet.name}
             columns={view.columns} canManage={canManage} onIssued={loadRevs} />
           <ColumnFilterMenu open={!!filterFor} onClose={() => setFilterFor(null)} anchor={filterFor?.el ?? null} sheetId={sheetId} column={filterCol}
@@ -385,7 +408,7 @@ export default function FilePage() {
               return r;
             }}
             onSave={(changes) => view.commit(changes.map((c) => ({ ...c, rowId: rowForm!.row!.id })), { partial: true })} />
-          <RowViewModal row={rowView} rows={view.rows} columns={view.columns} users={view.users} onClose={() => setRowView(null)} onNavigate={setRowView}
+          <RowViewModal row={rowView} rows={view.rows} columns={view.columns} users={view.users} onClose={() => setRowView(null)} onNavigate={setRowView} formRev={formRevOf}
             onEdit={canWrite ? (r) => { setRowView(null); setRowForm({ row: r }); } : undefined}
             onLines={linesCfg ? openLines : undefined} />
           <CellHistoryModal target={cellHist} onClose={() => setCellHist(null)} onChanged={() => void view.loadRows(true)} />

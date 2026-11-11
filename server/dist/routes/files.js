@@ -18,6 +18,7 @@ const structure_1 = require("../services/structure");
 const pdfTemplates_1 = require("../services/pdfTemplates");
 const hooks_1 = require("../services/hooks");
 const folders_1 = require("./folders");
+const docTypes_1 = require("../modules/revisions/docTypes");
 const router = (0, express_1.Router)();
 const permEnum = zod_1.z.enum(['read', 'write', 'manage']);
 const fileMeta = zod_1.z.object({
@@ -71,6 +72,8 @@ router.get('/files/:id', (0, http_1.ah)(async (req, res) => {
 const createSchema = fileMeta.extend({
     folderId: http_1.zId,
     sheets: zod_1.z.array(schemas_1.sheetInput).min(1, 'ต้องมีอย่างน้อย 1 ชีต').max(50),
+    /** ประเภทเอกสาร (the web app asks for it; null = ทั่วไป) */
+    docType: zod_1.z.enum(['master_data', 'record']).nullish(),
     access: zod_1.z
         .array(zod_1.z.object({ userId: http_1.zId, permission: permEnum, expiresAt: zod_1.z.string().datetime().nullish() }))
         .max(500)
@@ -87,8 +90,8 @@ router.post('/files', (0, http_1.ah)(async (req, res) => {
     if (body.sheets.some((s) => !s.columns.length))
         throw (0, http_1.badRequest)('ทุกชีตต้องมีคอลัมน์อย่างน้อย 1 คอลัมน์');
     const fileId = await (0, db_1.withTx)(async (tx) => {
-        const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id
-         VALUES (@n, @fo, @d, COALESCE(@c, N'#16A34A'), COALESCE(@i, N'sheet'), @u)`, { n: body.name, fo: db_1.T.uuid(body.folderId), d: db_1.T.text(body.description ?? null), c: db_1.T.text(body.color ?? null), i: db_1.T.text(body.icon ?? null), u: db_1.T.uuid(u.id) }, tx);
+        const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by, doc_type) OUTPUT inserted.file_id
+         VALUES (@n, @fo, @d, COALESCE(@c, N'#16A34A'), COALESCE(@i, N'sheet'), @u, @dt)`, { n: body.name, fo: db_1.T.uuid(body.folderId), d: db_1.T.text(body.description ?? null), c: db_1.T.text(body.color ?? null), i: db_1.T.text(body.icon ?? null), u: db_1.T.uuid(u.id), dt: db_1.T.text(body.docType ?? null) }, tx);
         const fid = f.file_id;
         for (const [si, s] of body.sheets.entries()) {
             const sh = await (0, db_1.q1)(`INSERT INTO Sheets (file_id, sheet_name, sort_order, tab_color, created_by) OUTPUT inserted.sheet_id VALUES (@f, @n, @o, @c, @u)`, { f: db_1.T.uuid(fid), n: s.name, o: db_1.T.int(si), c: db_1.T.text(s.tabColor ?? null), u: db_1.T.uuid(u.id) }, tx);
@@ -104,6 +107,8 @@ router.post('/files', (0, http_1.ah)(async (req, res) => {
             newValue: { name: body.name, sheets: body.sheets.map((s) => ({ name: s.name, columns: s.columns.length })) } }, req, tx);
         return fid;
     });
+    if (body.docType)
+        await (0, docTypes_1.ensureBaseline)(fileId, u.id); // a typed file starts at Rev.1
     (0, http_1.ok)(res, { id: fileId }, 201);
 }));
 router.put('/files/:id', (0, http_1.ah)(async (req, res) => {
@@ -164,8 +169,8 @@ router.post('/files/:id/duplicate', (0, http_1.ah)(async (req, res) => {
     const folderId = body.folderId ?? file.folder_id;
     await (0, permissions_1.requireFolder)(u, folderId, permissions_1.LV.write);
     const newId = await (0, db_1.withTx)(async (tx) => {
-        const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id
-         VALUES (@n, @fo, @d, @c, @i, @u)`, { n: body.name ?? `${file.file_name} (สำเนา)`, fo: db_1.T.uuid(folderId), d: db_1.T.text(file.description), c: file.color, i: file.icon, u: db_1.T.uuid(u.id) }, tx);
+        const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by, doc_type) OUTPUT inserted.file_id
+         VALUES (@n, @fo, @d, @c, @i, @u, @dt)`, { n: body.name ?? `${file.file_name} (สำเนา)`, fo: db_1.T.uuid(folderId), d: db_1.T.text(file.description), c: file.color, i: file.icon, u: db_1.T.uuid(u.id), dt: db_1.T.text(file.doc_type ?? null) }, tx);
         const sheets = await (0, db_1.q)(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: db_1.T.uuid(id) }, tx);
         for (const [i, s] of sheets.entries())
             await copySheet(tx, s.sheet_id, f.file_id, i, u.id, body.includeData);

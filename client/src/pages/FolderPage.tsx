@@ -30,6 +30,8 @@ export default function FolderPage() {
   const [view, setView] = useState<'grid' | 'list'>(() => (localStorage.getItem('dsp_view') as 'grid' | 'list') || 'grid');
   const [sort, setSort] = useState<'name' | 'updated'>('name');
   const [filter, setFilter] = useState('');
+  /** ประเภทเอกสาร: '' = ทุกประเภท · general = ทั่วไป */
+  const [docType, setDocType] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const [union, setUnion] = useState(false);
   const [newFolder, setNewFolder] = useState(false);
@@ -50,11 +52,11 @@ export default function FolderPage() {
     if (!data) return [];
     const s = filter.trim().toLowerCase();
     const folders = data.subfolders.filter((f) => !s || f.name.toLowerCase().includes(s));
-    const files = data.files.filter((f) => !s || f.name.toLowerCase().includes(s));
+    const files = data.files.filter((f) => (!s || f.name.toLowerCase().includes(s)) && (!docType || (f.docType ?? 'general') === docType));
     const cmp = (a: { name: string; updatedAt: string; lastActivityAt?: string | null }, b: typeof a) =>
       sort === 'name' ? a.name.localeCompare(b.name, 'th') : +new Date(b.lastActivityAt ?? b.updatedAt) - +new Date(a.lastActivityAt ?? a.updatedAt);
     return [...folders.sort(cmp).map((d) => ({ kind: 'folder' as const, data: d })), ...files.sort(cmp).map((d) => ({ kind: 'file' as const, data: d }))];
-  }, [data, filter, sort]);
+  }, [data, filter, sort, docType]);
 
   if (error?.code === 'NO_ACCESS') return <NoAccessView info={error} onRetry={() => void reload()} />;
   if (error)
@@ -115,6 +117,9 @@ export default function FolderPage() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <TextInput icon={<Search />} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="กรองในโฟลเดอร์นี้" className="w-full sm:w-72" />
         <div className="flex items-center gap-2 text-sm text-muted"><ArrowDownAZ className="h-4 w-4" />
+          <Select value={docType} onChange={(e) => setDocType(e.target.value)} className="w-44" aria-label="ประเภทเอกสาร">
+            <option value="">ทุกประเภทเอกสาร</option><option value="master_data">Master Data</option><option value="record">แบบฟอร์มบันทึก</option><option value="general">ทั่วไป</option>
+          </Select>
           <Select value={sort} onChange={(e) => setSort(e.target.value as 'name' | 'updated')} className="w-40">
             <option value="name">ชื่อ ก-ฮ</option><option value="updated">แก้ไขล่าสุด</option>
           </Select>

@@ -8,6 +8,7 @@ import { dropInto, DRAG_MIME } from '../layout/FolderTree';
 import { playOpenFile } from '../layout/OpenFileOverlay';
 import { Avatar, PermBadge, StarButton } from '../ui/misc';
 import { FileGlyph, FileThumb, FolderGlyph } from './icons';
+import { DocTypeBadge } from '@/modules/revisions/docTypes';
 
 export type Item = { kind: 'folder'; data: FolderItem } | { kind: 'file'; data: FileItem };
 
@@ -57,6 +58,7 @@ export function ItemCard({ item, onMenu, onStar, draggable }: Common) {
         <div className="min-w-0 flex-1">
           {item.kind === 'file' && item.data.folderName && <p className="truncate text-xs font-medium" style={{ color: d.color }}>{item.data.folderName}</p>}
           <p className="truncate text-[15px] font-semibold leading-snug">{d.name}</p>
+          {item.kind === 'file' && item.data.docType && <DocTypeBadge type={item.data.docType} className="mt-1" />}
           <p className="mt-0.5 truncate text-xs text-muted">
             {item.kind === 'folder'
               ? `${item.data.folderCount} โฟลเดอร์ · ${item.data.fileCount} ไฟล์`
@@ -88,6 +90,7 @@ export function ItemRow({ item, onMenu, onStar, draggable }: Common) {
         <div className="flex items-center gap-3">
           {item.kind === 'folder' ? <FolderGlyph color={d.color} size={32} locked={d.level === 0} /> : <FileGlyph color={d.color} size={30} locked={d.level === 0} />}
           <span className="truncate font-medium">{d.name}</span>
+          {f?.docType && <DocTypeBadge type={f.docType} />}
         </div>
       </td>
       <td className="whitespace-nowrap text-[13px] text-muted">{fmtDateTime(f?.lastActivityAt ?? d.updatedAt)}</td>
@@ -132,6 +135,7 @@ export function ActivityCard({ file }: { file: FileItem }) {
           </div>
         </div>
         <p className="mt-1.5 line-clamp-2 text-[15px] font-semibold leading-snug sm:mt-2 sm:min-h-[2.6em]">{file.name}</p>
+        {file.docType && <DocTypeBadge type={file.docType} className="mt-1" />}
         <p className="mt-1 truncate text-[11px] text-muted sm:whitespace-normal">{file.sheetCount != null && <>{file.sheetCount} ชีต · </>}สร้างโดย {file.createdByName ?? '—'}{file.createdAt ? ` · ${fmtDateTime(file.createdAt)}` : ''}</p>
         <div className="mt-2 flex items-center gap-2 text-xs text-muted sm:mt-3">
           <Avatar name={file.lastActivityBy ?? file.createdByName} src={file.lastActivityAvatar} size={24} />

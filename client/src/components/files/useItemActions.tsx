@@ -1,11 +1,12 @@
 import { MouseEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, ExternalLink, FolderInput, KeyRound, Pencil, Share2, Trash2 } from 'lucide-react';
+import { BookMarked, Copy, ExternalLink, FolderCog, FolderInput, KeyRound, Pencil, Share2, Trash2 } from 'lucide-react';
 import { filesApi, foldersApi } from '@/api/endpoints';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { confirmDialog, toast } from '@/store/ui';
-import { LV, isBasicRole } from '@/types';
+import { LV, isAdminRole, isBasicRole } from '@/types';
+import { docTypeOf, FileDocTypeModal, FolderDocTypeModal } from '@/modules/revisions/docTypes';
 import { Anchor, MenuItemDef, MenuList, Popover } from '../ui/Popover';
 import { DuplicateDialog, MetaModal, MoveDialog, RequestAccessDialog, ShareDialog } from './Dialogs';
 import type { Item } from './ItemViews';
@@ -15,7 +16,7 @@ export function useItemActions(reload: () => void) {
   const nav = useNavigate();
   const role = useAuth((s) => s.user?.role);
   const [menu, setMenu] = useState<{ anchor: Anchor; item: Item } | null>(null);
-  const [dialog, setDialog] = useState<{ kind: 'rename' | 'move' | 'share' | 'dup' | 'request'; item: Item } | null>(null);
+  const [dialog, setDialog] = useState<{ kind: 'rename' | 'move' | 'share' | 'dup' | 'request' | 'doctype'; item: Item } | null>(null);
 
   const openMenu = (e: MouseEvent, item: Item) => setMenu({ anchor: { x: e.clientX, y: e.clientY }, item });
   const star = async (item: Item) => {
@@ -50,6 +51,9 @@ export function useItemActions(reload: () => void) {
         { label: 'ย้าย', icon: <FolderInput />, onClick: () => setDialog({ kind: 'move', item: it }) });
     }
     if (it.kind === 'file' && lvl >= LV.read && !isBasicRole(role)) out.push({ label: 'ทำสำเนา', icon: <Copy />, onClick: () => setDialog({ kind: 'dup', item: it }) });
+    // ประเภทเอกสาร: a file (Master and up who manage it) · every file of a folder (admin)
+    if (it.kind === 'file' && manage && !isBasicRole(role)) out.push({ label: `ประเภทเอกสาร: ${docTypeOf(it.data.docType).short}`, icon: <BookMarked />, onClick: () => setDialog({ kind: 'doctype', item: it }) });
+    if (it.kind === 'folder' && manage && isAdminRole(role)) out.push({ label: 'ตั้งประเภทเอกสารทั้งโฟลเดอร์', icon: <FolderCog />, onClick: () => setDialog({ kind: 'doctype', item: it }) });
     if (manage) out.push({ divider: true }, { label: 'ลบ', icon: <Trash2 />, danger: true, onClick: () => void remove(it) });
     return out;
   };
@@ -74,6 +78,8 @@ export function useItemActions(reload: () => void) {
       <MoveDialog open={dialog?.kind === 'move'} onClose={() => setDialog(null)} item={target} onDone={reload} />
       <ShareDialog open={dialog?.kind === 'share'} onClose={() => setDialog(null)} target={target} />
       <RequestAccessDialog open={dialog?.kind === 'request'} onClose={() => setDialog(null)} target={target} />
+      <FileDocTypeModal file={dialog?.kind === 'doctype' && d?.kind === 'file' ? { id: d.data.id, name: d.data.name, docType: d.data.docType } : null} onClose={() => setDialog(null)} onSaved={reload} />
+      <FolderDocTypeModal folder={dialog?.kind === 'doctype' && d?.kind === 'folder' ? { id: d.data.id, name: d.data.name } : null} onClose={() => setDialog(null)} onSaved={reload} />
       <DuplicateDialog open={dialog?.kind === 'dup'} onClose={() => setDialog(null)}
         file={d?.kind === 'file' ? { id: d.data.id, name: d.data.name, folderId: d.data.folderId } : null}
         onDone={(id) => { reload(); nav(`/files/${id}`); }} />

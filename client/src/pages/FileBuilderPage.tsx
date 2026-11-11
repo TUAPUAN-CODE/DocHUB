@@ -16,6 +16,8 @@ import { newDraft, TEMPLATES, TYPE_META } from '@/lib/columnTypes';
 import { useData } from '@/store/data';
 import { toast } from '@/store/ui';
 import type { ColumnDraft, Perm } from '@/types';
+import { DocTypePicker } from '@/modules/revisions/docTypes';
+import type { DocType } from '@/modules/revisions/api';
 
 interface SheetDraft { key: string; name: string; tabColor: string | null; columns: ColumnDraft[] }
 const STEPS = ['รายละเอียดไฟล์', 'ชีตและคอลัมน์', 'สิทธิ์การเข้าถึง', 'ตรวจสอบและสร้าง'];
@@ -28,6 +30,8 @@ export default function FileBuilderPage() {
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [name, setName] = useState('');
+  /** ประเภทเอกสาร (must be chosen): master_data | record | null = ทั่วไป */
+  const [docType, setDocType] = useState<DocType | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('#16A34A');
   const [folderId, setFolderId] = useState<string | null>(sp.get('folder'));
@@ -41,7 +45,7 @@ export default function FileBuilderPage() {
   const folder = tree.find((f) => f.id === folderId);
 
   const stepError = useMemo(() => {
-    if (step === 0) return !name.trim() ? 'กรุณาตั้งชื่อไฟล์' : !folderId ? 'กรุณาเลือกโฟลเดอร์' : null;
+    if (step === 0) return !name.trim() ? 'กรุณาตั้งชื่อไฟล์' : !folderId ? 'กรุณาเลือกโฟลเดอร์' : docType === undefined ? 'กรุณาเลือกประเภทเอกสาร' : null;
     if (step === 1) {
       const names = new Set<string>();
       for (const s of sheets) {
@@ -53,7 +57,7 @@ export default function FileBuilderPage() {
       }
     }
     return null;
-  }, [step, name, folderId, sheets]);
+  }, [step, name, folderId, sheets, docType]);
 
   const go = (d: number) => {
     if (d > 0 && stepError) return toast.error(stepError, 'ยังไปขั้นถัดไปไม่ได้');
@@ -71,7 +75,7 @@ export default function FileBuilderPage() {
     setBusy(true);
     try {
       const r = await filesApi.create({
-        name: name.trim(), description: description.trim() || null, color, folderId,
+        name: name.trim(), description: description.trim() || null, color, folderId, docType: docType ?? null,
         sheets: sheets.map((s) => ({ name: s.name.trim(), tabColor: s.tabColor, columns: s.columns.map(draftToPayload) })),
         access: access.map((a) => ({ userId: a.userId, permission: a.permission })),
       });
@@ -125,6 +129,9 @@ export default function FileBuilderPage() {
                   </div>
                 </div>
                 <Field label="เก็บไว้ในโฟลเดอร์" required hint="แสดงเฉพาะโฟลเดอร์ที่คุณมีสิทธิ์เขียน"><FolderPicker value={folderId} onChange={setFolderId} /></Field>
+                <Field group label="ประเภทเอกสาร" required className="lg:col-span-2" hint="กำหนดว่า Rev ของไฟล์นี้ทำงานอย่างไร (เปลี่ยนภายหลังได้ที่ ⋯ → ประเภทเอกสาร)">
+                  <DocTypePicker value={docType} onChange={setDocType} />
+                </Field>
               </div>
             )}
 

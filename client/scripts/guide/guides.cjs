@@ -639,6 +639,73 @@ module.exports = [
 
   /* ================================================================ */
   {
+    id: 'doctype', title: 'ประเภทเอกสารและ Rev', icon: 'sheet', description: 'Master Data · แบบฟอร์มบันทึก · ทั่วไป — Rev ของข้อมูลและของรูปแบบฟอร์ม',
+    guides: [
+      {
+        id: 'doctype-about', title: 'ประเภทเอกสารมีอะไรบ้าง', summary: 'เลือกประเภทตอนสร้างไฟล์ แล้ว Rev จะทำงานตามประเภท', as: 'master', roles: ['master', 'admin'],
+        run: async (r) => {
+          const p = r.page;
+          await r.go('/files/new', 1200);
+          const pick = p.getByRole('radiogroup', { name: 'ประเภทเอกสาร' });
+          await pick.scrollIntoViewIfNeeded();
+          await r.shot({ title: 'เลือกประเภทตอนสร้างไฟล์', text: 'ตอน **สร้างไฟล์** ขั้นแรกต้องเลือก **ประเภทเอกสาร**:\n• **Master Data (ข้อมูลหลัก)** — ข้อมูลอ้างอิงที่ต้องควบคุม เช่น Quality Highlight, ตาราง Program · แก้ข้อมูลแล้วระบบเตือนให้ออก Rev\n• **แบบฟอร์มบันทึก** — ฟอร์มที่ลงข้อมูลทุกวัน เช่น ใบตรวจ Metal Detector · ออก Rev เมื่อแก้**รูปแบบฟอร์ม** ข้อมูลที่ลงไม่ต้องออก Rev\n• **ทั่วไป** — ไม่ติดตาม Rev อัตโนมัติ (ไฟล์เดิมทั้งหมดเริ่มที่ประเภทนี้)', marks: [{ el: pick, label: 'เลือก 1 ประเภท', place: 'above' }] });
+          r.note({ title: 'Rev เริ่มต้น', text: 'สร้างไฟล์ Master Data หรือแบบฟอร์มบันทึก (หรือเปลี่ยนไฟล์เดิมเป็นประเภทนี้) ระบบออก **Rev.1 (Rev เริ่มต้น)** ให้ทุกชีตอัตโนมัติ เป็นจุดเริ่มเทียบการเปลี่ยนแปลง · ชีตรวมข้อมูลไม่มี Rev' });
+        },
+      },
+      {
+        id: 'doctype-set', title: 'เปลี่ยนประเภทเอกสารของไฟล์ / ทั้งโฟลเดอร์', summary: 'ตั้งประเภทให้ไฟล์เดิมทีละไฟล์ หรือทั้งโฟลเดอร์ทีเดียว (Admin)', as: 'admin', roles: ['admin'],
+        run: async (r) => {
+          const p = r.page;
+          await r.go('/browse');
+          await p.getByText('Production Reports', { exact: true }).first().click(); await r.settle();
+          await p.getByText('QC Line', { exact: true }).first().click(); await r.settle(900);
+          const card = p.locator('div.ds-card').filter({ hasText: FILE }).first();
+          await card.getByRole('button', { name: 'ตัวเลือก' }).click(); await r.settle(300);
+          const item = p.getByText(/^ประเภทเอกสาร:/).last();
+          await r.shot({ title: 'ไฟล์: ⋯ → ประเภทเอกสาร', text: 'กด **⋯** ที่ไฟล์ (หรือ ⋯ มุมขวาบนในหน้าไฟล์) → **ประเภทเอกสาร: …** (Master ขึ้นไปที่จัดการไฟล์ได้) · การ์ดไฟล์ที่ตั้งประเภทแล้วมีป้ายสีบอกประเภท', marks: [{ el: item, label: 'ประเภทเอกสาร', place: 'left' }] });
+          await item.click(); await r.settle(500);
+          const dlg = p.getByRole('dialog');
+          await r.shot({ title: 'เลือกประเภทแล้วกด “บันทึก”', text: 'เลือกประเภทใหม่แล้วกด **บันทึก** — ชีตที่ยังไม่เคยออก Rev จะได้ Rev เริ่มต้นอัตโนมัติ ไม่แก้ข้อมูลในไฟล์', marks: [{ el: dlg.getByRole('radiogroup'), label: 'ประเภท', place: 'below' }] });
+          await role(dlg, 'button', 'ยกเลิก').click(); await r.settle(300);
+          await r.go('/browse', 900);
+          const fcard = p.locator('div.ds-card').filter({ hasText: 'Production Reports' }).first();
+          await fcard.getByRole('button', { name: 'ตัวเลือก' }).click(); await r.settle(300);
+          const fitem = p.getByText('ตั้งประเภทเอกสารทั้งโฟลเดอร์').last();
+          await r.shot({ title: 'ทั้งโฟลเดอร์: ⋯ → ตั้งประเภทเอกสารทั้งโฟลเดอร์', text: 'Admin กด **⋯** ที่โฟลเดอร์ → **ตั้งประเภทเอกสารทั้งโฟลเดอร์** → เลือกประเภท เลือกว่ารวมโฟลเดอร์ย่อย และ “เฉพาะไฟล์ที่ยังเป็นทั่วไป” หรือไม่ แล้วกด **ตั้งประเภท**\nหน้าโฟลเดอร์มีตัวกรอง **ทุกประเภทเอกสาร** ไว้ดูเฉพาะประเภทที่ต้องการ', marks: [{ el: fitem, label: 'ตั้งทั้งโฟลเดอร์', place: 'left' }] });
+          await p.keyboard.press('Escape');
+        },
+      },
+      {
+        id: 'doctype-rev', title: 'ดู Rev ของชีต ว่าแต่ละ Rev แก้อะไร', summary: 'แท็บชีต ⋯ → Rev ของชีตนี้ · Rev ของแบบฟอร์มบอกการเปลี่ยนรูปแบบ', as: 'admin',
+        run: async (r) => {
+          const p = r.page;
+          await mdMembers(r);
+          // a format change on the form, issued as a Rev (the example to look at)
+          const form = (await r.call('GET', '/files/accessible')).find?.((f) => f.name === MD_FILE) ?? (await r.call('GET', '/files/accessible')).items?.find((f) => f.name === MD_FILE);
+          const fd = await r.call('GET', `/files/${form.id}`);
+          const sid = fd.sheets[0].id;
+          const col = (await r.call('GET', `/sheets/${sid}`)).columns.find((c) => c.dataType === 'select');
+          await r.call('PUT', `/columns/${col.id}`, { description: `ตรวจตามรอบเวลาที่กำหนด (แก้ ${new Date().toLocaleDateString('th-TH')})` });
+          await r.call('POST', `/sheets/${sid}/revisions`, { note: 'ปรับคำอธิบายช่องตามคู่มือ QC' });
+          await openMd(r, MD_FILE);
+          const badge = p.getByRole('button', { name: /แบบฟอร์ม Rev\./ });
+          await r.shot({ title: 'ป้าย Rev บนแถบเครื่องมือ', text: 'ไฟล์ที่มี Rev จะมีปุ่ม **Rev.N** (แบบฟอร์มบันทึกเขียนว่า **แบบฟอร์ม Rev.N**) · ถ้ามีตัวเลขสีส้ม = มีการเปลี่ยนแปลงที่ยังไม่ออก Rev — กดเพื่อดูและออก Rev', marks: [{ el: badge, label: 'Rev ปัจจุบัน', place: 'below' }] });
+          await p.locator('[aria-label^="ตัวเลือกชีต"]').click(); await r.settle(300);
+          await r.shot({ title: 'แท็บชีต ⋯ → “Rev ของชีตนี้”', text: 'กดลูกศรเล็กที่แท็บชีตที่เปิดอยู่ แล้วเลือก **Rev ของชีตนี้** (ทุกคนที่เปิดไฟล์ได้ดูได้)', marks: [{ el: p.getByText('Rev ของชีตนี้'), label: 'Rev ของชีตนี้', place: 'right' }] });
+          await p.getByText('Rev ของชีตนี้').click(); await r.settle(1200);
+          const dlg = p.getByRole('dialog');
+          const latest = dlg.locator('nav button').nth(1);
+          await latest.click(); await r.settle(1000);
+          await r.shot({ title: 'เลือก Rev เพื่อดูว่าแก้อะไร', text: 'ทางซ้ายคือรายการ Rev (ล่าสุดอยู่บน) กดที่ Rev เพื่อดูรายละเอียด:\n• **การเปลี่ยนรูปแบบ** — เพิ่ม/ลบ/เปลี่ยนชื่อคอลัมน์ ตัวเลือก เงื่อนไข/สูตร Form layout และแม่แบบ PDF\n• Master Data แสดง**แถวที่เพิ่ม / แก้ / ลบ** ด้วย\n**ยังไม่ออก Rev** (บนสุด) = สิ่งที่จะอยู่ใน Rev ถัดไป ใส่หมายเหตุแล้วกด **ออก Rev.N**', marks: [{ el: latest, label: 'Rev ล่าสุด', place: 'right' }, { el: dlg.getByText(/การเปลี่ยนรูปแบบ/).first(), label: 'รูปแบบที่เปลี่ยน', place: 'below' }] });
+          await role(dlg, 'button', 'ปิด').first().click().catch(() => undefined);
+          r.note({ title: 'ใบเก่าใช้แบบฟอร์ม Rev ไหน', text: '• เปิดแถวในฟอร์ม (คลิกขวา → เปิดแถวในฟอร์ม) หัวหน้าต่างบอก **ลงด้วยแบบฟอร์ม Rev.N**\n• แก้แม่แบบ PDF แล้วออก Rev — เมนู **ส่งออก** จะมี **PDF — … (รูปแบบ Rev.N)** ไว้พิมพ์ใบเก่าด้วยหน้าตาแบบเดิม\n• แบบฟอร์มบันทึก: ลงข้อมูลไม่ต้องออก Rev · Master Data: แก้ข้อมูลแล้วออก Rev (ดูเรื่อง “แก้ Master และออก Rev ใหม่”)' });
+        },
+      },
+    ],
+  },
+
+  /* ================================================================ */
+  {
     id: 'share', title: 'แชร์และสิทธิ์', icon: 'share', description: 'ให้สิทธิ์ผู้ใช้หรือ Tag ส่งลิงก์ ขอสิทธิ์ และอนุมัติ',
     guides: [
       {

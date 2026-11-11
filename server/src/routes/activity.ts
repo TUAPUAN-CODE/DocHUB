@@ -15,7 +15,7 @@ router.get(
     const ctx = await PermCtx.load(u);
     const favs = await favoriteSet(u.id, 'file');
     const rows = await q(
-      `SELECT TOP 24 f.file_id, f.file_name, f.folder_id, f.description, f.icon, f.color, f.status, f.created_by, f.created_at,
+      `SELECT TOP 24 f.file_id, f.doc_type, f.file_name, f.folder_id, f.description, f.icon, f.color, f.status, f.created_by, f.created_at,
          f.updated_at, fo.folder_name, rf.viewed_at, cu.display_name AS created_by_name,
          (SELECT COUNT(*) FROM Sheets s WHERE s.file_id = f.file_id AND s.is_deleted = 0) AS sheet_count
        FROM RecentFiles rf JOIN Files f ON f.file_id = rf.file_id AND f.is_deleted = 0
@@ -42,7 +42,7 @@ router.get(
     const ctx = await PermCtx.load(u);
     const favs = await favoriteSet(u.id, 'file');
     const rows = await q(
-      `SELECT TOP 150 f.file_id, f.file_name, f.folder_id, f.description, f.icon, f.color, f.status, f.created_by, f.created_at,
+      `SELECT TOP 150 f.file_id, f.doc_type, f.file_name, f.folder_id, f.description, f.icon, f.color, f.status, f.created_by, f.created_at,
          f.updated_at, fo.folder_name, cu.display_name AS created_by_name, la.created_at AS last_activity_at, la.action_type AS last_action,
          la.display_name AS last_activity_by, la.avatar_url AS last_activity_avatar,
          (SELECT COUNT(*) FROM Sheets s WHERE s.file_id = f.file_id AND s.is_deleted = 0) AS sheet_count

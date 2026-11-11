@@ -32,10 +32,12 @@ function Value({ col, value }: { col: Column; value: Row['values'][string] }) {
 }
 
 /** Read-only, scrollable detail of one row — all columns in full, with image galleries */
-export function RowViewModal({ row, rows, columns, users, onClose, onNavigate, onEdit, onLines }: {
+export function RowViewModal({ row, rows, columns, users, onClose, onNavigate, onEdit, onLines, formRev }: {
   row: Row | null; rows: Row[]; columns: Column[]; users: UsersDict; onClose: () => void; onNavigate: (r: Row) => void; onEdit?: (r: Row) => void;
   /** the row has line items (a document's lines): open them */
   onLines?: (r: Row) => void;
+  /** แบบฟอร์มบันทึก: the form Rev the row was entered with */
+  formRev?: (r: Row) => string | null;
 }) {
   const idx = row ? rows.findIndex((r) => r.id === row.id) : -1;
   const live = row ? rows[idx] ?? row : null; // pick up refreshed values after an edit
@@ -43,7 +45,7 @@ export function RowViewModal({ row, rows, columns, users, onClose, onNavigate, o
   const next = idx >= 0 && idx < rows.length - 1 ? rows[idx + 1] : null;
   return (
     <Modal open={!!row} onClose={onClose} size="xl" icon={<Eye className="h-5 w-5" />} title={live ? `ข้อมูลแถว #${live.order}` : ''}
-      description={live ? `สร้างโดย ${users[live.createdBy]?.name ?? 'ผู้ใช้'} · ${fmtDateTime(live.createdAt)}${live.updatedBy ? ` · แก้ไขล่าสุดโดย ${users[live.updatedBy]?.name ?? 'ผู้ใช้'} ${relTime(live.updatedAt)}` : ''}` : ''}
+      description={live ? `สร้างโดย ${users[live.createdBy]?.name ?? 'ผู้ใช้'} · ${fmtDateTime(live.createdAt)}${live.updatedBy ? ` · แก้ไขล่าสุดโดย ${users[live.updatedBy]?.name ?? 'ผู้ใช้'} ${relTime(live.updatedAt)}` : ''}${formRev?.(live) ? ` · ลงด้วยแบบฟอร์ม ${formRev(live)}` : ''}` : ''}
       footer={<>
         <Button variant="secondary" icon={<ChevronLeft className="h-4 w-4" />} disabled={!prev} onClick={() => prev && onNavigate(prev)}>แถวก่อนหน้า</Button>
         <Button variant="secondary" disabled={!next} onClick={() => next && onNavigate(next)}>แถวถัดไป<ChevronRight className="h-4 w-4" /></Button>

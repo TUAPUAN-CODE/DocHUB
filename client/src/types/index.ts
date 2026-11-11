@@ -37,6 +37,8 @@ export interface FileItem {
   status: string; createdBy: string; createdByName: string | null; createdAt: string; updatedAt: string; sheetCount?: number;
   lastActivityAt: string | null; lastActivityBy: string | null; lastActivityAvatar: string | null; lastAction: string | null;
   level: number; permission: Perm; favorite: boolean; viewedAt?: string;
+  /** ประเภทเอกสาร: master_data | record | null (ทั่วไป) */
+  docType?: 'master_data' | 'record' | null;
   /** folders from the top down to the one holding the file (activity cards) */
   pathParts?: { id: string; name: string }[];
 }
