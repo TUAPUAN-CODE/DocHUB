@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { KeyRound, MoreHorizontal, Pencil, Search, ShieldCheck, UserCheck, UserPlus, Users, UserX } from 'lucide-react';
+import { KeyRound, MoreHorizontal, Pencil, Plus, Search, ShieldCheck, UserCheck, UserPlus, Users, UserX } from 'lucide-react';
 import { tagsApi, usersApi } from '@/api/endpoints';
 import { Page } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
@@ -73,6 +73,15 @@ export default function UsersPage() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [edit, setEdit] = useState<{ user: User | null } | null>(null);
   const [menu, setMenu] = useState<{ anchor: Anchor; user: User } | null>(null);
+  /** "+ Tag" on a row: switch that user's tags on / off right there */
+  const [tagFor, setTagFor] = useState<{ anchor: Anchor; user: User } | null>(null);
+  const toggleTag = async (u: User, ids: string[]) => {
+    try {
+      const r = await tagsApi.setUserTags(u.id, ids);
+      setTagFor((x) => (x ? { ...x, user: { ...x.user, tags: r.tags } } : x));
+      void reload(true);
+    } catch (e) { toast.error(e); }
+  };
   const [reset, setReset] = useState<User | null>(null);
   const [pw, setPw] = useState('');
 
@@ -125,7 +134,10 @@ export default function UsersPage() {
                       <td>{u.id !== me?.id && <Checkbox checked={picked.has(u.id)} onChange={(v) => { const n = new Set(picked); if (v) n.add(u.id); else n.delete(u.id); setPicked(n); }} />}</td>
                       <td><div className="flex items-center gap-3"><Avatar name={u.displayName} src={u.avatarUrl} size={36} />
                         <span className="min-w-0"><span className="block truncate font-medium">{u.displayName}{u.id === me?.id && <span className="ml-1.5 text-xs text-muted">(คุณ)</span>}</span><span className="block text-xs text-muted">@{u.username}</span>
-                          {!!u.tags?.length && <span className="mt-1 flex max-w-[260px] flex-wrap gap-1">{u.tags.map((t) => <TagChip key={t.id} tag={t} />)}</span>}</span></div></td>
+                          <span className="mt-1 flex max-w-[280px] flex-wrap items-center gap-1">{(u.tags ?? []).map((t) => <TagChip key={t.id} tag={t} />)}
+                            <button onClick={(e) => setTagFor({ anchor: e.currentTarget, user: u })} title="เพิ่ม / เอา Tag ออก" aria-label={`Tag ของ ${u.displayName}`}
+                              className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-ink/25 px-2 py-0.5 text-[11px] font-medium text-muted hover:border-primary hover:text-primary"><Plus className="h-3 w-3" />Tag</button>
+                          </span></span></div></td>
                       <td className="text-[13px]">{u.email ?? <span className="text-muted">—</span>}</td>
                       <td><RoleBadge role={u.role} /></td>
                       <td><StatusDot tone={u.isActive ? 'green' : 'gray'} label={u.isActive ? 'ใช้งานอยู่' : 'ปิดการใช้งาน'} /></td>
@@ -140,6 +152,15 @@ export default function UsersPage() {
             <div className="mt-4"><Pager page={page} pageSize={20} total={data?.total ?? 0} onPage={setPage} /></div>
           </>
         )}
+      <Popover open={!!tagFor} onClose={() => setTagFor(null)} anchor={tagFor?.anchor ?? null} placement="bottom-start" width={300}>
+        {tagFor && (
+          <div className="p-3">
+            <p className="mb-2 text-xs font-medium text-muted">Tag ของ {tagFor.user.displayName} — แตะเพื่อใส่ / เอาออก (บันทึกทันที)</p>
+            <TagPicker tags={tags ?? []} value={(tagFor.user.tags ?? []).map((t) => t.id)} onChange={(ids) => void toggleTag(tagFor.user, ids)}
+              empty="ยังไม่มี Tag — สร้างได้ที่แท็บ Tag" />
+          </div>
+        )}
+      </Popover>
       <Popover open={!!menu} onClose={() => setMenu(null)} anchor={menu?.anchor ?? null} placement="bottom-end" width={210}>
         {menu && <MenuList onClose={() => setMenu(null)} items={[
           { label: 'แก้ไข', icon: <Pencil />, onClick: () => setEdit({ user: menu.user }) },

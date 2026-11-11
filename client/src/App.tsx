@@ -9,15 +9,14 @@ import LoginPage, { nextPath } from '@/pages/LoginPage';
 import HomePage from '@/pages/HomePage';
 import FolderPage from '@/pages/FolderPage';
 import NotFound from '@/pages/NotFound';
+import { ToRequests } from '@/pages/RequestsHubPage';
 
 const FilePage = lazy(() => import('@/pages/FilePage'));
 const FileBuilderPage = lazy(() => import('@/pages/FileBuilderPage'));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const SearchPage = lazy(() => import('@/pages/SearchPage'));
-const AccessRequestsPage = lazy(() => import('@/pages/AccessRequestsPage'));
 const AuditPage = lazy(() => import('@/pages/AuditPage'));
 const UsersPage = lazy(() => import('@/pages/UsersPage'));
-const AccountRequestsPage = lazy(() => import('@/pages/users/AccountRequestsPage'));
 const TagsPage = lazy(() => import('@/pages/users/TagsPage'));
 const SignupPage = lazy(() => import('@/pages/SignupPage'));
 const TrashPage = lazy(() => import('@/pages/TrashPage'));
@@ -25,12 +24,12 @@ const DashboardsPage = lazy(() => import('@/pages/DashboardsPage'));
 const PublicSharePage = lazy(() => import('@/pages/PublicSharePage'));
 const PdfDesignerPage = lazy(() => import('@/pages/PdfDesignerPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
-const ApprovalsPage = lazy(() => import('@/modules/approvals/ApprovalsPage'));
 const ConnectorsPage = lazy(() => import('@/modules/connectors/ConnectorsPage'));
 const TracebackPage = lazy(() => import('@/pages/TracebackPage'));
 const DevicesPage = lazy(() => import('@/pages/DevicesPage'));
 const GuidePage = lazy(() => import('@/modules/guide/GuidePage'));
 const MonitorPage = lazy(() => import('@/modules/monitor/MonitorPage'));
+const RequestsHubPage = lazy(() => import('@/pages/RequestsHubPage'));
 const NewsPage = lazy(() => import('@/modules/news/NewsPage'));
 const TagHubPage = lazy(() => import('@/modules/tags/TagHubPage'));
 const PermissionsPage = lazy(() => import('@/modules/pageAccess/PermissionsPage'));
@@ -85,14 +84,15 @@ export default function App() {
           <Route path="files/:fileId/dashboards/:dashId" element={<DashboardPage />} />
           <Route path="files/:fileId/pdf" element={<PdfDesignerPage />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="access-requests" element={<RequirePage page="access-requests"><AccessRequestsPage /></RequirePage>} />
+          <Route path="requests" element={<RequirePage page="requests"><RequestsHubPage /></RequirePage>} />
+          <Route path="access-requests" element={<ToRequests tab="access" />} />
           <Route path="audit" element={<RequirePage page="audit"><AuditPage /></RequirePage>} />
           <Route path="users" element={<RequirePage page="users"><UsersPage /></RequirePage>} />
-          <Route path="users/requests" element={<RequirePage page="users"><AccountRequestsPage /></RequirePage>} />
+          <Route path="users/requests" element={<ToRequests tab="accounts" />} />
           <Route path="users/tags" element={<RequirePage page="users"><TagsPage /></RequirePage>} />
           <Route path="trash" element={<RequirePage page="trash"><TrashPage /></RequirePage>} />
           <Route path="dashboards" element={<RequirePage page="dashboards"><DashboardsPage /></RequirePage>} />
-          <Route path="approvals" element={<RequirePage page="approvals"><ApprovalsPage /></RequirePage>} />
+          <Route path="approvals" element={<ToRequests tab="docs" />} />
           <Route path="connectors" element={<RequirePage page="connectors"><ConnectorsPage /></RequirePage>} />
           <Route path="traceback" element={<RequirePage page="search"><TracebackPage /></RequirePage>} />
           <Route path="devices" element={<RequirePage page="devices"><DevicesPage /></RequirePage>} />

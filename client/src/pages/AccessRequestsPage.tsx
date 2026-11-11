@@ -19,7 +19,8 @@ const STATUS: Record<string, { tone: 'amber' | 'green' | 'red' | 'gray'; label: 
   pending: { tone: 'amber', label: 'รออนุมัติ' }, approved: { tone: 'green', label: 'อนุมัติแล้ว' }, rejected: { tone: 'red', label: 'ปฏิเสธ' }, cancelled: { tone: 'gray', label: 'ยกเลิก' },
 };
 
-export default function AccessRequestsPage() {
+/** embedded: a tab of คำขออนุมัติ (no page frame / title) */
+export default function AccessRequestsPage({ embedded }: { embedded?: boolean }) {
   const role = useAuth((s) => s.user?.role);
   const [sp, setSp] = useSearchParams();
   const box = (sp.get('box') === 'review' && !isBasicRole(role) ? 'review' : 'mine') as 'mine' | 'review';
@@ -46,12 +47,16 @@ export default function AccessRequestsPage() {
   };
 
   return (
-    <Page>
-      <PageHeader icon={<KeyRound />} title="คำขอสิทธิ์เข้าถึง" subtitle={box === 'review' ? 'คำขอที่คุณมีสิทธิ์พิจารณา' : 'คำขอที่คุณส่งไป'}
-        actions={<>
-          {!isBasicRole(role) && <Segmented value={box} onChange={(v) => setSp({ box: v })} options={[{ value: 'review', label: 'รอฉันอนุมัติ' }, { value: 'mine', label: 'คำขอของฉัน' }]} />}
+    <Frame embedded={embedded}>
+      {(() => {
+        const controls = <>
+          {!isBasicRole(role) && <Segmented value={box} onChange={(v) => setSp((p) => { const n = new URLSearchParams(p); n.set('box', v); return n; })} options={[{ value: 'review', label: 'รอฉันอนุมัติ' }, { value: 'mine', label: 'คำขอของฉัน' }]} />}
           <Segmented value={status} onChange={setStatus} options={[{ value: 'pending', label: 'รออนุมัติ' }, { value: 'all', label: 'ทั้งหมด' }]} />
-        </>} />
+        </>;
+        return embedded
+          ? <div className="mb-3 flex flex-wrap items-center gap-2">{controls}<span className="text-xs text-muted">{box === 'review' ? 'คำขอสิทธิ์ไฟล์ / โฟลเดอร์ที่คุณพิจารณาได้' : 'คำขอสิทธิ์ที่คุณส่งไป'}</span></div>
+          : <PageHeader icon={<KeyRound />} title="คำขอสิทธิ์เข้าถึง" subtitle={box === 'review' ? 'คำขอที่คุณมีสิทธิ์พิจารณา' : 'คำขอที่คุณส่งไป'} actions={controls} />;
+      })()}
       {loading ? <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-theme" />)}</div>
         : !data?.length ? <div className="ds-card"><EmptyState icon={<KeyRound />} title="ไม่มีคำขอ" description={box === 'mine' ? 'ขอสิทธิ์ได้จากไฟล์หรือโฟลเดอร์ที่ถูกล็อก' : 'เมื่อมีผู้ขอสิทธิ์ในไฟล์ที่คุณดูแล จะแสดงที่นี่'} /></div>
         : (
@@ -101,6 +106,8 @@ export default function AccessRequestsPage() {
           </div>
         )}
       </Modal>
-    </Page>
+    </Frame>
   );
 }
+
+const Frame = ({ embedded, children }: { embedded?: boolean; children: React.ReactNode }) => (embedded ? <>{children}</> : <Page>{children}</Page>);

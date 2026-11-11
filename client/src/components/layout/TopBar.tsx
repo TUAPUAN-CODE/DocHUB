@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAiPanel } from '@/modules/ai/useAiPanel';
 import { canSee } from '@/lib/pages';
-import { Bell, Sparkles, CheckCheck, ChevronDown, FileSpreadsheet, Folder, Lock, LogOut, Menu, Palette, Search, UserCircle, X } from 'lucide-react';
+import { Bell, Sparkles, CheckCheck, ChevronDown, FileSpreadsheet, Folder, Lock, LogOut, Menu, Minus, PanelLeft, PanelLeftClose, PanelLeftDashed, Palette, Plus, Search, UserCircle, X, ZoomIn } from 'lucide-react';
 import { searchApi, SearchResult } from '@/api/endpoints';
 import { useDebounce } from '@/hooks';
 import { cn } from '@/lib/cn';
 import { relTime, ROLE_LABEL } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { useNotifications } from '@/store/notifications';
-import { useUi } from '@/store/ui';
+import { useUi, ZOOM_STEPS } from '@/store/ui';
 import { Avatar } from '../ui/misc';
 import { MenuList, Popover } from '../ui/Popover';
 
@@ -150,6 +150,58 @@ function AiButton() {
   );
 }
 
+/** desktop: left bar full / icons only / hidden */
+function NavModeButton() {
+  const mode = useUi((s) => s.navMode);
+  const setMode = useUi((s) => s.setNavMode);
+  const [open, setOpen] = useState(false);
+  const btn = useRef<HTMLButtonElement>(null);
+  const opts = [
+    { v: 'full' as const, label: 'แสดงเมนูเต็ม', icon: <PanelLeft /> },
+    { v: 'icons' as const, label: 'แสดงเฉพาะไอคอน', icon: <PanelLeftDashed /> },
+    { v: 'hidden' as const, label: 'ซ่อนเมนู', icon: <PanelLeftClose /> },
+  ];
+  return (
+    <>
+      <button ref={btn} onClick={() => setOpen(true)} className="hidden h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 lg:grid" aria-label="ซ่อน / ย่อเมนูด้านซ้าย" title="ซ่อน / ย่อเมนูด้านซ้าย">
+        {mode === 'hidden' ? <Menu className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
+      </button>
+      <Popover open={open} onClose={() => setOpen(false)} anchor={btn.current} placement="bottom-start" width={210}>
+        <MenuList onClose={() => setOpen(false)} items={opts.map((o) => ({ label: `${o.label}${o.v === mode ? ' ✓' : ''}`, icon: o.icon, onClick: () => setMode(o.v) }))} />
+      </Popover>
+    </>
+  );
+}
+
+/** zoom the whole app in / out (remembered in this browser) */
+function ZoomButton() {
+  const zoom = useUi((s) => s.uiZoom);
+  const setZoom = useUi((s) => s.setUiZoom);
+  const [open, setOpen] = useState(false);
+  const btn = useRef<HTMLButtonElement>(null);
+  const i = ZOOM_STEPS.indexOf(zoom);
+  const step = (d: number) => setZoom(ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, (i < 0 ? ZOOM_STEPS.indexOf(100) : i) + d))]);
+  return (
+    <>
+      <button ref={btn} onClick={() => setOpen(true)} className={cn('flex h-10 shrink-0 items-center gap-1 rounded-xl px-2.5 text-sm font-medium hover:bg-ink/5', zoom !== 100 && 'text-primary')} aria-label="ขนาดหน้าจอ (ซูม)" title="ขนาดหน้าจอ (ซูม)">
+        <ZoomIn className="h-5 w-5" />{zoom !== 100 && <span className="hidden text-xs tabular-nums sm:inline">{zoom}%</span>}
+      </button>
+      <Popover open={open} onClose={() => setOpen(false)} anchor={btn.current} placement="bottom-end" width={230}>
+        <div className="p-3">
+          <p className="mb-2 text-xs font-medium text-muted">ขนาดหน้าจอ</p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => step(-1)} disabled={i === 0} className="grid h-9 w-9 place-items-center rounded-lg border border-line hover:border-primary disabled:opacity-40" aria-label="ย่อ (ซูมออก)"><Minus className="h-4 w-4" /></button>
+            <span className="flex-1 text-center text-lg font-semibold tabular-nums">{zoom}%</span>
+            <button onClick={() => step(1)} disabled={i === ZOOM_STEPS.length - 1} className="grid h-9 w-9 place-items-center rounded-lg border border-line hover:border-primary disabled:opacity-40" aria-label="ขยาย (ซูมเข้า)"><Plus className="h-4 w-4" /></button>
+          </div>
+          <button onClick={() => setZoom(100)} disabled={zoom === 100} className="mt-2 w-full rounded-lg py-1.5 text-xs font-medium text-primary hover:bg-primary/5 disabled:opacity-40">กลับเป็น 100%</button>
+          <p className="mt-1 text-[11px] text-muted">จำไว้ในเครื่องนี้ ไม่กระทบคนอื่น</p>
+        </div>
+      </Popover>
+    </>
+  );
+}
+
 export function TopBar() {
   // AI: admin + root by default; a root can give it to other roles (จัดการสิทธิ์)
   const aiAllowed = useAuth((s) => canSee(s.user, 'ai'));
@@ -166,9 +218,11 @@ export function TopBar() {
   return (
     <header className="ds-topbar print:hidden flex h-14 shrink-0 items-center gap-1.5 px-2 sm:h-16 sm:gap-3 sm:px-8">
       <button onClick={() => setMobile(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 lg:hidden" aria-label="เปิดเมนู"><Menu className="h-5 w-5" /></button>
+      <NavModeButton />
       <div className="hidden min-w-0 flex-1 sm:block"><GlobalSearch /></div>
       <button onClick={() => setSearching(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 sm:hidden" aria-label="ค้นหาไฟล์หรือโฟลเดอร์"><Search className="h-5 w-5" /></button>
       <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+        <ZoomButton />
         {aiAllowed && <AiButton />}
         <NotificationBell />
         <UserMenu />

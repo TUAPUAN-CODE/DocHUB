@@ -8,7 +8,7 @@ export function UsersTabs() {
   const pending = useData((s) => s.pendingAccounts);
   const tabs = [
     { to: '/users', label: 'ผู้ใช้งาน', icon: <Users className="h-4 w-4" />, end: true },
-    { to: '/users/requests', label: 'คำขอสร้างบัญชี', icon: <UserPlus className="h-4 w-4" />, badge: pending },
+    { to: '/requests?tab=accounts', label: 'คำขอสร้างบัญชี', icon: <UserPlus className="h-4 w-4" />, badge: pending },
     { to: '/users/tags', label: 'Tag', icon: <Tags className="h-4 w-4" /> },
   ];
   return (

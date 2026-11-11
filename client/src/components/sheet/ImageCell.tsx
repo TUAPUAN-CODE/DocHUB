@@ -139,8 +139,9 @@ export function ImagePicker({ urls, onChange, max = 200, columns = 4 }: { urls: 
         {urls.map((u, i) => (
           <div key={u} className="group relative aspect-square overflow-hidden rounded-lg border border-line bg-ink/5">
             <button type="button" onClick={() => lb.open(urls, i)} className="h-full w-full"><img src={imgSrc(u)} alt="" loading="lazy" className="h-full w-full object-cover" /></button>
-            <button type="button" onClick={() => onChange(urls.filter((x) => x !== u))} aria-label="ลบรูปนี้"
-              className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-danger group-hover:opacity-100 focus:opacity-100"><X className="h-3 w-3" /></button>
+            {/* always visible: phones have no hover */}
+            <button type="button" onClick={() => onChange(urls.filter((x) => x !== u))} aria-label="ลบรูปนี้" title="ลบรูปนี้"
+              className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white shadow transition-colors hover:bg-danger"><X className="h-4 w-4" /></button>
           </div>
         ))}
         {urls.length < max && (
@@ -157,7 +158,7 @@ export function ImagePicker({ urls, onChange, max = 200, columns = 4 }: { urls: 
           </button>
         )}
       </div>
-      <p className="mt-1.5 text-[11px] text-muted">เลือกได้หลายรูปพร้อมกัน หรือลากรูปมาวางที่นี่ · PNG, JPG, GIF, WEBP</p>
+      <p className="mt-1.5 text-[11px] text-muted">กด ✕ ที่มุมรูปเพื่อลบรูปนั้น · เลือกได้หลายรูปพร้อมกัน หรือลากรูปมาวางที่นี่ · PNG, JPG, GIF, WEBP</p>
       <input ref={input} type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp" className="hidden"
         onChange={(e) => { void add(e.target.files); e.target.value = ''; }} />
       {/* capture = open the phone's camera app directly (works on http too); on a PC it is the normal file dialog */}

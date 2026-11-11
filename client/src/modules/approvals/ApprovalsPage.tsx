@@ -16,7 +16,8 @@ import { newStep } from './FlowsDialog';
 const ST: Record<string, { t: string; c: string }> = { pending: { t: 'รออนุมัติ', c: 'text-amber-600' }, approved: { t: 'อนุมัติครบแล้ว', c: 'text-emerald-600' }, rejected: { t: 'ถูกปฏิเสธ', c: 'text-danger' }, waiting: { t: 'รอคิว', c: 'text-muted' } };
 
 /** Approval inbox: documents waiting for me, sent by me, handled by me */
-export default function ApprovalsPage() {
+/** embedded: a tab of คำขออนุมัติ */
+export default function ApprovalsPage({ embedded }: { embedded?: boolean }) {
   const [sp, setSp] = useSearchParams();
   const [box, setBox] = useState<'inbox' | 'sent' | 'done'>('inbox');
   const [items, setItems] = useState<ApprovalRequest[]>([]);
@@ -52,8 +53,12 @@ export default function ApprovalsPage() {
 
   return (
     <div>
-      <PageHeader title="อนุมัติเอกสาร" subtitle="เอกสาร PDF ที่รอคุณลงนาม / ที่คุณส่งไปอนุมัติ" icon={<CheckCircle2 />} actions={<Button variant="secondary" onClick={() => setSigOpen(true)}><PenLine className="h-4 w-4" />ลายเซ็นของฉัน</Button>} />
-      <Segmented value={box} onChange={(v) => { setBox(v); setSel(null); setSp({}); }} options={[{ value: 'inbox', label: 'รอฉันอนุมัติ' }, { value: 'sent', label: 'ที่ฉันส่ง' }, { value: 'done', label: 'ที่ฉันเกี่ยวข้อง' }]} />
+      {!embedded && <PageHeader title="อนุมัติเอกสาร" subtitle="เอกสาร PDF ที่รอคุณลงนาม / ที่คุณส่งไปอนุมัติ" icon={<CheckCircle2 />} actions={<Button variant="secondary" onClick={() => setSigOpen(true)}><PenLine className="h-4 w-4" />ลายเซ็นของฉัน</Button>} />}
+      <div className="flex flex-wrap items-center gap-2">
+        <Segmented value={box} onChange={(v) => { setBox(v); setSel(null); setSp((p) => { const n = new URLSearchParams(p); n.delete('open'); return n; }); }} options={[{ value: 'inbox', label: 'รอฉันอนุมัติ' }, { value: 'sent', label: 'ที่ฉันส่ง' }, { value: 'done', label: 'ที่ฉันเกี่ยวข้อง' }]} />
+        {embedded && <><span className="text-xs text-muted">เอกสาร PDF ที่รอคุณลงนาม / ที่คุณส่งไปอนุมัติ</span>
+          <Button size="sm" variant="secondary" className="ml-auto" onClick={() => setSigOpen(true)}><PenLine className="h-4 w-4" />ลายเซ็นของฉัน</Button></>}
+      </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-[360px_1fr]">
         <ul className="divide-y divide-line rounded-xl border border-line">
           {!items.length && <li className="p-4"><EmptyState title="ไม่มีรายการ" description="" /></li>}

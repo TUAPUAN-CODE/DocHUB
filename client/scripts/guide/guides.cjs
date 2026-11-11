@@ -199,7 +199,7 @@ module.exports = [
             text: 'เมนูหลักอยู่ด้านซ้ายเสมอ กดเพื่อไปหน้าต่างๆ ได้ทุกเมื่อ',
             marks: [
               { el: sidebar(p, 'ไฟล์ทั้งหมด'), label: 'ไฟล์ทั้งหมด: เปิดโฟลเดอร์และไฟล์', place: 'right' },
-              { el: sidebar(p, 'คำขอสิทธิ์'), label: 'คำขอสิทธิ์: ขอ/ติดตามสิทธิ์เข้าถึงไฟล์', place: 'right' },
+              { el: sidebar(p, 'คำขออนุมัติ'), label: 'คำขออนุมัติ: เอกสาร สิทธิ์ไฟล์ บัญชี Tag', place: 'right' },
               { el: sidebar(p, 'คู่มือ'), label: 'คู่มือ: วิธีใช้งานทุกเรื่อง (หน้านี้)', place: 'right' },
             ],
           });
@@ -229,6 +229,22 @@ module.exports = [
             text: 'กดที่**ชื่อของคุณ**มุมขวาบน จะมีเมนู:\n• **โปรไฟล์ของฉัน** แก้ชื่อ อีเมล และเปลี่ยนรหัสผ่าน\n• **ธีมและรูปแบบ** เปลี่ยนสีหน้าจอ\n• **ออกจากระบบ** ใช้เมื่อใช้เครื่องร่วมกับคนอื่น',
             marks: [{ el: p.getByRole('menuitem', { name: 'โปรไฟล์ของฉัน' }).or(p.getByText('โปรไฟล์ของฉัน')), label: 'แก้ข้อมูล / เปลี่ยนรหัสผ่าน', place: 'left' }, { el: p.getByRole('menuitem', { name: 'ออกจากระบบ' }).or(p.locator('[role="menu"] >> text=ออกจากระบบ')), label: 'ออกจากระบบ', place: 'left' }],
           });
+        },
+      },
+      {
+        id: 'screen-options', title: 'ซ่อนเมนูด้านซ้าย และซูมหน้าจอ', summary: 'ย่อเมนูเหลือแค่ไอคอน ซ่อนเมนู และขยาย/ย่อขนาดตัวอักษรทั้งหน้า', as: 'user',
+        run: async (r) => {
+          const p = r.page;
+          const nav = role(p, 'button', 'ซ่อน / ย่อเมนูด้านซ้าย');
+          await nav.click(); await r.settle(300);
+          await r.shot({ title: 'ปุ่มเมนูด้านซ้าย', text: 'กดปุ่มรูป**แผงด้านซ้าย**ที่มุมซ้ายบน แล้วเลือก:\n• **แสดงเมนูเต็ม** — มีชื่อเมนู\n• **แสดงเฉพาะไอคอน** — เมนูแคบลง เหลือที่ให้ตารางมากขึ้น (ชี้ที่ไอคอนเพื่อดูชื่อ)\n• **ซ่อนเมนู** — ซ่อนทั้งหมด กดปุ่มเดิมเพื่อเปิดกลับ', marks: [{ el: p.locator('[role="menu"]').last(), label: 'เลือกรูปแบบเมนู', place: 'right' }] });
+          await p.getByText('แสดงเฉพาะไอคอน').click(); await r.settle(500);
+          await r.shot({ title: 'เมนูแบบไอคอน', text: 'เมนูเหลือแค่ไอคอน ตัวเลขสีส้มยังแสดงที่มุมไอคอน · ระบบจำการตั้งค่านี้ไว้ในเครื่องนี้', marks: [{ el: p.locator('aside.ds-sidebar'), label: 'เมนูแบบไอคอน', place: 'right' }] });
+          await nav.click(); await r.settle(300); await p.getByText('แสดงเมนูเต็ม').click(); await r.settle(400);
+          const zoom = role(p, 'button', 'ขนาดหน้าจอ (ซูม)');
+          await zoom.click(); await r.settle(300);
+          await r.shot({ title: 'ซูมหน้าจอ', text: 'กดปุ่ม**แว่นขยาย**ที่แถบด้านบน แล้วกด **+** เพื่อขยาย หรือ **−** เพื่อย่อทั้งหน้า (70%–150%) · **กลับเป็น 100%** เพื่อคืนค่า\nจำไว้ในเครื่องนี้ ไม่กระทบคนอื่น', marks: [{ el: role(p, 'button', 'ขยาย (ซูมเข้า)'), label: 'ขยาย', place: 'left' }, { el: role(p, 'button', 'ย่อ (ซูมออก)'), label: 'ย่อ', place: 'below' }] });
+          await p.keyboard.press('Escape');
         },
       },
       {
@@ -470,6 +486,28 @@ module.exports = [
         },
       },
       {
+        id: 'image-delete', title: 'เพิ่มและลบรูปในแถว', summary: 'ลบรูปที่ใส่ผิด หรือเพิ่มรูปใหม่ในช่องรูปภาพ', as: 'admin',
+        run: async (r) => {
+          const p = r.page;
+          // a row of Quality Highlight that has pictures
+          const sid = (await r.call('GET', `/files/${QH_FILE}`)).sheets[0].id;
+          const cols = (await r.call('GET', `/sheets/${sid}`)).columns;
+          const img = cols.find((c) => c.dataType === 'image');
+          const row = (await r.call('POST', `/sheets/${sid}/rows/query`, { pageSize: 500 })).rows.find((x) => Array.isArray(x.values[img.id]) && x.values[img.id].length);
+          const key = row.values[cols[0].id];
+          await r.go(`/files/${QH_FILE}`, 1800);
+          await p.getByPlaceholder('ค้นหาในชีต…').fill(String(key)); await r.settle(1200);
+          const idx = (await p.locator('thead th').allInnerTexts()).findIndex((t) => t.trim().endsWith(img.name));
+          const cell = p.locator('tbody tr').first().locator('td').nth(idx);
+          await r.shot({ title: 'ดับเบิลคลิกช่องรูปภาพ', text: 'หาแถวที่ต้องการ แล้ว**คลิกที่ช่องรูปภาพ (นอกตัวรูป) แล้วกด Enter** หรือดับเบิลคลิกที่ว่างในช่อง (บนมือถือแตะ 2 ครั้ง) — หรือเปิดแถวในฟอร์ม (คลิกขวา → เปิดแถวในฟอร์ม → แก้ไข) ก็ได้เหมือนกัน', marks: [{ el: cell, label: 'ดับเบิลคลิกช่องรูป', place: 'below' }] });
+          await cell.click({ position: { x: 4, y: 4 } }); await r.settle(200); await p.keyboard.press('Enter'); await r.settle(700); // (a double click on a picture opens it large)
+          const del = p.getByRole('button', { name: 'ลบรูปนี้' }).first();
+          await r.shot({ title: 'กด ✕ ที่มุมรูปเพื่อลบ', text: 'ทุกรูปมีปุ่ม **✕** สีดำที่มุมขวาบน กดเพื่อลบรูปนั้น (กดที่ตัวรูปเพื่อดูภาพใหญ่)\n• **ถ่ายรูป** / **เพิ่มรูป** = ใส่รูปเพิ่ม\n• **ลบรูปทั้งหมด** = ล้างทั้งช่อง\nกด **เสร็จ** แล้วจึงบันทึก — ลบผิดกด **ย้อนกลับ** (Ctrl+Z) หรือดูประวัติของแถวได้', marks: [{ el: del, label: 'ลบรูปนี้', place: 'right' }, { el: p.getByRole('button', { name: 'ลบรูปทั้งหมด' }), label: 'ลบทุกรูป', place: 'above' }] });
+          await p.getByRole('button', { name: 'เสร็จ' }).click(); await r.settle(400); // (demo: nothing removed)
+          r.note({ title: 'ข้อมูลอื่นก็แก้ / ลบแบบเดียวกัน', text: '• ข้อความ ตัวเลข วันที่: ดับเบิลคลิกแล้วพิมพ์ใหม่ หรือลบให้ว่างแล้วกด Enter\n• ตัวเลือก: ดับเบิลคลิกแล้วเลือกใหม่ หรือเลือก “ว่าง”\n• ลบทั้งแถว: ดูเรื่อง “ลบแถว และกู้คืนแถวที่ลบ”' });
+        },
+      },
+      {
         id: 'search-filter', title: 'ค้นหา กรอง และเรียงข้อมูล', summary: 'หาแถวที่ต้องการจากตารางใหญ่', as: 'user',
         run: async (r) => {
           const p = r.page;
@@ -694,17 +732,20 @@ module.exports = [
           const send = role(p, 'button', 'ส่งคำขอสิทธิ์');
           await r.shot({ title: 'กด “ส่งคำขอสิทธิ์”', text: 'กด **ส่งคำขอสิทธิ์** ผู้ดูแลไฟล์ได้รับการแจ้งเตือนทันที', marks: [{ el: send, label: 'กด ส่งคำขอสิทธิ์', place: 'below' }] });
           await send.click(); await r.settle(1200);
-          await r.shot({ title: 'รอการอนุมัติ', text: 'หน้าไฟล์จะแสดง **คำขอของคุณกำลังรอการอนุมัติ** เมื่อได้รับอนุมัติจะมีการแจ้งเตือน แล้วเปิดไฟล์ได้เลย · ดูคำขอทั้งหมดได้ที่เมนู **คำขอสิทธิ์**', marks: [{ el: p.getByText('คำขอของคุณกำลังรอการอนุมัติ'), label: 'รออนุมัติ' }, { el: sidebar(p, 'คำขอสิทธิ์'), label: 'ติดตามคำขอ', place: 'right' }] });
+          await r.shot({ title: 'รอการอนุมัติ', text: 'หน้าไฟล์จะแสดง **คำขอของคุณกำลังรอการอนุมัติ** เมื่อได้รับอนุมัติจะมีการแจ้งเตือน แล้วเปิดไฟล์ได้เลย · ดูคำขอทั้งหมดได้ที่เมนู **คำขออนุมัติ → คำขอสิทธิ์ไฟล์**', marks: [{ el: p.getByText('คำขอของคุณกำลังรอการอนุมัติ'), label: 'รออนุมัติ' }, { el: sidebar(p, 'คำขออนุมัติ'), label: 'ติดตามคำขอ', place: 'right' }] });
         },
       },
       {
         id: 'approve-access', title: 'อนุมัติคำขอสิทธิ์', summary: 'ผู้ดูแลไฟล์อนุมัติหรือปฏิเสธคำขอสิทธิ์', as: 'admin',
         run: async (r) => {
           const p = r.page;
-          await r.shot({ title: 'กดเมนู “คำขอสิทธิ์”', text: 'เมื่อมีคำขอใหม่ จะมีการแจ้งเตือนและตัวเลขที่เมนู **คำขอสิทธิ์** กดเมนูนี้', marks: [{ el: sidebar(p, 'คำขอสิทธิ์'), label: 'กด คำขอสิทธิ์', place: 'right' }] });
-          await sidebar(p, 'คำขอสิทธิ์').click(); await r.settle(1000);
+          await r.shot({ title: 'กดเมนู “คำขออนุมัติ”', text: 'เมื่อมีคำขอใหม่ จะมีการแจ้งเตือนและตัวเลขที่เมนู **คำขออนุมัติ** กดเมนูนี้', marks: [{ el: sidebar(p, 'คำขออนุมัติ'), label: 'กด คำขออนุมัติ', place: 'right' }] });
+          await sidebar(p, 'คำขออนุมัติ').click(); await r.settle(1000);
+          const tab = p.getByRole('button', { name: /คำขอสิทธิ์ไฟล์/ });
+          await r.shot({ title: 'แท็บ “คำขอสิทธิ์ไฟล์”', text: 'หน้า **คำขออนุมัติ** รวมคำขอทุกแบบไว้ที่เดียว: **อนุมัติเอกสาร** (PDF ที่รอลงนาม) · **คำขอสิทธิ์ไฟล์** · **คำขอสร้างบัญชี** (Admin) · **คำขอ Tag** (Master ขึ้นไป) — ตัวเลขบนแท็บคือจำนวนที่รอคุณ\nกดแท็บ **คำขอสิทธิ์ไฟล์**', marks: [{ el: tab, label: 'กด คำขอสิทธิ์ไฟล์', place: 'below' }] });
+          await tab.click(); await r.settle(900);
           const mine = role(p, 'button', 'รอฉันอนุมัติ');
-          await r.shot({ title: 'เลือก “รอฉันอนุมัติ”', text: 'ด้านขวาบนเลือก **รอฉันอนุมัติ** (คำขอที่ส่งถึงคุณ) · **คำขอของฉัน** คือคำขอที่คุณส่งไปเอง', marks: [{ el: mine, label: 'กด รอฉันอนุมัติ', place: 'below' }] });
+          await r.shot({ title: 'เลือก “รอฉันอนุมัติ”', text: 'เลือก **รอฉันอนุมัติ** (คำขอที่ส่งถึงคุณ) · **คำขอของฉัน** คือคำขอที่คุณส่งไปเอง', marks: [{ el: mine, label: 'กด รอฉันอนุมัติ', place: 'below' }] });
           await mine.click(); await r.settle(900);
           const approve = role(p, 'button', 'อนุมัติ', { exact: true }).first();
           await r.shot({ title: 'ดูคำขอแล้วกด “อนุมัติ”', text: 'แต่ละคำขอบอกชื่อผู้ขอ ไฟล์ ระดับที่ขอ ระยะเวลา และเหตุผล · กด **อนุมัติ** หรือ **ปฏิเสธ**', marks: [{ el: approve, label: 'กด อนุมัติ', place: 'left' }] });
@@ -1040,20 +1081,38 @@ module.exports = [
         },
       },
       {
+        id: 'admin-user-tags', title: 'ใส่ Tag ให้ผู้ใช้แต่ละคน', summary: 'กด + Tag ที่แถวผู้ใช้ แล้วแตะ Tag เพื่อใส่หรือเอาออก', as: 'admin', roles: ['admin'],
+        run: async (r) => {
+          const p = r.page;
+          await tagWith(r, 'QC', '#E11D48', ['user', 'master'], 'ฝ่ายควบคุมคุณภาพ');
+          await r.go('/users', 1200);
+          const row = p.locator('tr').filter({ hasText: '@master' }).first();
+          const plus = row.getByRole('button', { name: /^Tag ของ/ });
+          await r.shot({ title: 'กด “+ Tag” ที่แถวผู้ใช้', text: 'หน้า **จัดการผู้ใช้** ใต้ชื่อแต่ละคนมี Tag ที่มีอยู่ และปุ่ม **+ Tag** กดปุ่มนี้ที่คนที่ต้องการ', marks: [{ el: plus, label: 'กด + Tag', place: 'right' }] });
+          await plus.click(); await r.settle(400);
+          const pop = p.locator('div').filter({ hasText: /^Tag ของ/ }).last();
+          await r.shot({ title: 'แตะ Tag เพื่อใส่ / เอาออก', text: 'Tag ที่มีเครื่องหมาย ✓ = ผู้ใช้อยู่ใน Tag นั้น · แตะเพื่อใส่หรือเอาออก **บันทึกทันที** ไม่ต้องกดปุ่มบันทึก\nทำได้อีก 2 ทาง: ปุ่ม ⋯ → **แก้ไข** ผู้ใช้ หรือเมนู **Tag → จัดการ Tag → สมาชิก**', marks: [{ el: pop, label: 'แตะเพื่อเปิด / ปิด', place: 'right' }] });
+          await p.keyboard.press('Escape');
+        },
+      },
+      {
         id: 'admin-requests', title: 'อนุมัติคำขอสร้างบัญชี', summary: 'ตรวจคำขอบัญชีใหม่ กำหนดระดับจริง และใส่ Tag', as: 'admin', roles: ['admin'],
         run: async (r) => {
           const p = r.page;
-          if (!(await r.call('GET', '/account-requests?status=pending')).length)
-            await r.signup({ displayName: 'วิไล ใจงาม', email: 'wilai@example.com', username: 'wilai', password: 'Wilai2026!', requestedRole: 'user', note: 'QC ไลน์ PF1 บันทึกผลตรวจประจำวัน' });
-          await r.go('/users', 900);
-          await r.shot({ title: 'แท็บ “คำขอสร้างบัญชี”', text: 'เมื่อมีคนขอบัญชี Admin ได้รับการแจ้งเตือน และมีตัวเลขที่เมนู **จัดการผู้ใช้** · กดแท็บ **คำขอสร้างบัญชี**', marks: [{ el: p.getByRole('link', { name: /คำขอสร้างบัญชี/ }), label: 'กดแท็บ คำขอสร้างบัญชี', place: 'below' }] });
-          await p.getByRole('link', { name: /คำขอสร้างบัญชี/ }).click(); await r.settle(900);
+          // the example request (the same one as in "ขอสร้างบัญชี"); this guide stops before creating the account so it can run again
+          if (!(await r.call('GET', '/account-requests?status=pending')).some((q) => q.username === 'manop'))
+            await r.signup({ displayName: 'มานพ ตั้งใจ', username: 'manop', password: 'Manop2026!', requestedRole: 'user', note: 'QC ไลน์ PF1 บันทึกผลตรวจประจำวัน' });
+          await r.go('/', 900);
+          await r.shot({ title: 'เมนู “คำขออนุมัติ”', text: 'เมื่อมีคนขอบัญชี Admin ได้รับการแจ้งเตือน และมีตัวเลขที่เมนู **คำขออนุมัติ** · กดเมนูนี้', marks: [{ el: sidebar(p, 'คำขออนุมัติ'), label: 'กด คำขออนุมัติ', place: 'right' }] });
+          await sidebar(p, 'คำขออนุมัติ').click(); await r.settle(900);
+          await r.shot({ title: 'แท็บ “คำขอสร้างบัญชี”', text: 'กดแท็บ **คำขอสร้างบัญชี** (ยังเปิดจาก จัดการผู้ใช้ → คำขอสร้างบัญชี ได้เหมือนเดิม)', marks: [{ el: p.getByRole('button', { name: /คำขอสร้างบัญชี/ }), label: 'กดแท็บ คำขอสร้างบัญชี', place: 'below' }] });
+          await p.getByRole('button', { name: /คำขอสร้างบัญชี/ }).click(); await r.settle(900);
           const approve = role(p, 'button', 'อนุมัติ', { exact: true }).first();
-          await r.shot({ title: 'ดูรายละเอียดคำขอ', text: 'เห็นชื่อ อีเมล ชื่อผู้ใช้ (หรือป้าย Microsoft) **ระดับที่ขอ** และแผนก/เหตุผล · กด **อนุมัติ** หรือ **ปฏิเสธ**', marks: [{ el: p.getByText('ขอระดับ').first(), label: 'ระดับที่ผู้ใช้ขอ' }, { el: approve, label: 'กด อนุมัติ', place: 'left' }] });
+          await r.shot({ title: 'ดูรายละเอียดคำขอ', text: 'เห็นชื่อ อีเมล (ถ้ามี) ชื่อผู้ใช้ (หรือป้าย Microsoft) **ระดับที่ขอ** และแผนก/เหตุผล · กด **อนุมัติ** หรือ **ปฏิเสธ**', marks: [{ el: p.getByText('ขอระดับ').first(), label: 'ระดับที่ผู้ใช้ขอ' }, { el: approve, label: 'กด อนุมัติ', place: 'left' }] });
           await approve.click(); await r.settle();
           const dlg = p.getByRole('dialog');
           await r.shot({ title: 'กำหนดระดับจริงและ Tag', text: 'ช่อง **ระดับที่ให้** ตั้งต้นตามที่ขอ เปลี่ยนได้ตามความเหมาะสม · แตะ Tag เพื่อใส่ผู้ใช้เข้ากลุ่มทันที · กด **อนุมัติและสร้างบัญชี**', marks: [{ el: dlg.locator('select').first(), label: 'ระดับที่ให้จริง', place: 'left' }, { el: role(dlg, 'button', 'อนุมัติและสร้างบัญชี'), label: 'กด อนุมัติและสร้างบัญชี', place: 'above' }] });
-          await role(dlg, 'button', 'อนุมัติและสร้างบัญชี').click(); await r.settle(1000);
+          await role(dlg, 'button', 'ยกเลิก').click(); await r.settle(300); // (demo: the request stays for the next run)
           await r.note({ title: 'ผู้ขอเข้าใช้งานได้ทันที', text: 'บัญชีถูกสร้างแล้ว ผู้ขอเข้าสู่ระบบด้วยชื่อผู้ใช้/รหัสผ่านที่ตั้งตอนขอ (หรือปุ่ม Microsoft) · คำขอที่อนุมัติ/ปฏิเสธแล้วดูได้ในตัวเลือก **ทั้งหมด**' });
         },
       },

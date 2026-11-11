@@ -113,7 +113,7 @@ function MyTags() {
   );
 }
 
-function Inbox_() {
+export function TagRequestInbox() {
   const isAdmin = useAuth((s) => isAdminRole(s.user?.role));
   const loadPending = useData((s) => s.loadPending);
   const [scope, setScope] = useState<'me' | 'all'>('me');
@@ -199,7 +199,7 @@ export default function TagHubPage() {
           ))}
         </nav>
       )}
-      {tab === 'mine' ? <MyTags /> : tab === 'requests' ? <Inbox_ /> : <TagManager />}
+      {tab === 'mine' ? <MyTags /> : tab === 'requests' ? <TagRequestInbox /> : <TagManager />}
     </Page>
   );
 }

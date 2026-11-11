@@ -88,7 +88,7 @@ router.post('/tag-requests', ah(async (req, res) => {
     type: 'tag_request',
     title: `คำขอ Tag "${tag.tag_name}"`,
     message: `${me.displayName} ขอเข้า Tag "${tag.tag_name}"${b.note ? ` — ${b.note}` : ''}`,
-    link: '/tags?tab=requests',
+    link: '/requests?tab=tags',
   });
   ok(res, mapReq(await q1(`${SELECT} WHERE r.request_id = @id`, { id: T.uuid(row!.request_id) })), 201);
 }));
