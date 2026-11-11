@@ -60,7 +60,22 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
   const z = prefs.zoom;
   const HEAD = Math.round(38 * z);
   const RN = Math.round(64 * z);
-  const colW = useCallback((c: Column) => Math.round((resize?.kind === 'col' && resize.id === c.id ? resize.size : prefs.colWidths[c.id] ?? c.width) * z), [resize, prefs.colWidths, z]);
+  /**
+   * The width a column needs to show its whole name in the header (type icon + name + * + sort / menu room). A column opens at
+   * least this wide; a width the user dragged or auto-fitted (prefs.colWidths) is kept as it is.
+   */
+  const headerMin = useMemo(() => {
+    const ctx = document.createElement('canvas').getContext('2d');
+    const m = new Map<string, number>();
+    if (!ctx) return m;
+    const fs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs')) || 14;
+    ctx.font = `500 ${fs}px ${getComputedStyle(document.body).fontFamily}`;
+    // padding 16 + type icon + sort and filter buttons (shown on hover) + gaps ≈ 90 px
+    for (const c of cols) m.set(c.id, Math.min(380, Math.ceil(ctx.measureText(c.name).width + (c.isRequired ? 10 : 0) + 90)));
+    return m;
+  }, [cols]);
+  const colW = useCallback((c: Column) => Math.round((resize?.kind === 'col' && resize.id === c.id ? resize.size
+    : prefs.colWidths[c.id] ?? Math.max(c.width, headerMin.get(c.id) ?? 0)) * z), [resize, prefs.colWidths, z, headerMin]);
   const rowH = useCallback((r: Row) => Math.round((resize?.kind === 'row' && resize.id === r.id ? resize.size : prefs.rowHeights[r.id] ?? prefs.rowHeight) * z), [resize, prefs.rowHeights, prefs.rowHeight, z]);
   const fc = Math.min(prefs.frozenCols, cols.length);
   const fr = Math.min(prefs.frozenRows, rows.length);
@@ -257,7 +272,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
-    const startW = prefs.colWidths[col.id] ?? col.width;
+    const startW = prefs.colWidths[col.id] ?? Math.max(col.width, headerMin.get(col.id) ?? 0); // drag from what is shown
     let w = startW;
     const mm = (ev: MouseEvent) => { w = Math.max(50, Math.min(1200, startW + (ev.clientX - startX) / z)); setResize({ kind: 'col', id: col.id, size: w }); };
     const up = () => {
