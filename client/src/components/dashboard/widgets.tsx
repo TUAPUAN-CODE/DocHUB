@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AreaChart as AreaIcon, BarChart3, BellRing, Circle, Donut, Filter, Gauge, Grid3x3, History, ImageIcon, LayoutList, LineChart as LineIcon, PieChart as PieIcon, ScanSearch,
   ScatterChart as ScatterIcon, Sigma, StretchHorizontal, Table2, TrendingUp, Type, Activity, BarChartHorizontal,
@@ -100,20 +100,41 @@ function KpiBody({ w, data }: { w: Widget; data: WidgetData }) {
   );
 }
 
+/** summary table: click a heading to sort by it (again = reverse, third time = original order); total row at the bottom */
 function TableBody({ w, data }: { w: Widget; data: WidgetData }) {
+  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
+  const idx = data.categories.map((_, i) => i);
+  if (sort) {
+    const col = sort.key === '__cat' ? null : data.series.find((x) => x.key === sort.key);
+    idx.sort((a, b) => {
+      if (!col) return data.categories[a].localeCompare(data.categories[b], 'th', { numeric: true }) * sort.dir;
+      return ((col.values[a] ?? -Infinity) - (col.values[b] ?? -Infinity)) * sort.dir;
+    });
+  }
+  const click = (key: string) => setSort((s) => (!s || s.key !== key ? { key, dir: key === '__cat' ? 1 : -1 } : s.dir === (key === '__cat' ? 1 : -1) ? { key, dir: (s.dir * -1) as 1 | -1 } : null));
+  const arrow = (key: string) => (sort?.key === key ? (sort.dir === 1 ? ' ▲' : ' ▼') : '');
+  const additive = (w.dataSource?.series ?? []).every((x) => x.aggregation === 'count' || x.aggregation === 'sum');
+  const showTotal = w.config.showTotal !== false && additive && data.categories.length > 1;
   return (
     <div className="h-full overflow-auto">
       <table className="w-full text-[13px]">
         <thead className="sticky top-0 bg-inherit"><tr className="text-left text-xs opacity-70">
-          <th className="py-1.5 pr-3 font-medium">หมวด</th>{data.series.map((s) => <th key={s.key} className="py-1.5 pr-2 text-right font-medium">{s.name}</th>)}
+          <th className="cursor-pointer select-none py-1.5 pr-3 font-medium hover:opacity-100" onMouseDown={(e) => e.stopPropagation()} onClick={() => click('__cat')} title="คลิกเพื่อเรียง">{w.config.categoryLabel || 'หมวด'}{arrow('__cat')}</th>
+          {data.series.map((s) => <th key={s.key} className="cursor-pointer select-none py-1.5 pr-2 text-right font-medium hover:opacity-100" onMouseDown={(e) => e.stopPropagation()} onClick={() => click(s.key)} title="คลิกเพื่อเรียง">{s.name}{arrow(s.key)}</th>)}
         </tr></thead>
         <tbody>
-          {data.categories.map((c, i) => (
-            <tr key={c} className="border-t border-current/10" style={{ borderColor: 'rgb(var(--c-border))' }}>
-              <td className="py-1.5 pr-3">{c}</td>
+          {idx.map((i) => (
+            <tr key={data.categories[i]} className="border-t border-current/10" style={{ borderColor: 'rgb(var(--c-border))' }}>
+              <td className="py-1.5 pr-3">{data.categories[i]}</td>
               {data.series.map((s) => <td key={s.key} className="py-1.5 pr-2 text-right tabular-nums">{fmtNumber(s.values[i] ?? null, w.config.decimals ?? 2)}</td>)}
             </tr>
           ))}
+          {showTotal && (
+            <tr className="border-t-2 font-semibold" style={{ borderColor: 'rgb(var(--c-border))' }}>
+              <td className="py-1.5 pr-3">รวม</td>
+              {data.series.map((s) => <td key={s.key} className="py-1.5 pr-2 text-right tabular-nums">{fmtNumber(s.values.reduce<number>((t, v) => t + (v ?? 0), 0), w.config.decimals ?? 2)}</td>)}
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

@@ -4,7 +4,7 @@ import { rowsApi } from '@/api/endpoints';
 import { useDebounce } from '@/hooks';
 import { cn } from '@/lib/cn';
 import { loadCols } from '@/lib/dashCols';
-import { fmtDateTime } from '@/lib/format';
+import { displayValue, fmtDateTime } from '@/lib/format';
 import { revisionsApi, RevDiff, RevMeta } from '@/modules/revisions/api';
 import { RevDiffView, RevValue } from '@/modules/revisions/RevDiffView';
 import type { Column, Row, Widget } from '@/types';
@@ -47,6 +47,8 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
     : (c.fieldColumnIds ?? []).filter((id: string) => byId.has(id));
   const searchIds: string[] = (c.searchColumnIds ?? []).filter((id: string) => byId.has(id));
   const pageSize = Math.max(5, Math.min(200, Number(c.pageSize) || 20));
+  /** a heading as the table shows it (dates dd/mm/yyyy, option labels …) */
+  const shown = (id: string, r: Row) => { const col = byId.get(id); return col ? displayValue(col, r.values[id] ?? null) : text(r.values[id]); };
 
   const [q, setQ] = useState('');
   const dq = useDebounce(q.trim(), 300);
@@ -81,7 +83,7 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
   const groups = useMemo(() => {
     const out: { key: string; rows: Row[] }[] = [];
     for (const r of rows ?? []) {
-      const key = titleIds[0] ? text(r.values[titleIds[0]]) : r.id;
+      const key = titleIds[0] ? shown(titleIds[0], r) : r.id;
       const last = out[out.length - 1];
       if (last && last.key === key && titleIds[0]) last.rows.push(r); else out.push({ key, rows: [r] });
     }
@@ -121,8 +123,8 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
                   <div key={r.id} className="space-y-2 px-3 py-2.5">
                     {(titleIds.length > 1 || rv) && (
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {titleIds.slice(1).map((id) => text(r.values[id]) && (
-                          <span key={id} className="rounded-lg bg-ink/[.06] px-2 py-0.5 text-[0.9em] font-medium" title={byId.get(id)!.name}>{text(r.values[id])}</span>
+                        {titleIds.slice(1).map((id) => shown(id, r) && (
+                          <span key={id} className="rounded-lg bg-ink/[.06] px-2 py-0.5 text-[0.9em] font-medium" title={byId.get(id)!.name}>{shown(id, r)}</span>
                         ))}
                         {rv && rev && (
                           <span className={cn('ml-auto rounded-full px-2 py-0.5 text-[0.75em] font-semibold', rv.kind === 'added' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning')}

@@ -160,10 +160,13 @@ export function ChartBody({ w, data }: { w: Widget; data: WidgetData }) {
       textAnchor={cfg.xAngle ? 'end' : 'middle'} height={(cfg.xAngle ? 60 : 30) + (cfg.xTitle ? 16 : 0)} interval={cfg.xInterval ?? 'preserveStartEnd'}
       label={cfg.xTitle ? { value: cfg.xTitle, position: 'insideBottom', offset: 0, fill: colors.muted, fontSize: 11 } : undefined} />
   );
-  const domain: [any, any] = pct ? [0, 100] : [cfg.yMin ?? (isSpc ? 'auto' : 'auto'), cfg.yMax ?? 'auto'];
+  // bars / Pareto / areas stand on 0 (an 'auto' lower bound made a count of 1 invisible on an axis that started at 1)
+  const fromZero = !isSpc && (type === 'bar' || type === 'pareto' || type === 'area' || type === 'histogram');
+  const low = fromZero ? (dataMin: number) => Math.min(0, dataMin) : 'auto';
+  const domain: [any, any] = pct ? [0, 100] : [cfg.yMin ?? low, cfg.yMax ?? 'auto'];
   const yAxis = (
     <YAxis yAxisId="l" hide={cfg.showY === false} tick={axisTick(cfg.yFontSize)} stroke={colors.border} width={cfg.yTitle ? 64 : 52} domain={domain}
-      scale={cfg.yLog ? 'log' : 'auto'} allowDataOverflow={cfg.yMin !== undefined || cfg.yMax !== undefined}
+      scale={cfg.yLog ? 'log' : 'auto'} allowDataOverflow={cfg.yMin !== undefined || cfg.yMax !== undefined} allowDecimals={Number(cfg.decimals) === 0 ? false : undefined}
       tickFormatter={(v) => (pct ? `${v}%` : fmtAxis(v))}
       label={cfg.yTitle ? { value: cfg.yTitle, angle: -90, position: 'insideLeft', fill: colors.muted, fontSize: 11 } : undefined} />
   );
@@ -237,7 +240,7 @@ export function ChartBody({ w, data }: { w: Widget; data: WidgetData }) {
         {grid}
         {horizontal ? (
           <>
-            <XAxis type="number" tick={axisTick(cfg.xFontSize)} stroke={colors.border} domain={pct ? [0, 100] : ['auto', 'auto']} tickFormatter={(v) => (pct ? `${v}%` : fmtAxis(v))} />
+            <XAxis type="number" tick={axisTick(cfg.xFontSize)} stroke={colors.border} domain={pct ? [0, 100] : [cfg.yMin ?? low, cfg.yMax ?? 'auto']} tickFormatter={(v) => (pct ? `${v}%` : fmtAxis(v))} />
             <YAxis yAxisId="l" type="category" dataKey="name" tick={axisTick(cfg.yFontSize)} stroke={colors.border} width={cfg.catWidth ?? 96} />
           </>
         ) : <>{xAxis}{yAxis}{yRight}</>}
