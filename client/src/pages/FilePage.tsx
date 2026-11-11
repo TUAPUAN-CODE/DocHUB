@@ -28,6 +28,7 @@ import { ScanMixSettings } from '@/modules/scan/ScanMixSettings';
 import { ScanDialog } from '@/modules/scan/ScanDialog';
 import { MixDialog } from '@/modules/mix/MixDialog';
 import { LinesDialog } from '@/modules/lines/LinesDialog';
+import { LinkHeaderDialog } from '@/modules/lines/LinkHeaderDialog';
 import { DeviceBindingsDialog } from '@/modules/devices/DeviceBindingsDialog';
 import { UnionBanner } from '@/components/sheet/UnionBanner';
 import { ImportModal } from '@/components/sheet/ImportModal';
@@ -95,6 +96,8 @@ export default function FilePage() {
   const [lineCounts, setLineCounts] = useState<Record<string, number>>({});
   const [headerSheet, setHeaderSheet] = useState<{ sheetId: string; sheetName: string } | null>(null);
   const [parents, setParents] = useState<Record<string, { rowId: string; label: string }>>({});
+  /** a line sheet row with no header yet: pick its document */
+  const [linkFor, setLinkFor] = useState<Row | null>(null);
   const lineSheetName = linesCfg ? sheets.find((x) => x.id.toLowerCase() === String(linesCfg.lineSheetId).toLowerCase())?.name ?? 'รายการ' : null;
   useEffect(() => { setHeaderSheet(null); if (sheetId && !linesCfg) linesApi.headerSheet(sheetId).then(setHeaderSheet).catch(() => undefined); }, [sheetId, !!linesCfg]); // eslint-disable-line react-hooks/exhaustive-deps
   const rowKey = view.rows.map((r) => r.id).join();
@@ -117,7 +120,10 @@ export default function FilePage() {
     render: (r: Row) => {
       const p = parents[r.id.toLowerCase()];
       return p ? <button onClick={() => setSp({ sheet: headerSheet.sheetId, row: p.rowId })} title={`เปิดหัวเอกสารของรายการนี้ (${headerSheet.sheetName})`} className="inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.95em] font-medium text-primary hover:bg-primary/10">
-        <CornerLeftUp className="h-[1.05em] w-[1.05em] shrink-0" /><span className="truncate">{p.label}</span></button> : <span className="px-1.5 text-[0.95em] text-muted">—</span>;
+        <CornerLeftUp className="h-[1.05em] w-[1.05em] shrink-0" /><span className="truncate">{p.label}</span></button>
+        : canWrite ? <button onClick={() => setLinkFor(r)} title="รายการนี้ยังไม่ได้อยู่ในใบไหน — กดเพื่อเลือกใบ" className="inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.95em] font-medium text-warning hover:bg-warning/10">
+          <CornerLeftUp className="h-[1.05em] w-[1.05em] shrink-0" /><span className="truncate">ผูกกับใบ…</span></button>
+        : <span className="px-1.5 text-[0.95em] text-muted">—</span>;
     },
   } : undefined;
   const linesHeader = (linesRow ? view.rows.find((r) => r.id === linesRow.id) ?? linesRow : null) ?? view.rows.find((r) => r.id === selRows[0]) ?? null;
@@ -439,9 +445,11 @@ export default function FilePage() {
             onCreate={async (values) => {
               const r = await view.addRow(values);
               if (r && linesCfg?.entry === 'form') openLines(r); // a document: go on with its lines
+              else if (r && headerSheet) setLinkFor(r); // a line typed in the line sheet: which document is it of?
               return r;
             }}
             onSave={(changes) => view.commit(changes.map((c) => ({ ...c, rowId: rowForm!.row!.id })), { partial: true })} />
+          {headerSheet && <LinkHeaderDialog line={linkFor} header={headerSheet} onClose={() => setLinkFor(null)} onLinked={loadLinks} />}
           <RowViewModal row={rowView} rows={view.rows} columns={view.columns} users={view.users} onClose={() => setRowView(null)} onNavigate={setRowView} formRev={formRevOf}
             onEdit={canWrite ? (r) => { setRowView(null); setRowForm({ row: r }); } : undefined}
             onLines={linesCfg ? openLines : undefined} />

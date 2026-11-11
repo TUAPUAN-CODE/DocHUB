@@ -17,6 +17,7 @@ const schemas_1 = require("../shared/schemas");
 const structure_1 = require("../services/structure");
 const pdfTemplates_1 = require("../services/pdfTemplates");
 const hooks_1 = require("../services/hooks");
+const sheetSettings_1 = require("../services/sheetSettings");
 const folders_1 = require("./folders");
 const docTypes_1 = require("../modules/revisions/docTypes");
 const router = (0, express_1.Router)();
@@ -135,6 +136,10 @@ router.post('/files/:id/move', (0, http_1.ah)(async (req, res) => {
     (0, http_1.ok)(res, { moved: true });
 }));
 async function copySheet(tx, oldSheetId, newFileId, order, userId, includeData, name) {
+    return (await copySheetFull(tx, oldSheetId, newFileId, order, userId, includeData, name)).newSheetId;
+}
+/** a sheet into another (or the same) file: structure, and with includeData the rows; returns the old → new ids of columns and rows */
+async function copySheetFull(tx, oldSheetId, newFileId, order, userId, includeData, name) {
     const s = await (0, db_1.q1)(`SELECT * FROM Sheets WHERE sheet_id = @s`, { s: db_1.T.uuid(oldSheetId) }, tx);
     const ns = await (0, db_1.q1)(`INSERT INTO Sheets (file_id, sheet_name, sort_order, tab_color, created_by) OUTPUT inserted.sheet_id VALUES (@f, @n, @o, @c, @u)`, { f: db_1.T.uuid(newFileId), n: name ?? s.sheet_name, o: db_1.T.int(order), c: db_1.T.text(s.tab_color), u: db_1.T.uuid(userId) }, tx);
     const newSheetId = ns.sheet_id;
@@ -146,8 +151,9 @@ async function copySheet(tx, oldSheetId, newFileId, order, userId, includeData, 
        src.validation_rule, src.select_options, src.description, @u)
      OUTPUT src.column_id AS old_id, inserted.column_id AS new_id;`, { old: db_1.T.uuid(oldSheetId), new: db_1.T.uuid(newSheetId), u: db_1.T.uuid(userId) }, tx);
     await (0, hooks_1.runAfterSheetCopied)({ tx, oldSheetId, newSheetId, columnMap: colMap });
+    let rowMap = [];
     if (includeData) {
-        await (0, db_1.q)(`DECLARE @rm TABLE (old_id UNIQUEIDENTIFIER, new_id UNIQUEIDENTIFIER);
+        rowMap = await (0, db_1.q)(`DECLARE @rm TABLE (old_id UNIQUEIDENTIFIER, new_id UNIQUEIDENTIFIER);
        MERGE INTO Rows AS t
        USING (SELECT row_id, row_order FROM Rows WHERE sheet_id = @old AND is_deleted = 0) AS src ON 1 = 0
        WHEN NOT MATCHED THEN INSERT (sheet_id, row_order, created_by, updated_by) VALUES (@new, src.row_order, @u, @u)
@@ -155,9 +161,42 @@ async function copySheet(tx, oldSheetId, newFileId, order, userId, includeData, 
        INSERT INTO Cells (row_id, column_id, value_text, value_int, value_float, value_date, value_bool, value_json, updated_by)
        SELECT rm.new_id, cm.new_id, c.value_text, c.value_int, c.value_float, c.value_date, c.value_bool, c.value_json, @u
        FROM Cells c JOIN @rm rm ON rm.old_id = c.row_id
-       JOIN OPENJSON(@cm) WITH (old_id UNIQUEIDENTIFIER, new_id UNIQUEIDENTIFIER) cm ON cm.old_id = c.column_id;`, { old: db_1.T.uuid(oldSheetId), new: db_1.T.uuid(newSheetId), u: db_1.T.uuid(userId), cm: db_1.T.text(JSON.stringify(colMap)) }, tx);
+       JOIN OPENJSON(@cm) WITH (old_id UNIQUEIDENTIFIER, new_id UNIQUEIDENTIFIER) cm ON cm.old_id = c.column_id;
+       SELECT old_id, new_id FROM @rm;`, { old: db_1.T.uuid(oldSheetId), new: db_1.T.uuid(newSheetId), u: db_1.T.uuid(userId), cm: db_1.T.text(JSON.stringify(colMap)) }, tx);
     }
-    return newSheetId;
+    return { newSheetId, colMap: colMap, rowMap };
+}
+/**
+ * After a whole file is copied: a header sheet's lines (settings.lines) point to the COPY's line sheet (they used to keep pointing to
+ * the source file's sheet, or were lost), its columns re-mapped; with the data, the links header row → line rows are copied too.
+ */
+async function relinkCopiedLines(tx, copies, userId) {
+    const lower = (x) => String(x).toLowerCase();
+    const sheetMap = new Map([...copies].map(([o, c]) => [lower(o), c.newSheetId]));
+    for (const [oldId, c] of copies) {
+        const src = await (0, sheetSettings_1.readSettings)(oldId, tx);
+        const lines = src.lines;
+        if (!lines?.lineSheetId)
+            continue;
+        const lineOld = lower(lines.lineSheetId);
+        const lineCopy = [...copies].find(([o]) => lower(o) === lineOld)?.[1];
+        const colMap = new Map((lineCopy?.colMap ?? []).map((m) => [lower(m.old_id), lower(m.new_id)]));
+        const next = {
+            ...lines,
+            lineSheetId: sheetMap.get(lineOld) ?? lines.lineSheetId,
+            displayColumnIds: lines.displayColumnIds?.map((id) => colMap.get(lower(id)) ?? id) ?? lines.displayColumnIds,
+            actions: lines.actions?.map((a) => ({ ...a, columnId: colMap.get(lower(a.columnId)) ?? a.columnId })) ?? lines.actions,
+        };
+        await (0, sheetSettings_1.writeSettingsKey)(c.newSheetId, 'lines', next, tx);
+        if (lineCopy && c.rowMap.length && lineCopy.rowMap.length) {
+            await (0, db_1.q)(`INSERT INTO RowLinks (sheet_id, parent_row_id, child_row_id, qty, role, created_by)
+         SELECT @ls, p.new_id, ch.new_id, l.qty, l.role, @u
+         FROM RowLinks l
+         JOIN OPENJSON(@pm) WITH (old_id UNIQUEIDENTIFIER, new_id UNIQUEIDENTIFIER) p ON p.old_id = l.parent_row_id
+         JOIN OPENJSON(@cm) WITH (old_id UNIQUEIDENTIFIER, new_id UNIQUEIDENTIFIER) ch ON ch.old_id = l.child_row_id
+         WHERE l.role = N'contains'`, { ls: db_1.T.uuid(lineCopy.newSheetId), u: db_1.T.uuid(userId), pm: db_1.T.text(JSON.stringify(c.rowMap)), cm: db_1.T.text(JSON.stringify(lineCopy.rowMap)) }, tx);
+        }
+    }
 }
 router.post('/files/:id/duplicate', (0, http_1.ah)(async (req, res) => {
     const id = (0, http_1.pid)(req);
@@ -172,8 +211,10 @@ router.post('/files/:id/duplicate', (0, http_1.ah)(async (req, res) => {
         const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by, doc_type) OUTPUT inserted.file_id
          VALUES (@n, @fo, @d, @c, @i, @u, @dt)`, { n: body.name ?? `${file.file_name} (สำเนา)`, fo: db_1.T.uuid(folderId), d: db_1.T.text(file.description), c: file.color, i: file.icon, u: db_1.T.uuid(u.id), dt: db_1.T.text(file.doc_type ?? null) }, tx);
         const sheets = await (0, db_1.q)(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: db_1.T.uuid(id) }, tx);
+        const copies = new Map();
         for (const [i, s] of sheets.entries())
-            await copySheet(tx, s.sheet_id, f.file_id, i, u.id, body.includeData);
+            copies.set(s.sheet_id, await copySheetFull(tx, s.sheet_id, f.file_id, i, u.id, body.includeData));
+        await relinkCopiedLines(tx, copies, u.id);
         // PDF layouts travel with the file
         const tpls = (0, pdfTemplates_1.parseTemplates)(file.pdf_templates);
         if (tpls.length) {
