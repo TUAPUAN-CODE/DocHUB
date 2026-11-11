@@ -7,13 +7,12 @@ import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { useUi } from '@/store/ui';
 
-function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: string }) {
+/** compact: icons only (labels as tooltips, badges as dots) */
+function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; scope: string; compact?: boolean }) {
   const user = useAuth((s) => s.user)!;
   const logout = useAuth((s) => s.logout);
   const counts: Record<Badge, number> = {
-    reviews: useData((s) => s.pendingReviews),
-    accounts: useData((s) => s.pendingAccounts),
-    tagRequests: useData((s) => s.pendingTagRequests),
+    requests: useData((s) => s.pendingReviews + s.pendingAccounts + s.pendingTagRequests),
     news: useData((s) => s.newsUnread),
   };
   const { pathname } = useLocation();
@@ -22,18 +21,18 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
 
   return (
     <div className="flex h-full flex-col">
-      <Link to="/" onClick={onNavigate} className="flex items-center gap-3 px-6 pb-4 pt-6">
+      <Link to="/" onClick={onNavigate} className={cn('flex items-center gap-3 pb-4 pt-6', compact ? 'justify-center px-0' : 'px-6')} title="DataSheet Pro">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/95 text-primary shadow-sm">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M5 7h14M5 12h14M5 17h9M10 4v16" /></svg>
         </span>
-        <span className="text-[17px] font-semibold tracking-tight">DataSheet Pro</span>
+        {!compact && <span className="text-[17px] font-semibold tracking-tight">DataSheet Pro</span>}
       </Link>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-4 pt-6">
         <nav className="space-y-1.5">
           {items.map((it) => (
-            <NavLink key={it.to} to={it.to} end={it.to === '/'} onClick={onNavigate}
-              className={({ isActive }) => cn('nav-link', (it.active ?? isActive) && 'active')}>
+            <NavLink key={it.to} to={it.to} end={it.to === '/'} onClick={onNavigate} title={compact ? it.label : undefined} aria-label={compact ? it.label : undefined}
+              className={({ isActive }) => cn('nav-link', compact && '!gap-0 !px-0 justify-center', (it.active ?? isActive) && 'active')}>
               {({ isActive }) => (
                 <>
                   {(it.active ?? isActive) && (scope === 'desktop'
@@ -41,9 +40,10 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
                     // phone drawer: a plain pill. A sliding layoutId pill inside the closing drawer kept the drawer's exit from ever
                     // finishing, leaving its invisible backdrop over the page: every tap hit it and the app looked frozen.
                     : <span className="nav-pill" />)}
-                  {it.icon}
-                  <span className="flex-1">{it.label}</span>
-                  {!!it.badge && <span className="mr-2 grid h-5 min-w-5 place-items-center rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">{it.badge}</span>}
+                  {compact
+                    ? <span className="relative">{it.icon}{!!it.badge && <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-warning px-1 text-[10px] font-semibold text-white">{it.badge}</span>}</span>
+                    : <>{it.icon}<span className="flex-1">{it.label}</span>
+                      {!!it.badge && <span className="mr-2 grid h-5 min-w-5 place-items-center rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">{it.badge}</span>}</>}
                 </>
               )}
             </NavLink>
@@ -52,8 +52,8 @@ function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: st
       </div>
 
       <div className="border-t border-white/10 p-3">
-        <button onClick={() => void logout()} className="side-item w-full !h-10">
-          <LogOut className="h-4 w-4" /> ออกจากระบบ
+        <button onClick={() => void logout()} className={cn('side-item w-full !h-10', compact && 'justify-center')} title="ออกจากระบบ" aria-label="ออกจากระบบ">
+          <LogOut className="h-4 w-4" />{!compact && ' ออกจากระบบ'}
         </button>
       </div>
     </div>
@@ -78,9 +78,14 @@ function MobileDrawer({ onClose }: { onClose: () => void }) {
 export function Sidebar() {
   const mobile = useUi((s) => s.mobileNav);
   const setMobile = useUi((s) => s.setMobileNav);
+  const mode = useUi((s) => s.navMode);
   return (
     <>
-      <aside className="ds-sidebar hidden h-full shrink-0 lg:block print:!hidden"><SidebarBody scope="desktop" /></aside>
+      {mode !== 'hidden' && (
+        <aside className="ds-sidebar hidden h-full shrink-0 lg:block print:!hidden" style={mode === 'icons' ? { width: 76 } : undefined}>
+          <SidebarBody scope="desktop" compact={mode === 'icons'} />
+        </aside>
+      )}
       <AnimatePresence>{mobile && <MobileDrawer onClose={() => setMobile(false)} />}</AnimatePresence>
     </>
   );

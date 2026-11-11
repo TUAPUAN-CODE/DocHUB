@@ -74,7 +74,8 @@ function RejectModal({ req, onClose, onDone }: { req: AccountRequest | null; onC
   );
 }
 
-export default function AccountRequestsPage() {
+/** embedded: a tab of คำขออนุมัติ */
+export default function AccountRequestsPage({ embedded }: { embedded?: boolean }) {
   const [status, setStatus] = useState<'pending' | 'all'>('pending');
   const { data, loading, reload } = useLoad(() => accountRequestsApi.list(status), [status]);
   const [approve, setApprove] = useState<AccountRequest | null>(null);
@@ -82,10 +83,11 @@ export default function AccountRequestsPage() {
   const done = () => { void reload(true); void useData.getState().loadPending(); };
   const items = data ?? [];
   return (
-    <Page>
-      <PageHeader icon={<Users />} title="จัดการผู้ใช้" subtitle="คำขอสร้างบัญชีจากหน้าเข้าสู่ระบบ (สมัครเอง หรือ Microsoft) — อนุมัติแล้วผู้ขอเข้าใช้งานได้ทันที" />
-      <UsersTabs />
-      <div className="mb-3"><Segmented value={status} onChange={setStatus} options={[{ value: 'pending', label: 'รออนุมัติ' }, { value: 'all', label: 'ทั้งหมด' }]} /></div>
+    <Frame embedded={embedded}>
+      {!embedded && <><PageHeader icon={<Users />} title="จัดการผู้ใช้" subtitle="คำขอสร้างบัญชีจากหน้าเข้าสู่ระบบ (สมัครเอง หรือ Microsoft) — อนุมัติแล้วผู้ขอเข้าใช้งานได้ทันที" />
+      <UsersTabs /></>}
+      <div className="mb-3 flex flex-wrap items-center gap-2"><Segmented value={status} onChange={setStatus} options={[{ value: 'pending', label: 'รออนุมัติ' }, { value: 'all', label: 'ทั้งหมด' }]} />
+        {embedded && <span className="text-xs text-muted">คำขอสร้างบัญชีจากหน้าเข้าสู่ระบบ — อนุมัติแล้วผู้ขอเข้าใช้งานได้ทันที</span>}</div>
       {loading && !data ? <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-theme" />)}</div>
         : !items.length ? <div className="ds-card"><EmptyState icon={<Inbox />} title={status === 'pending' ? 'ไม่มีคำขอรออนุมัติ' : 'ยังไม่มีคำขอ'} description="ผู้ที่ยังไม่มีบัญชีกด “ขอสร้างบัญชี” ที่หน้าเข้าสู่ระบบ แล้วคำขอจะมาที่นี่ (Admin ได้รับการแจ้งเตือน)" /></div>
         : (
@@ -126,6 +128,8 @@ export default function AccountRequestsPage() {
         )}
       <ApproveModal req={approve} onClose={() => setApprove(null)} onDone={done} />
       <RejectModal req={reject} onClose={() => setReject(null)} onDone={done} />
-    </Page>
+    </Frame>
   );
 }
+
+const Frame = ({ embedded, children }: { embedded?: boolean; children: React.ReactNode }) => (embedded ? <>{children}</> : <Page>{children}</Page>);
