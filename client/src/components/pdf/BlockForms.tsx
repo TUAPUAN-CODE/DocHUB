@@ -190,6 +190,7 @@ export function ColumnPicker({ cols, available, onChange, showWidth }: { cols: T
                 {showWidth ? <TextInput value={c.widthMm ?? ''} placeholder="กว้าง mm" inputMode="decimal" className="!h-8 text-xs" onChange={(e) => onChange(cols.map((x, j) => (j === i ? { ...x, widthMm: e.target.value === '' ? null : Number(e.target.value) || null } : x)))} /> : <span />}
                 {showWidth ? <Select value={c.align ?? ''} className="[&>select]:!h-8 [&>select]:text-xs" onChange={(e) => onChange(cols.map((x, j) => (j === i ? { ...x, align: (e.target.value || undefined) as Align | undefined } : x)))}><option value="">แนวอัตโนมัติ</option><option value="left">ซ้าย</option><option value="center">กลาง</option><option value="right">ขวา</option></Select> : <span />}
               </div>
+              {showWidth && <Checkbox checked={!!c.firstWord} onChange={(v) => onChange(cols.map((x, j) => (j === i ? { ...x, firstWord: v || undefined } : x)))} label="แสดงเฉพาะคำแรก (เช่น F0 จาก “F0 Sensitivity test”)" />}
             </div>
           );
         })}
@@ -219,6 +220,8 @@ export function TableForm({ b, onChange, sheets }: { b: TableBlock; onChange: (p
         <Toggle checked={b.useCurrentFilters} onChange={(v) => onChange({ useCurrentFilters: v })} label="ใช้ตัวกรอง/การเรียง ที่ผู้ใช้เลือกอยู่ตอนส่งออก" />
         <Toggle checked={!!b.rowLines} onChange={(v) => onChange({ rowLines: v })} label="เฉพาะรายการของแถวนี้ (แบบฟอร์มต่อแถวของหัวเอกสาร → ชีตรายการ)" />
         <Field label="ข้อความหัวตาราง (ไม่บังคับ)"><TextInput value={b.caption ?? ''} onChange={(e) => onChange({ caption: e.target.value })} placeholder="เช่น รายการตรวจสอบประจำวัน" /></Field>
+        <HeaderGroupsField value={b.headerGroups ?? null} columns={b.columns.length + (b.showRowNumber ? 1 : 0)} onChange={(v) => onChange({ headerGroups: v })} />
+        <Num label="จำนวนบรรทัดขั้นต่ำ (บรรทัดว่างแบบฟอร์มกระดาษ)" value={b.minRows ?? 0} onChange={(v) => onChange({ minRows: v || null })} min={0} max={200} />
       </Group>
       <Group title="การแบ่งหน้า">
         <div className="grid grid-cols-2 gap-2">
@@ -277,3 +280,25 @@ export function FieldsForm({ b, onChange, columns }: { b: FieldsBlock; onChange:
 export const BLOCK_TYPES_BODY: BlockType[] = ['text', 'image', 'table', 'fields', 'columns', 'line', 'spacer', 'pageBreak'];
 export const BLOCK_TYPES_SIDE: BlockType[] = ['text', 'image', 'columns', 'line', 'spacer'];
 void Checkbox;
+
+/** Headings above the column headers: one line per level, "heading*columns | heading*columns" (e.g. "ผลการทดสอบ*4"); "*1" = no heading */
+const groupsToText = (g: TableBlock['headerGroups']) => (g ?? []).map((lv) => lv.map((x) => `${x.label}*${x.span}`).join(' | ')).join('\n');
+const textToGroups = (t: string): TableBlock['headerGroups'] => {
+  const levels = t.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => line.split('|').map((part) => {
+    const m = /^(.*?)(?:\*\s*(\d+))?\s*$/.exec(part.trim());
+    return { label: (m?.[1] ?? '').trim(), span: Math.max(1, Number(m?.[2] ?? 1) || 1) };
+  }));
+  return levels.length ? levels : null;
+};
+function HeaderGroupsField({ value, columns, onChange }: { value: TableBlock['headerGroups']; columns: number; onChange: (v: TableBlock['headerGroups']) => void }) {
+  const [text, setText] = useState(() => groupsToText(value));
+  useEffect(() => setText(groupsToText(value)), [JSON.stringify(value)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const bad = (textToGroups(text) ?? []).map((lv, i) => ({ i, n: lv.reduce((t, g) => t + g.span, 0) })).filter((x) => x.n !== columns);
+  return (
+    <Field label="หัวข้อกลุ่มเหนือหัวคอลัมน์ (ไม่บังคับ)"
+      hint={`1 บรรทัด = 1 ชั้น · แต่ละกลุ่มเขียน ข้อความ*จำนวนคอลัมน์ คั่นด้วย | (รวมให้ได้ ${columns} คอลัมน์) · *1 = ไม่มีหัวข้อ ให้หัวคอลัมน์สูงเต็มช่อง${bad.length ? ` — ชั้นที่ ${bad.map((x) => `${x.i + 1} (${x.n})`).join(', ')} ไม่ครบ ${columns} คอลัมน์ จะไม่แสดง` : ''}`}>
+      <TextArea rows={3} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => onChange(textToGroups(text))}
+        placeholder={'การตรวจด้วยวัตถุมาตรฐาน*7 | การตรวจจับวัตถุดิบ*12\n*1 | ผลการทดสอบ*4 | *1 | *1 | …'} />
+    </Field>
+  );
+}
