@@ -44,6 +44,7 @@ import accountRequestsModule from './modules/accountRequests/module';
 import dataSearchModule from './modules/dataSearch/module';
 import monitorModule from './modules/monitor/module';
 import pageAccessModule from './modules/pageAccess/module';
+import appInfoModule from './modules/appInfo/module';
 import newsModule from './modules/news/module';
 import { ensureRootAccount } from './scripts/rootAccount';
 import exportArchiveModule from './modules/exportArchive/module';
@@ -86,12 +87,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/auth', oauthRoutes);
 app.use('/api/auth', accountRequestsModule.publicRouter);
 app.use('/api', sharePublicRouter);
+app.use('/api', appInfoModule.publicRouter);
 app.use('/api', lineAlertsModule.webhook);
 app.use('/api', devicesModule.ingest);
 app.use('/api', authenticate);
 for (const r of [
   userRoutes, folderRoutes, fileRoutes, sheetRoutes, columnRoutes, rowRoutes, cellRoutes, accessRoutes, auditRoutes,
-  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router, revisionsModule.router, tagsModule.router, accountRequestsModule.router, dataSearchModule.router, monitorModule.router, pageAccessModule.router, newsModule.router,
+  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router, revisionsModule.router, tagsModule.router, accountRequestsModule.router, dataSearchModule.router, monitorModule.router, pageAccessModule.router, newsModule.router, appInfoModule.router,
 ]) app.use('/api', r);
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ API ที่เรียก' } });
@@ -101,6 +103,7 @@ app.use(errorHandler);
 if (env.serveClientDir) {
   const dir = path.resolve(env.serveClientDir);
   if (fs.existsSync(path.join(dir, 'index.html'))) {
+    app.use(appInfoModule.manifestRouter); // the configured app name under the phone icon
     app.use(express.static(dir, { index: false, maxAge: '1h' }));
     app.get('*', (_req, res) => res.sendFile(path.join(dir, 'index.html')));
     logger.info(`Serving client from ${dir}`);

@@ -1,4 +1,4 @@
-import { lazy, ReactNode, Suspense } from 'react';
+import { lazy, ReactNode, Suspense, useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ClipboardCheck, FileSignature, KeyRound, Tags, UserPlus } from 'lucide-react';
 import { Page } from '@/components/layout/AppShell';
@@ -11,7 +11,7 @@ import { isAdminRole, isBasicRole } from '@/types';
 const ApprovalsPage = lazy(() => import('@/modules/approvals/ApprovalsPage'));
 const AccessRequestsPage = lazy(() => import('@/pages/AccessRequestsPage'));
 const AccountRequestsPage = lazy(() => import('@/pages/users/AccountRequestsPage'));
-const TagRequestInbox = lazy(() => import('@/modules/tags/TagHubPage').then((m) => ({ default: m.TagRequestInbox })));
+const TagRequestsTab = lazy(() => import('@/modules/tags/TagHubPage').then((m) => ({ default: m.TagRequestsTab })));
 
 export type RequestTab = 'docs' | 'access' | 'accounts' | 'tags';
 
@@ -24,11 +24,11 @@ export default function RequestsHubPage() {
     { v: 'docs', label: 'อนุมัติเอกสาร', icon: <FileSignature className="h-4 w-4" /> },
     { v: 'access', label: 'คำขอสิทธิ์ไฟล์', icon: <KeyRound className="h-4 w-4" />, badge: counts.reviews },
     ...(isAdminRole(role) ? [{ v: 'accounts' as RequestTab, label: 'คำขอสร้างบัญชี', icon: <UserPlus className="h-4 w-4" />, badge: counts.accounts }] : []),
-    ...(role && !isBasicRole(role) ? [{ v: 'tags' as RequestTab, label: 'คำขอ Tag', icon: <Tags className="h-4 w-4" />, badge: counts.tags }] : []),
+    { v: 'tags', label: 'คำขอ Tag', icon: <Tags className="h-4 w-4" />, badge: role && !isBasicRole(role) ? counts.tags : 0 },
   ];
   const asked = sp.get('tab') as RequestTab | null;
   const tab = tabs.some((t) => t.v === asked) ? asked! : 'docs';
-  const go = (v: RequestTab) => setSp({ tab: v }, { replace: true });
+  const go = (v: RequestTab) => setSp({ tab: v }, { replace: true }); // (each tab starts on its own default box)
   return (
     <Page>
       <PageHeader icon={<ClipboardCheck />} title="คำขออนุมัติ" subtitle="เอกสารที่รอลงนาม คำขอสิทธิ์ไฟล์ คำขอสร้างบัญชี และคำขอ Tag ในหน้าเดียว" />
@@ -43,7 +43,7 @@ export default function RequestsHubPage() {
         ))}
       </nav>
       <Suspense fallback={<div className="grid h-40 place-items-center"><Spinner /></div>}>
-        {tab === 'docs' ? <ApprovalsPage embedded /> : tab === 'access' ? <AccessRequestsPage embedded /> : tab === 'accounts' ? <AccountRequestsPage embedded /> : <TagRequestInbox />}
+        {tab === 'docs' ? <ApprovalsPage embedded /> : tab === 'access' ? <AccessRequestsPage embedded /> : tab === 'accounts' ? <AccountRequestsPage embedded /> : <TagRequestsTab />}
       </Suspense>
     </Page>
   );
@@ -52,7 +52,7 @@ export default function RequestsHubPage() {
 /** old addresses (notifications, bookmarks) → the tab, keeping their other parameters (?open=, ?box=) */
 export function ToRequests({ tab }: { tab: RequestTab }) {
   const { search } = useLocation();
-  const p = new URLSearchParams(search);
-  p.set('tab', tab);
-  return <Navigate to={`/requests?${p.toString()}`} replace />;
+  // worked out once: while the page fades out it sees the new address
+  const [to] = useState(() => { const p = new URLSearchParams(search); p.set('tab', tab); return `/requests?${p.toString()}`; });
+  return <Navigate to={to} replace />;
 }

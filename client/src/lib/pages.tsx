@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Activity, BookOpen, ClipboardCheck, Cpu, Database, FolderOpen, History, Home, LayoutDashboard, Megaphone, Search, Settings, ShieldCheck, Tags, Trash2, Users } from 'lucide-react';
+import { Activity, BookOpen, ClipboardCheck, Cpu, Database, FolderOpen, History, Home, LayoutDashboard, Megaphone, Search, Settings, ShieldCheck, Trash2, Users } from 'lucide-react';
 import type { Role, User } from '@/types';
 
 /**
@@ -16,7 +16,6 @@ export const NAV: NavPage[] = [
   { key: 'news', to: '/news', label: 'ข่าวสาร', icon: <Megaphone className={i} />, badge: 'news' },
   { key: 'browse', to: '/browse', label: 'ไฟล์ทั้งหมด', icon: <FolderOpen className={i} />, match: (p) => p.startsWith('/browse') || p.startsWith('/folders') || p.startsWith('/files') },
   { key: 'requests', to: '/requests', label: 'คำขออนุมัติ', icon: <ClipboardCheck className={i} />, badge: 'requests', match: (p) => p.startsWith('/requests') },
-  { key: 'tags', to: '/tags', label: 'Tag', icon: <Tags className={i} /> },
   { key: 'audit', to: '/audit', label: 'ประวัติการแก้ไข', icon: <History className={i} /> },
   { key: 'users', to: '/users', label: 'จัดการผู้ใช้', icon: <Users className={i} /> },
   { key: 'monitor', to: '/monitor', label: 'Monitor', icon: <Activity className={i} /> },
@@ -30,7 +29,7 @@ export const NAV: NavPage[] = [
   { key: 'settings', to: '/settings', label: 'ตั้งค่า', icon: <Settings className={i} /> },
 ];
 
-const ALL = ['home', 'news', 'browse', 'requests', 'tags', 'trash', 'search', 'dashboards', 'guide', 'settings'];
+const ALL = ['home', 'news', 'browse', 'requests', 'trash', 'search', 'dashboards', 'guide', 'settings'];
 /** used only until the server says (same defaults as the server registry) */
 const DEFAULTS: Record<Role, string[]> = {
   viewer: ALL, user: ALL,

@@ -850,11 +850,11 @@ module.exports = [
         run: async (r) => {
           const p = r.page;
           await tagRequestReset(r);
-          await r.go('/', 900);
-          await r.shot({ title: 'กดเมนู “Tag”', text: 'กดเมนู **Tag** ทางซ้าย', marks: [{ el: sidebar(p, 'Tag'), label: 'กด Tag', place: 'right' }] });
-          await sidebar(p, 'Tag').click(); await r.settle(1000);
-          await r.shot({ title: 'Tag ของฉัน', text: '**Tag ของฉัน** = กลุ่มที่คุณอยู่ · ทุกคนมี Tag **All** · ได้ Tag แล้วจะเห็นไฟล์ โฟลเดอร์ และข่าวที่แชร์ให้ Tag นั้น\nถ้าต้องการเข้ากลุ่มอื่น กด **ขอ Tag**', marks: [{ el: p.locator('div.ds-card').filter({ hasText: 'Tag ของฉัน' }).first(), label: 'Tag ที่คุณมี', place: 'below' }, { el: role(p, 'button', 'ขอ Tag'), label: 'กด ขอ Tag', place: 'left' }] });
-          await role(p, 'button', 'ขอ Tag').click(); await r.settle(900);
+          await r.go('/settings?tab=profile', 1200);
+          const mine = p.locator('div.ds-card').filter({ hasText: 'Tag ของฉัน' }).first();
+          await mine.scrollIntoViewIfNeeded();
+          await r.shot({ title: 'ดู Tag ของฉัน', text: 'กดชื่อของคุณมุมขวาบน → **โปรไฟล์ของฉัน** ด้านล่างมี **Tag ของฉัน** = กลุ่มที่คุณอยู่ · ทุกคนมี Tag **All** · ได้ Tag แล้วจะเห็นไฟล์ โฟลเดอร์ และข่าวที่แชร์ให้ Tag นั้น\nต้องการเข้ากลุ่มอื่น กด **ขอ Tag** (หรือเมนู **คำขออนุมัติ → คำขอ Tag**)', marks: [{ el: mine, label: 'Tag ที่คุณมี', place: 'above' }, { el: mine.getByRole('link', { name: 'ขอ Tag', exact: true }), label: 'กด ขอ Tag', place: 'left' }] });
+          await mine.getByRole('link', { name: 'ขอ Tag', exact: true }).click(); await r.settle(1200);
           const dlg = p.getByRole('dialog');
           const sel = dlg.locator('select');
           await sel.nth(0).selectOption({ label: (await sel.nth(0).locator('option').allInnerTexts()).find((t) => t.startsWith(REQ_TAG)) });
@@ -863,7 +863,7 @@ module.exports = [
           await r.shot({ title: 'เลือก Tag และผู้อนุมัติ', text: '1. **Tag ที่ต้องการ** — เลือกกลุ่มที่จะขอเข้า\n2. **ส่งคำขอถึง** — เลือก Admin หรือ Master ที่จะอนุมัติ (เช่น หัวหน้าแผนก) คนนั้นจะได้รับแจ้งเตือน\n3. ใส่**เหตุผล** (ไม่บังคับ) แล้วกด **ส่งคำขอ**', marks: [{ el: sel.nth(0), label: 'Tag ที่ต้องการ', place: 'left' }, { el: sel.nth(1), label: 'ผู้อนุมัติ', place: 'left' }, { el: role(dlg, 'button', 'ส่งคำขอ'), label: 'กด ส่งคำขอ', place: 'above' }] });
           await role(dlg, 'button', 'ส่งคำขอ').click(); await r.settle(1000);
           const row = p.locator('div.ds-card').filter({ hasText: 'คำขอของฉัน' }).getByText('รออนุมัติ').first();
-          await r.shot({ title: 'ติดตามสถานะคำขอ', text: 'คำขออยู่ใน **คำขอของฉัน** สถานะ **รออนุมัติ** · เมื่อผู้อนุมัติกดอนุมัติ คุณจะได้แจ้งเตือนและ Tag ขึ้นใน **Tag ของฉัน** ทันที · กด **ยกเลิก** ถ้าไม่ต้องการแล้ว', marks: [{ el: row, label: 'สถานะคำขอ', place: 'left' }] });
+          await r.shot({ title: 'ติดตามสถานะคำขอ', text: 'คำขออยู่ที่เมนู **คำขออนุมัติ → คำขอ Tag** ใน **คำขอของฉัน** สถานะ **รออนุมัติ** · เมื่อผู้อนุมัติกดอนุมัติ คุณจะได้แจ้งเตือนและ Tag ขึ้นใน **Tag ของฉัน** ทันที · กด **ยกเลิก** ถ้าไม่ต้องการแล้ว', marks: [{ el: row, label: 'สถานะคำขอ', place: 'left' }] });
         },
       },
       {
@@ -874,11 +874,11 @@ module.exports = [
           const master = users.find((u) => u.username === 'master');
           await r.callAs('user', 'POST', '/tag-requests', { tagId: t.id, approverId: master.id, note: 'ย้ายมาประจำไลน์ PF1 ตั้งแต่ 16 พ.ย.' });
           await r.go('/', 1200);
-          await r.shot({ title: 'มีคำขอส่งถึงคุณ', text: 'เมื่อมีคนขอ Tag และเลือกส่งถึงคุณ จะมี**แจ้งเตือน**ที่กระดิ่ง และตัวเลขที่เมนู **Tag** — กดเมนู Tag', marks: [{ el: sidebar(p, 'Tag'), label: 'คำขอที่รอคุณ', place: 'right' }] });
-          await sidebar(p, 'Tag').click(); await r.settle(800);
+          await r.shot({ title: 'มีคำขอส่งถึงคุณ', text: 'เมื่อมีคนขอ Tag และเลือกส่งถึงคุณ จะมี**แจ้งเตือน**ที่กระดิ่ง และตัวเลขที่เมนู **คำขออนุมัติ** — กดเมนูนี้', marks: [{ el: sidebar(p, 'คำขออนุมัติ'), label: 'คำขอที่รอคุณ', place: 'right' }] });
+          await sidebar(p, 'คำขออนุมัติ').click(); await r.settle(800);
           await p.getByRole('button', { name: /คำขอ Tag/ }).click(); await r.settle(900);
           const item = p.locator('div.ds-card div.divide-y > div').filter({ hasText: REQ_TAG }).first();
-          await r.shot({ title: 'แท็บ “คำขอ Tag”', text: 'แต่ละรายการบอก**ใคร**ขอ Tag **อะไร** และเหตุผล\n• **อนุมัติ** = ใส่ Tag ให้ผู้ใช้ทันที\n• **ไม่อนุมัติ** = ใส่เหตุผลให้ผู้ขอเห็น', marks: [{ el: role(item, 'button', 'อนุมัติ', { exact: true }), label: 'อนุมัติ', place: 'left' }, { el: role(item, 'button', 'ไม่อนุมัติ'), label: 'ไม่อนุมัติ', place: 'below' }] });
+          await r.shot({ title: 'แท็บ “คำขอ Tag” → รอฉันอนุมัติ', text: 'แต่ละรายการบอก**ใคร**ขอ Tag **อะไร** และเหตุผล\n• **อนุมัติ** = ใส่ Tag ให้ผู้ใช้ทันที\n• **ไม่อนุมัติ** = ใส่เหตุผลให้ผู้ขอเห็น', marks: [{ el: role(item, 'button', 'อนุมัติ', { exact: true }), label: 'อนุมัติ', place: 'left' }, { el: role(item, 'button', 'ไม่อนุมัติ'), label: 'ไม่อนุมัติ', place: 'below' }] });
           await role(item, 'button', 'อนุมัติ', { exact: true }).click(); await r.settle(1000);
           await p.getByRole('button', { name: 'ทุกสถานะ' }).click(); await r.settle(800);
           await r.shot({ title: 'อนุมัติแล้ว', text: 'ผู้ขอได้รับแจ้งเตือน และ Tag ขึ้นที่ **Tag ของฉัน** ของเขาทันที · เลือก **ทุกสถานะ** เพื่อดูคำขอที่พิจารณาแล้ว\nAdmin เลือก **ทั้งหมด (Admin)** เพื่อพิจารณาคำขอที่ส่งถึงคนอื่นแทนได้ (เช่น ผู้อนุมัติลา)', marks: [{ el: p.getByText('อนุมัติแล้ว', { exact: true }).first(), label: 'สถานะ', place: 'left' }] });
@@ -889,15 +889,15 @@ module.exports = [
         run: async (r) => {
           const p = r.page;
           await tagWith(r, 'QC', '#E11D48', ['user', 'master'], 'ฝ่ายควบคุมคุณภาพ');
-          await r.go('/tags?tab=manage', 1200);
+          await r.go('/requests?tab=tags&box=manage', 1200);
           const allCard = p.locator('div.ds-card').filter({ hasText: 'Tag ของระบบ' }).first();
-          await r.shot({ title: 'แท็บ “จัดการ Tag”', text: 'เมนู **Tag** → แท็บ **จัดการ Tag** (Master และ Admin) · กด **สร้าง Tag** เพื่อสร้างกลุ่มใหม่ เช่น แผนก ไลน์ผลิต กะ\nTag **All** เป็น Tag ของระบบ = ทุกคน (เปลี่ยนชื่อ ลบ หรือใส่สมาชิกไม่ได้)', marks: [{ el: role(p, 'button', 'สร้าง Tag').first(), label: 'สร้าง Tag', place: 'left' }, { el: allCard, label: 'Tag All = ทุกคน', place: 'below' }] });
+          await r.shot({ title: 'แท็บ “จัดการ Tag”', text: 'เมนู **คำขออนุมัติ → คำขอ Tag → จัดการ Tag** (Master และ Admin; Admin ใช้ จัดการผู้ใช้ → Tag ได้ด้วย) · กด **สร้าง Tag** เพื่อสร้างกลุ่มใหม่ เช่น แผนก ไลน์ผลิต กะ\nTag **All** เป็น Tag ของระบบ = ทุกคน (เปลี่ยนชื่อ ลบ หรือใส่สมาชิกไม่ได้)', marks: [{ el: role(p, 'button', 'สร้าง Tag').first(), label: 'สร้าง Tag', place: 'left' }, { el: allCard, label: 'Tag All = ทุกคน', place: 'below' }] });
           const card = p.locator('div.ds-card').filter({ has: p.getByText('QC', { exact: true }) }).filter({ has: p.getByRole('button', { name: 'สมาชิก', exact: true }) }).first();
           await card.getByRole('button', { name: 'สมาชิก', exact: true }).click(); await r.settle(900);
           const m = p.getByRole('dialog');
           await r.shot({ title: 'กำหนดสมาชิกของ Tag', text: 'กด **สมาชิก** ที่การ์ด Tag → ค้นหาชื่อแล้วกดเลือกเพื่อ**เพิ่ม** · กดรูปคนมีขีดเพื่อ**เอาออก** มีผลกับสิทธิ์ไฟล์และข่าวที่แชร์ให้ Tag นี้ทันที', marks: [{ el: m.getByText('ค้นหาผู้ใช้เพื่อเพิ่มเข้า Tag…'), label: 'ค้นหาเพื่อเพิ่ม', place: 'below' }] });
           await role(m, 'button', 'ปิด').last().click(); await r.settle(300);
-          r.note({ title: 'ใครทำอะไรได้', text: '• **Master / Admin**: สร้าง แก้ไข Tag และกำหนดสมาชิก · อนุมัติคำขอ Tag\n• **Admin**: ลบ Tag ได้ด้วย (ลบแล้วสิทธิ์ที่แชร์ให้ Tag นั้นหายทั้งหมด)\n• **User / Viewer**: ขอ Tag ได้ที่แท็บ Tag ของฉัน → ขอ Tag' });
+          r.note({ title: 'ใครทำอะไรได้', text: '• **Master / Admin**: สร้าง แก้ไข Tag และกำหนดสมาชิก · อนุมัติคำขอ Tag\n• **Admin**: ลบ Tag ได้ด้วย (ลบแล้วสิทธิ์ที่แชร์ให้ Tag นั้นหายทั้งหมด)\n• **User / Viewer**: ขอ Tag ได้ที่ โปรไฟล์ของฉัน หรือ คำขออนุมัติ → คำขอ Tag → ขอ Tag' });
         },
       },
     ],
@@ -1101,7 +1101,7 @@ module.exports = [
           await r.shot({ title: 'กด “+ Tag” ที่แถวผู้ใช้', text: 'หน้า **จัดการผู้ใช้** ใต้ชื่อแต่ละคนมี Tag ที่มีอยู่ และปุ่ม **+ Tag** กดปุ่มนี้ที่คนที่ต้องการ', marks: [{ el: plus, label: 'กด + Tag', place: 'right' }] });
           await plus.click(); await r.settle(400);
           const pop = p.locator('div').filter({ hasText: /^Tag ของ/ }).last();
-          await r.shot({ title: 'แตะ Tag เพื่อใส่ / เอาออก', text: 'Tag ที่มีเครื่องหมาย ✓ = ผู้ใช้อยู่ใน Tag นั้น · แตะเพื่อใส่หรือเอาออก **บันทึกทันที** ไม่ต้องกดปุ่มบันทึก\nทำได้อีก 2 ทาง: ปุ่ม ⋯ → **แก้ไข** ผู้ใช้ หรือเมนู **Tag → จัดการ Tag → สมาชิก**', marks: [{ el: pop, label: 'แตะเพื่อเปิด / ปิด', place: 'right' }] });
+          await r.shot({ title: 'แตะ Tag เพื่อใส่ / เอาออก', text: 'Tag ที่มีเครื่องหมาย ✓ = ผู้ใช้อยู่ใน Tag นั้น · แตะเพื่อใส่หรือเอาออก **บันทึกทันที** ไม่ต้องกดปุ่มบันทึก\nทำได้อีก 2 ทาง: ปุ่ม ⋯ → **แก้ไข** ผู้ใช้ หรือ **คำขออนุมัติ → คำขอ Tag → จัดการ Tag → สมาชิก**', marks: [{ el: pop, label: 'แตะเพื่อเปิด / ปิด', place: 'right' }] });
           await p.keyboard.press('Escape');
         },
       },
@@ -1132,7 +1132,7 @@ module.exports = [
           const p = r.page;
           for (const t of await r.call('GET', '/tags')) if (t.name === 'กะดึก') await r.call('DELETE', `/tags/${t.id}`); // a re-run starts clean
           await r.go('/users/tags', 900);
-          await r.shot({ title: 'แท็บ “Tag” แล้วกด “สร้าง Tag”', text: 'ไปที่ **จัดการผู้ใช้ → Tag** (หรือเมนู **Tag** → **จัดการ Tag** ซึ่ง Master ใช้ได้ด้วย) แล้วกด **สร้าง Tag**', marks: [{ el: role(p, 'button', 'สร้าง Tag').first(), label: 'กด สร้าง Tag', place: 'left' }] });
+          await r.shot({ title: 'แท็บ “Tag” แล้วกด “สร้าง Tag”', text: 'ไปที่ **จัดการผู้ใช้ → Tag** (หรือ **คำขออนุมัติ → คำขอ Tag → จัดการ Tag** ซึ่ง Master ใช้ได้ด้วย) แล้วกด **สร้าง Tag**', marks: [{ el: role(p, 'button', 'สร้าง Tag').first(), label: 'กด สร้าง Tag', place: 'left' }] });
           await role(p, 'button', 'สร้าง Tag').first().click(); await r.settle();
           const dlg = p.getByRole('dialog');
           await dlg.locator('input').first().fill('กะดึก');
@@ -1152,6 +1152,16 @@ module.exports = [
           await r.shot({ title: 'สมาชิกใน Tag', text: 'รายชื่อสมาชิกอยู่ด้านล่าง ปิดหน้าต่างด้วยปุ่ม **ปิด**', marks: [{ el: m.getByText('สมหญิง ขยันงาน', { exact: true }).last(), label: 'สมาชิกที่เพิ่ม', place: 'right' }] });
           await role(m, 'button', 'ปิด').last().click(); await r.settle(500);
           await r.note({ title: 'นำ Tag ไปใช้', text: 'ตอนแชร์ไฟล์/โฟลเดอร์ เลือก **แชร์ให้ Tag** (ดูเรื่อง “แชร์ไฟล์ให้ทั้งกลุ่มด้วย Tag”) · ใส่ Tag ให้ผู้ใช้ได้จากหน้าต่าง **แก้ไขผู้ใช้** หรือตอนอนุมัติบัญชีใหม่ด้วย' });
+        },
+      },
+      {
+        id: 'admin-app-name', title: 'เปลี่ยนชื่อระบบ (ชื่อบนเมนูและไอคอนมือถือ)', summary: 'ตั้งชื่อที่แสดงที่เมนูด้านซ้าย หน้าเข้าสู่ระบบ และใต้ไอคอนบนมือถือ', as: 'admin', roles: ['admin'],
+        run: async (r) => {
+          const p = r.page;
+          await r.go('/settings?tab=system', 1000);
+          const input = p.getByPlaceholder('Quality');
+          await r.shot({ title: 'ตั้งค่า → ชื่อระบบ', text: 'เมนู **ตั้งค่า** → แท็บ **ชื่อระบบ** (เห็นเฉพาะ Admin / Root) พิมพ์ชื่อที่ต้องการ แล้วกด **บันทึกชื่อระบบ**\nชื่อนี้แสดงที่ **มุมบนของเมนูด้านซ้าย**, หน้าเข้าสู่ระบบ, แท็บของ browser และ**ชื่อใต้ไอคอน**ตอนเพิ่มไว้บนหน้าจอมือถือ', marks: [{ el: box(input), label: 'ชื่อระบบ', place: 'right' }, { el: sidebar(p, 'หน้าแรก').locator('xpath=ancestor::aside//a[1]').first(), label: 'แสดงตรงนี้', place: 'right' }] });
+          r.note({ title: 'ไอคอนที่ติดตั้งไว้แล้ว', text: 'มือถือที่เพิ่มไอคอนไว้ก่อนเปลี่ยนชื่อ จะยังแสดงชื่อเดิมใต้ไอคอน — ลบไอคอนแล้วเพิ่มใหม่ (ดูเรื่อง “เพิ่มไอคอน Quality บนหน้าจอมือถือ”) จึงจะได้ชื่อใหม่' });
         },
       },
       {
@@ -1218,7 +1228,7 @@ module.exports = [
       {
         id: 'phone-install', title: 'เพิ่มไอคอน Quality บนหน้าจอมือถือ', summary: 'เปิดแอปจากไอคอนได้เหมือนแอปทั่วไป', as: 'user', device: 'phone',
         run: async (r) => {
-          r.note({ title: 'iPhone (Safari)', text: 'เปิด **https://dochub.qcqrxdigital.dpdns.org** ใน **Safari** → กดปุ่ม**แชร์** (สี่เหลี่ยมมีลูกศรชี้ขึ้น ด้านล่างจอ) → เลื่อนหา **เพิ่มไปยังหน้าจอโฮม** → กด **เพิ่ม**\nจะได้ไอคอนชื่อ **Quality** บนหน้าจอ' });
+          r.note({ title: 'iPhone (Safari)', text: 'เปิด **https://dochub.qcqrxdigital.dpdns.org** ใน **Safari** → กดปุ่ม**แชร์** (สี่เหลี่ยมมีลูกศรชี้ขึ้น ด้านล่างจอ) → เลื่อนหา **เพิ่มไปยังหน้าจอโฮม** → กด **เพิ่ม**\nจะได้ไอคอนบนหน้าจอ ชื่อตามที่ Admin ตั้งใน **ตั้งค่า → ชื่อระบบ** (ค่าเริ่มต้น **Quality**)' });
           r.note({ title: 'Android (Chrome)', text: 'เปิดเว็บใน **Chrome** → กดปุ่ม **⋮** มุมขวาบน → **เพิ่มไปยังหน้าจอหลัก** (หรือ **ติดตั้งแอป**) → กด **เพิ่ม**' });
           await r.shot({ title: 'เปิดจากไอคอน', text: 'แตะไอคอน **Quality** เพื่อเปิด ระบบจำการเข้าสู่ระบบไว้ ไม่ต้องพิมพ์รหัสทุกครั้ง', marks: [{ el: r.page.getByRole('button', { name: 'เปิดเมนู' }), label: 'เมนู ☰' }] });
         },

@@ -7,6 +7,7 @@ import { authApi } from '@/api/endpoints';
 import { Button } from '@/components/ui/Button';
 import { Field, TextInput } from '@/components/ui/Inputs';
 import { useAuth } from '@/store/auth';
+import { useAppInfo } from '@/store/appInfo';
 
 /** Where to go after signing in: ?next=/files/… (same-site paths only, never another host) */
 export function nextPath(search: string, fallback = '/') {
@@ -65,7 +66,7 @@ export default function LoginPage() {
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-primary">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M5 7h14M5 12h14M5 17h9M10 4v16" /></svg>
           </span>
-          <span className="text-lg font-semibold">DataSheet Pro</span>
+          <span className="text-lg font-semibold">{useAppInfo.getState().name}</span>
         </div>
         <div className="relative mt-auto max-w-lg">
           <h1 className="text-4xl font-semibold leading-tight">ข้อมูลทั้งทีม<br />อยู่ในตารางเดียว</h1>

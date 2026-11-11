@@ -70,10 +70,10 @@ function RequestModal({ open, onClose, onSent, mine, pendingTagIds }: { open: bo
   );
 }
 
-function MyTags() {
+function MyTags({ ask }: { ask?: boolean } = {}) {
   const mine = useLoad(() => tagsApi.mine(), []);
   const reqs = useLoad(() => tagRequestsApi.mine(), []);
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState(!!ask);
   const cancel = async (r: TagRequest) => {
     if (!(await confirmDialog({ title: `ยกเลิกคำขอ Tag “${r.tag.name}”?`, confirmText: 'ยกเลิกคำขอ' }))) return;
     try { await tagRequestsApi.cancel(r.id); void reqs.reload(true); } catch (e) { toast.error(e); }
@@ -201,5 +201,30 @@ export default function TagHubPage() {
       )}
       {tab === 'mine' ? <MyTags /> : tab === 'requests' ? <TagRequestInbox /> : <TagManager />}
     </Page>
+  );
+}
+
+/** คำขออนุมัติ → คำขอ Tag: my requests (+ ขอ Tag) for everyone; requests to me and tag management for master / admin */
+export function TagRequestsTab() {
+  const role = useAuth((s) => s.user?.role);
+  const manager = !!role && !isBasicRole(role);
+  const pending = useData((s) => s.pendingTagRequests);
+  const [sp, setSp] = useSearchParams();
+  const asked = sp.get('box');
+  const box = manager && (asked === 'review' || asked === 'manage') ? asked : asked === 'mine' || !manager ? 'mine' : 'review';
+  const set = (v: string) => setSp((p) => { const n = new URLSearchParams(p); n.set('box', v); n.delete('ask'); return n; }, { replace: true });
+  return (
+    <div>
+      {manager && (
+        <div className="mb-3">
+          <Segmented value={box} onChange={set} size="sm" options={[
+            { value: 'review', label: <span className="inline-flex items-center gap-1.5">รอฉันอนุมัติ{!!pending && <span className="grid h-4 min-w-4 place-items-center rounded-full bg-warning px-1 text-[10px] font-semibold text-white">{pending}</span>}</span> },
+            { value: 'mine', label: 'คำขอของฉัน' },
+            { value: 'manage', label: 'จัดการ Tag' },
+          ]} />
+        </div>
+      )}
+      {box === 'review' ? <TagRequestInbox /> : box === 'manage' ? <TagManager /> : <MyTags ask={sp.get('ask') === '1'} />}
+    </div>
   );
 }
