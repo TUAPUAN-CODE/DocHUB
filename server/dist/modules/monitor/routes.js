@@ -7,7 +7,7 @@ const os_1 = __importDefault(require("os"));
 const express_1 = require("express");
 const db_1 = require("../../config/db");
 const env_1 = require("../../config/env");
-const auth_1 = require("../../middleware/auth");
+const service_1 = require("../pageAccess/service");
 const http_1 = require("../../shared/http");
 const logger_1 = require("../../shared/logger");
 const socket_1 = require("../../socket");
@@ -52,7 +52,8 @@ async function cloudflareDays() {
     cfCache = { at: Date.now(), data };
     return data;
 }
-router.get('/monitor/traffic', (0, auth_1.requireRole)('admin'), (0, http_1.ah)(async (_req, res) => {
+router.get('/monitor/traffic', (0, service_1.requirePage)('monitor'), // admin by default; a root can give it to other roles (จัดการสิทธิ์)
+(0, http_1.ah)(async (_req, res) => {
     const rows = await (0, db_1.q)(`SELECT hour_start, source, requests, errors, slow, bytes FROM TrafficHourly WHERE hour_start >= DATEADD(day, -400, SYSUTCDATETIME()) ORDER BY hour_start`);
     const all = [
         ...rows.map((r) => ({ hour: new Date(`${new Date(r.hour_start).toISOString().slice(0, 19)}Z`), source: r.source, requests: r.requests, errors: r.errors, slow: r.slow, bytes: Number(r.bytes) })),

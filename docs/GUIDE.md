@@ -36,3 +36,6 @@ npm run build
 - เรื่องที่ไม่สำเร็จจะเก็บของเดิมไว้ และมีภาพตอนผิดพลาด `client/public/guide/_failed-<id>.png` (ไม่ถูก commit)
 - server จำกัดการเข้าสู่ระบบ 30 ครั้ง / 15 นาที และแต่ละเรื่องเข้าสู่ระบบ 1 ครั้ง: รันเป็นชุดละไม่เกิน ~25 เรื่องด้วย `--only` แล้วรีสตาร์ต server ระหว่างชุด
 - ต้องมี Playwright บนเครื่อง (`require('playwright')`) — ไม่ได้เป็น dependency ของแอป
+- บัญชีที่ใช้แคป: admin / master / user (จาก `npm run db:seed`) และ **root** — รหัสผ่าน root = `Root@` + วันที่ไทยวันที่ server สร้างบัญชี
+  (`ROOT_PASSWORD=...` ถ้าสร้างไว้คนละวัน) · คู่มือที่มี `roles: ['root']` เห็นเฉพาะ Root · Root เห็นทุกคู่มือ
+- คู่มือต้องรันซ้ำได้: ก่อนแคปให้ล้าง/เตรียมข้อมูลตัวอย่างเองผ่าน `r.call` (admin) / `r.callAs('user' | 'master' | 'root', …)` / `r.upload` / `r.picture` (สร้างรูปตัวอย่างจาก HTML)

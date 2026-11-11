@@ -23,7 +23,7 @@ function afterSignIn(token: string) {
   s.on('notification', (n) => {
     useNotifications.getState().push(n);
     toast.info(n.title, n.message);
-    if (n.type === 'access_request' || n.type === 'account_request') void useData.getState().loadPending();
+    if (n.type === 'access_request' || n.type === 'account_request' || n.type === 'tag_request') void useData.getState().loadPending();
     if (n.type === 'access_approved' || n.type === 'access_granted') void useData.getState().loadTree();
   });
   void useTheme.getState().load();
@@ -31,6 +31,12 @@ function afterSignIn(token: string) {
   void useData.getState().loadTree();
   void useData.getState().loadPending();
   void useNotifications.getState().load();
+  void useData.getState().loadNews();
+  // a root changed which pages each role sees → reload my pages (left bar, AI button)
+  s.off('pages:changed');
+  s.on('pages:changed', () => { void authApi.me().then((u) => useAuth.getState().setUser(u)).catch(() => undefined); });
+  s.off('news:changed');
+  s.on('news:changed', () => { if (!location.pathname.startsWith('/news')) void useData.getState().loadNews(); });
 }
 
 export const useAuth = create<AuthState>((set) => ({
@@ -69,5 +75,5 @@ setAuthLostHandler(() => {
   useAuth.setState({ user: null, status: 'guest' });
 });
 
-const RANK: Record<Role, number> = { viewer: 0, user: 1, master: 2, admin: 3 };
+const RANK: Record<Role, number> = { viewer: 0, user: 1, master: 2, admin: 3, root: 4 };
 export const useIsAtLeast = (role: Role) => useAuth((s) => (s.user ? RANK[s.user.role] >= RANK[role] : false));

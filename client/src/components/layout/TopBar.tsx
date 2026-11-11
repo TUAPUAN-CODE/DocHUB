@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAiPanel } from '@/modules/ai/useAiPanel';
+import { canSee } from '@/lib/pages';
 import { Bell, Sparkles, CheckCheck, ChevronDown, FileSpreadsheet, Folder, Lock, LogOut, Menu, Palette, Search, UserCircle, X } from 'lucide-react';
 import { searchApi, SearchResult } from '@/api/endpoints';
 import { useDebounce } from '@/hooks';
@@ -150,6 +151,8 @@ function AiButton() {
 }
 
 export function TopBar() {
+  // AI: admin + root by default; a root can give it to other roles (จัดการสิทธิ์)
+  const aiAllowed = useAuth((s) => canSee(s.user, 'ai'));
   const setMobile = useUi((s) => s.setMobileNav);
   // phones: the search box is a button that opens a full-width field, so the icons on the right keep their room
   const [searching, setSearching] = useState(false);
@@ -166,7 +169,7 @@ export function TopBar() {
       <div className="hidden min-w-0 flex-1 sm:block"><GlobalSearch /></div>
       <button onClick={() => setSearching(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-ink/5 sm:hidden" aria-label="ค้นหาไฟล์หรือโฟลเดอร์"><Search className="h-5 w-5" /></button>
       <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
-        <AiButton />
+        {aiAllowed && <AiButton />}
         <NotificationBell />
         <UserMenu />
       </div>

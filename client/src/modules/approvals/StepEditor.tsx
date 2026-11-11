@@ -15,7 +15,7 @@ export function StepEditor({ step, onChange, onRemove, index, size, landscape }:
         <div className="space-y-2">
           <Field label="ผู้อนุมัติ">
             <SearchSelect value={step.userId} onChange={(v, o) => onChange({ userId: v, userName: o?.label ?? step.userName })} placeholder={step.userName || 'ค้นหาผู้ใช้…'}
-              load={async (q) => (await usersApi.lookup(q)).map((u) => ({ value: u.id, label: u.displayName, sub: `${u.username} · ${u.email}` }))} />
+              load={async (q) => (await usersApi.lookup(q)).map((u) => ({ value: u.id, label: u.displayName, sub: u.email ? `${u.username} · ${u.email}` : u.username }))} />
           </Field>
           <Field label="ตำแหน่ง / ชื่อขั้น (เช่น ผู้จัดการ QC)"><TextInput value={step.label} onChange={(e) => onChange({ label: e.target.value })} /></Field>
           <Toggle checked={step.allowForward} onChange={(v) => onChange({ allowForward: v })} label="ให้ผู้อนุมัติขั้นนี้ส่งต่อให้คนอื่นอนุมัติเพิ่มได้" />

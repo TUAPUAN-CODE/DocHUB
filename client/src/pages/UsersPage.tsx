@@ -12,17 +12,18 @@ import { useDebounce, useLoad } from '@/hooks';
 import { fmtDateTime, relTime } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { confirmDialog, toast } from '@/store/ui';
-import { ROLE_HINT, ROLE_OPTIONS } from '@/lib/roles';
+import { ROLE_HINT, ROLE_OPTIONS, ROLE_OPTIONS_ROOT } from '@/lib/roles';
 import type { Role, TagRef, User } from '@/types';
 import { UsersTabs } from './users/UsersTabs';
 
 function UserModal({ open, onClose, user, onSaved, tags }: { open: boolean; onClose: () => void; user: User | null; onSaved: () => void; tags: TagRef[] }) {
+  const meRoot = useAuth((s) => s.user?.role === 'root');
   const [f, setF] = useState({ username: '', email: '', displayName: '', password: '', role: 'user' as Role });
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!open) return;
-    setF(user ? { username: user.username, email: user.email, displayName: user.displayName, password: '', role: user.role } : { username: '', email: '', displayName: '', password: '', role: 'user' });
+    setF(user ? { username: user.username, email: user.email ?? '', displayName: user.displayName, password: '', role: user.role } : { username: '', email: '', displayName: '', password: '', role: 'user' });
     setTagIds((user?.tags ?? []).map((t) => t.id));
   }, [open, user]);
   const submit = async () => {
@@ -30,10 +31,10 @@ function UserModal({ open, onClose, user, onSaved, tags }: { open: boolean; onCl
     try {
       const before = (user?.tags ?? []).map((t) => t.id).sort().join();
       if (user) {
-        await usersApi.update(user.id, { email: f.email, displayName: f.displayName, role: f.role });
+        await usersApi.update(user.id, { email: f.email.trim() || null, displayName: f.displayName, role: f.role });
         if ([...tagIds].sort().join() !== before) await tagsApi.setUserTags(user.id, tagIds);
       } else {
-        const created = await usersApi.create(f);
+        const created = await usersApi.create({ ...f, email: f.email.trim() || null });
         if (tagIds.length) await tagsApi.setUserTags(created.id, tagIds);
       }
       toast.success(user ? 'บันทึกแล้ว' : 'สร้างผู้ใช้แล้ว');
@@ -47,12 +48,12 @@ function UserModal({ open, onClose, user, onSaved, tags }: { open: boolean; onCl
       <div className="space-y-4">
         <Field label="ชื่อที่แสดง" required><TextInput value={f.displayName} onChange={(e) => setF({ ...f, displayName: e.target.value })} autoFocus /></Field>
         <Field label="ชื่อผู้ใช้" required hint="a-z 0-9 . _ - อย่างน้อย 3 ตัว"><TextInput value={f.username} disabled={!!user} onChange={(e) => setF({ ...f, username: e.target.value })} /></Field>
-        <Field label="อีเมล" required><TextInput type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
+        <Field label="อีเมล" hint="ไม่บังคับ — ไม่มีอีเมลเว้นว่างได้"><TextInput type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
         {!user && <Field label="รหัสผ่านเริ่มต้น" required hint="อย่างน้อย 8 ตัวอักษร"><TextInput type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="new-password" /></Field>}
         <Field label="บทบาท" hint={ROLE_HINT[f.role]}>
-          <Select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>{ROLE_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}</Select>
+          <Select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>{(meRoot ? ROLE_OPTIONS_ROOT : ROLE_OPTIONS).map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}</Select>
         </Field>
-        <Field label="Tag" hint="เลือกได้หลาย Tag — ได้สิทธิ์ไฟล์/โฟลเดอร์ที่แชร์ให้ Tag นั้น"><TagPicker tags={tags} value={tagIds} onChange={setTagIds} /></Field>
+        <Field group label="Tag" hint="เลือกได้หลาย Tag — ได้สิทธิ์ไฟล์/โฟลเดอร์ที่แชร์ให้ Tag นั้น"><TagPicker tags={tags} value={tagIds} onChange={setTagIds} /></Field>
       </div>
     </Modal>
   );
@@ -67,7 +68,8 @@ export default function UsersPage() {
   const [tag, setTag] = useState('');
   const dq = useDebounce(q, 300);
   const { data, loading, reload } = useLoad(() => usersApi.list({ page, pageSize: 20, search: dq || undefined, role: role || undefined, status: status || undefined, tag: tag || undefined }), [page, dq, role, status, tag]);
-  const { data: tags } = useLoad(() => tagsApi.list(), []);
+  const { data: allTags } = useLoad(() => tagsApi.list(), []);
+  const tags = allTags?.filter((t) => !t.isSystem); // All is on everyone: not given / taken here
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [edit, setEdit] = useState<{ user: User | null } | null>(null);
   const [menu, setMenu] = useState<{ anchor: Anchor; user: User } | null>(null);
@@ -91,7 +93,7 @@ export default function UsersPage() {
       <UsersTabs />
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <TextInput icon={<Search />} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="ค้นหาชื่อ ชื่อผู้ใช้ หรืออีเมล" className="w-full sm:w-72" />
-        <Select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className="w-40"><option value="">ทุกบทบาท</option><option value="admin">Admin</option><option value="master">Master</option><option value="user">User</option><option value="viewer">Viewer</option></Select>
+        <Select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className="w-40"><option value="">ทุกบทบาท</option><option value="root">Root</option><option value="admin">Admin</option><option value="master">Master</option><option value="user">User</option><option value="viewer">Viewer</option></Select>
         <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-40"><option value="">ทุกสถานะ</option><option value="active">ใช้งานอยู่</option><option value="inactive">ปิดการใช้งาน</option></Select>
         {!!tags?.length && (
           <Select value={tag} onChange={(e) => { setTag(e.target.value); setPage(1); }} className="w-40"><option value="">ทุก Tag</option>{tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select>
@@ -124,12 +126,12 @@ export default function UsersPage() {
                       <td><div className="flex items-center gap-3"><Avatar name={u.displayName} src={u.avatarUrl} size={36} />
                         <span className="min-w-0"><span className="block truncate font-medium">{u.displayName}{u.id === me?.id && <span className="ml-1.5 text-xs text-muted">(คุณ)</span>}</span><span className="block text-xs text-muted">@{u.username}</span>
                           {!!u.tags?.length && <span className="mt-1 flex max-w-[260px] flex-wrap gap-1">{u.tags.map((t) => <TagChip key={t.id} tag={t} />)}</span>}</span></div></td>
-                      <td className="text-[13px]">{u.email}</td>
+                      <td className="text-[13px]">{u.email ?? <span className="text-muted">—</span>}</td>
                       <td><RoleBadge role={u.role} /></td>
                       <td><StatusDot tone={u.isActive ? 'green' : 'gray'} label={u.isActive ? 'ใช้งานอยู่' : 'ปิดการใช้งาน'} /></td>
                       <td className="text-[13px] text-muted" title={fmtDateTime(u.lastLoginAt)}>{u.lastLoginAt ? relTime(u.lastLoginAt) : 'ยังไม่เคย'}</td>
                       <td className="text-[13px] text-muted">{fmtDateTime(u.createdAt).slice(0, 10)}</td>
-                      <td className="text-right"><button onClick={(e) => setMenu({ anchor: e.currentTarget, user: u })} className="rounded-lg p-1.5 text-muted hover:bg-ink/5" aria-label="ตัวเลือก"><MoreHorizontal className="h-4 w-4" /></button></td>
+                      <td className="text-right">{(u.role !== 'root' || me?.role === 'root') && <button onClick={(e) => setMenu({ anchor: e.currentTarget, user: u })} className="rounded-lg p-1.5 text-muted hover:bg-ink/5" aria-label="ตัวเลือก"><MoreHorizontal className="h-4 w-4" /></button>}</td>
                     </tr>
                   ))}
                 </tbody>

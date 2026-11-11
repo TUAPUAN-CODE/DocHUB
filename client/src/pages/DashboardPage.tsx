@@ -266,7 +266,7 @@ export default function DashboardPage() {
         {flow ? (
           <div className="min-w-0 flex-1 space-y-3 overflow-y-auto rounded-theme p-2" style={{ backgroundColor: bg.color ?? '#F4F6FB' }}>
             {[...widgets].filter((w) => !w.style?.hidden && w.type !== 'shape').sort((a, b) => a.y - b.y || a.x - b.x).map((w) => (
-              <div key={w.id} style={{ height: flowHeight(w) }}><WidgetView w={w} refreshKey={refreshKey} /></div>
+              <div key={w.id} style={{ height: flowHeight(w) }}><WidgetView w={w} refreshKey={refreshKey} phone /></div>
             ))}
             {!widgets.length && <p className="py-16 text-center text-sm text-muted">ยังไม่มีวิดเจ็ต</p>}
           </div>

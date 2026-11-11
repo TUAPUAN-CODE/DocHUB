@@ -9,6 +9,10 @@ import { authenticate, invalidateUserCache, loadAuthUser, ROLE_SQL, signAccessTo
 import { audit } from '../shared/audit';
 import { ah, AppError, badRequest, isGuid, ok, parse } from '../shared/http';
 import { mapUser } from '../shared/mappers';
+import { pagesFor } from '../modules/pageAccess/module';
+
+/** + the pages of the left bar (and features) the user's role sees */
+const withPages = async <U extends { role: string }>(u: U) => ({ ...u, pages: await pagesFor(u.role as any) });
 
 const router = Router();
 const COOKIE = 'dsp_rt';
@@ -61,7 +65,7 @@ router.post(
     const authUser = await loadAuthUser(u.user_id);
     await issueRefresh(res, u.user_id, req.headers['user-agent']);
     await audit({ userId: u.user_id, action: 'login', entityType: 'user', entityId: u.user_id }, req);
-    ok(res, { accessToken: signAccessToken(authUser!), user: mapUser(u) });
+    ok(res, { accessToken: signAccessToken(authUser!), user: await withPages(mapUser(u)) });
   }),
 );
 
@@ -95,7 +99,7 @@ router.post(
     await q(`UPDATE RefreshTokens SET revoked_at = COALESCE(revoked_at, SYSUTCDATETIME()) WHERE token_id = @id`, { id: T.uuid(id) });
     await issueRefresh(res, user.id, req.headers['user-agent']);
     const full = await q1(`SELECT u.*, ${ROLE_SQL} AS role FROM Users u WHERE u.user_id = @id`, { id: T.uuid(user.id) });
-    ok(res, { accessToken: signAccessToken(user), user: mapUser(full) });
+    ok(res, { accessToken: signAccessToken(user), user: await withPages(mapUser(full)) });
   }),
 );
 
@@ -115,7 +119,7 @@ router.get(
   authenticate,
   ah(async (req, res) => {
     const u = await q1(`SELECT u.*, ${ROLE_SQL} AS role FROM Users u WHERE u.user_id = @id`, { id: T.uuid(req.user!.id) });
-    ok(res, mapUser(u));
+    ok(res, await withPages(mapUser(u)));
   }),
 );
 

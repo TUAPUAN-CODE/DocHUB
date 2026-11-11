@@ -12,7 +12,7 @@ const env_1 = require("../config/env");
 const router = (0, express_1.Router)();
 router.get('/trash', (0, http_1.ah)(async (req, res) => {
     const u = req.user;
-    const mine = u.role === 'admin' ? '' : 'AND (x.deleted_by = @u OR x.created_by = @u)';
+    const mine = (0, auth_1.isAdminRole)(u.role) ? '' : 'AND (x.deleted_by = @u OR x.created_by = @u)';
     const folders = await (0, db_1.q)(`SELECT x.folder_id, x.folder_name, x.color, x.deleted_at, x.created_by, d.display_name AS deleted_by_name,
          (SELECT COUNT(*) FROM Files fi WHERE fi.delete_batch = x.delete_batch) AS file_count
        FROM Folders x LEFT JOIN Users d ON d.user_id = x.deleted_by
@@ -43,7 +43,7 @@ router.post('/trash/restore', (0, http_1.ah)(async (req, res) => {
         const f = await (0, db_1.q1)(`SELECT * FROM Folders WHERE folder_id = @id AND is_deleted = 1`, { id: db_1.T.uuid(id) });
         if (!f)
             throw (0, http_1.notFound)('ไม่พบรายการในถังขยะ');
-        if (u.role !== 'admin' && f.deleted_by !== u.id && f.created_by !== u.id)
+        if (!(0, auth_1.isAdminRole)(u.role) && f.deleted_by !== u.id && f.created_by !== u.id)
             throw (0, http_1.forbidden)();
         await (0, db_1.withTx)(async (tx) => {
             const parent = f.parent_id ? await (0, db_1.q1)(`SELECT is_deleted FROM Folders WHERE folder_id = @p`, { p: db_1.T.uuid(f.parent_id) }, tx) : null;
@@ -60,7 +60,7 @@ router.post('/trash/restore', (0, http_1.ah)(async (req, res) => {
         WHERE x.file_id = @id AND x.is_deleted = 1`, { id: db_1.T.uuid(id) });
         if (!f)
             throw (0, http_1.notFound)('ไม่พบรายการในถังขยะ');
-        if (u.role !== 'admin' && f.deleted_by !== u.id && f.created_by !== u.id)
+        if (!(0, auth_1.isAdminRole)(u.role) && f.deleted_by !== u.id && f.created_by !== u.id)
             throw (0, http_1.forbidden)();
         if (f.folder_deleted)
             throw (0, http_1.badRequest)(`โฟลเดอร์ "${f.folder_name}" ถูกลบอยู่ กรุณากู้คืนโฟลเดอร์ก่อน`);

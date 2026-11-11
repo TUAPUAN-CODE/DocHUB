@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   AreaChart as AreaIcon, BarChart3, BellRing, Circle, Donut, Filter, Gauge, Grid3x3, History, ImageIcon, LayoutList, LineChart as LineIcon, PieChart as PieIcon, ScanSearch,
   ScatterChart as ScatterIcon, Sigma, StretchHorizontal, Table2, TrendingUp, Type, Activity, BarChartHorizontal,
@@ -120,7 +120,23 @@ function TableBody({ w, data }: { w: Widget; data: WidgetData }) {
   );
 }
 
-export function WidgetView({ w, refreshKey, editing }: { w: Widget; refreshKey: number; editing?: boolean }) {
+/**
+ * Phones (widgets stacked one per row): font sizes chosen for the big canvas are too large on a ~390 px screen and leave
+ * little room for the text itself, so they are brought down to phone sizes. The saved dashboard is not changed.
+ */
+export const PHONE_FONT = { text: 20, records: 13, title: 14 };
+export function phoneSized(w: Widget): Widget {
+  const c = { ...(w.config ?? {}) };
+  const s = { ...(w.style ?? {}) };
+  if (w.type === 'text') c.fontSize = Math.min(Number(c.fontSize) || 18, Math.max(14, Math.round((Number(c.fontSize) || 18) * 0.6)), PHONE_FONT.text);
+  if (w.type === 'records' || w.type === 'revision') c.fontSize = Math.min(Number(c.fontSize) || 14, PHONE_FONT.records);
+  if (s.titleSize !== undefined) s.titleSize = Math.min(s.titleSize, PHONE_FONT.title);
+  else s.titleSize = PHONE_FONT.title;
+  return { ...w, config: c, style: s };
+}
+
+export function WidgetView({ w: given, refreshKey, editing, phone }: { w: Widget; refreshKey: number; editing?: boolean; phone?: boolean }) {
+  const w = useMemo(() => (phone ? phoneSized(given) : given), [given, phone]);
   const isData = DATA_TYPES_W.includes(w.type);
   const ctx = useDash();
   const { data, error, loading } = useWidgetData(w.type, isData ? withSlicers(ctx, w.id, w.dataSource) : null, refreshKey);

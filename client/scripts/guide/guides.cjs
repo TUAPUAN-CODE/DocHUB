@@ -48,6 +48,50 @@ async function openDemoFile(r) {
   await p.getByText(FILE, { exact: true }).first().click(); await r.settle(1500);
 }
 
+
+/* ---- ข่าวสาร / Tag / จัดการสิทธิ์ ---- */
+const NEWS_ALL = 'ประกาศ: หยุดซ่อมบำรุงไลน์ PF1 วันเสาร์ 14 พ.ย.';
+const NEWS_QC = 'QC: เพิ่มจุดตรวจซีลกระป๋องทุก 30 นาที';
+const NEWS_MINE = 'แจ้งเปลี่ยนกะ ไลน์ PF1 สัปดาห์หน้า';
+const REQ_TAG = 'ไลน์ PF1';
+const POSTER = `<div style="height:540px;box-sizing:border-box;background:linear-gradient(135deg,#1552F0,#0F766E);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:56px">
+  <div style="font-size:30px;opacity:.85">ประกาศ</div><div style="font-size:66px;font-weight:700;line-height:1.2">หยุดซ่อมบำรุง<br>ไลน์ PF1</div>
+  <div style="font-size:34px;margin-top:18px">เสาร์ 14 พ.ย. 2026 · 08:00–17:00</div></div>`;
+/** a tag (created when missing) with these accounts in it */
+async function tagWith(r, name, color, usernames, description) {
+  let t = (await r.call('GET', '/tags')).find((x) => x.name === name);
+  if (!t) t = await r.call('POST', '/tags', { name, color, description });
+  const users = (await r.call('GET', '/users?pageSize=100')).items;
+  const ids = users.filter((u) => usernames.includes(u.username)).map((u) => u.id);
+  if (ids.length) await r.call('POST', `/tags/${t.id}/members`, { userIds: ids });
+  return t;
+}
+/** tag QC (user + master), a pinned post to everyone with a poster and a post to QC — unread for "user" */
+async function newsStage(r) {
+  const qc = await tagWith(r, 'QC', '#E11D48', ['user', 'master'], 'ฝ่ายควบคุมคุณภาพ');
+  const all = (await r.call('GET', '/tags')).find((t) => t.isSystem);
+  for (const x of (await r.call('GET', '/news?pageSize=50')).items) if ([NEWS_ALL, NEWS_QC, NEWS_MINE].includes(x.title)) await r.call('DELETE', `/news/${x.id}`);
+  const img = await r.upload('master', await r.picture(POSTER), 'poster.png');
+  await r.callAs('master', 'POST', '/news', { title: NEWS_QC, body: 'ตั้งแต่วันจันทร์ที่ 16 พ.ย. ให้ตรวจซีลกระป๋องทุก 30 นาที (เดิมทุก 1 ชั่วโมง)\nบันทึกผลในไฟล์ IR LINE PF1-09 ช่อง “ผลตรวจซีล”', tagIds: [qc.id] });
+  await r.callAs('master', 'POST', '/news', { title: NEWS_ALL, body: 'ไลน์ PF1 หยุดซ่อมบำรุงประจำปี เสาร์ที่ 14 พ.ย. 2026 เวลา 08:00–17:00\nพนักงานไลน์ PF1 เข้างานที่ไลน์ PF2 ตามตารางที่หัวหน้าแจ้ง', tagIds: [all.id], pinned: true, images: [img] });
+  return { qc, all };
+}
+/** user has no pending request for REQ_TAG and is not in it */
+async function tagRequestReset(r) {
+  const t = await tagWith(r, REQ_TAG, '#7C3AED', [], 'พนักงานประจำไลน์ PF1');
+  const users = (await r.call('GET', '/users?pageSize=100')).items;
+  const me = users.find((u) => u.username === 'user');
+  await r.call('DELETE', `/tags/${t.id}/members/${me.id}`);
+  for (const q of await r.callAs('user', 'GET', '/tag-requests/mine')) if (q.status === 'pending') await r.callAs('user', 'DELETE', `/tag-requests/${q.id}`);
+  return { t, me, users };
+}
+/** "YYYY-MM-DDTHH:mm" now in Thailand, rounded down to the minute (datetime-local input) */
+const thaiNow = () => {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const g = (t) => p.find((x) => x.type === t).value;
+  return `${g('year')}-${g('month')}-${g('day')}T${g('hour')}:${g('minute')}`;
+};
+
 module.exports = [
   /* ================================================================ */
   {
@@ -100,23 +144,24 @@ module.exports = [
             text: 'ที่หน้าเข้าสู่ระบบ ใต้ปุ่มเข้าสู่ระบบ กดลิงก์ **ขอสร้างบัญชี**',
             marks: [{ el: p.getByRole('link', { name: 'ขอสร้างบัญชี' }), label: 'กด ขอสร้างบัญชี' }],
           });
+          // a re-run starts clean: the example request of this guide is taken back first
+          for (const q of await r.call('GET', '/account-requests?status=pending')) if (q.username === 'manop') await r.call('POST', `/account-requests/${q.id}/reject`, { reviewNote: 'ตัวอย่างคู่มือ' });
           await p.getByRole('link', { name: 'ขอสร้างบัญชี' }).click();
           await r.settle();
           const inp = p.locator('form input');
-          await inp.nth(0).fill('วิไล ใจงาม');
-          await inp.nth(1).fill('wilai@example.com');
-          await inp.nth(2).fill('wilai');
+          await inp.nth(0).fill('มานพ ตั้งใจ');
+          await inp.nth(2).fill('manop');
           await r.shot({
             title: 'กรอกชื่อ อีเมล และชื่อผู้ใช้',
-            text: 'กรอกข้อมูลให้ครบทุกช่องที่มีเครื่องหมาย *\n**ชื่อผู้ใช้** คือชื่อที่จะใช้เข้าสู่ระบบ ใช้ได้เฉพาะ a-z ตัวเลข และ . _ - อย่างน้อย 3 ตัว',
+            text: 'กรอกข้อมูลให้ครบทุกช่องที่มีเครื่องหมาย *\n**อีเมลไม่บังคับ** — ไม่มีอีเมลเว้นว่างได้\n**ชื่อผู้ใช้** คือชื่อที่จะใช้เข้าสู่ระบบ ใช้ได้เฉพาะ a-z ตัวเลข และ . _ - อย่างน้อย 3 ตัว',
             marks: [
               { el: box(inp.nth(0)), label: 'ชื่อ-นามสกุลจริง', place: 'right' },
-              { el: box(inp.nth(1)), label: 'อีเมลที่ใช้งานอยู่', place: 'right' },
+              { el: box(inp.nth(1)), label: 'อีเมล (ไม่มีเว้นว่างได้)', place: 'right' },
               { el: box(inp.nth(2)), label: 'ตั้งชื่อผู้ใช้สำหรับเข้าสู่ระบบ', place: 'right' },
             ],
           });
-          await inp.nth(3).fill('Wilai2026!');
-          await inp.nth(4).fill('Wilai2026!');
+          await inp.nth(3).fill('Manop2026!');
+          await inp.nth(4).fill('Manop2026!');
           await r.shot({
             title: 'ตั้งรหัสผ่าน',
             text: 'ตั้งรหัสผ่านอย่างน้อย 8 ตัวอักษร แล้วพิมพ์ซ้ำอีกครั้งในช่อง **ยืนยันรหัสผ่าน** ให้ตรงกัน\nจำรหัสผ่านนี้ไว้ ใช้เข้าสู่ระบบหลังได้รับอนุมัติ',
@@ -509,6 +554,38 @@ module.exports = [
           await r.shot({ title: 'เลือกไฟล์ Excel แล้วจับคู่คอลัมน์', text: 'เลือกไฟล์ Excel/CSV จากเครื่อง ระบบจะจับคู่หัวคอลัมน์ให้อัตโนมัติ ตรวจแล้วกดนำเข้า · ปิดหน้าต่างด้วยปุ่ม ✕', marks: [{ el: role(p.getByRole('dialog'), 'button', 'ปิด').first(), label: 'ปิดหน้าต่าง', place: 'left' }] });
         },
       },
+      {
+        id: 'rollback-sheet', title: 'ย้อนข้อมูลทั้งชีตไปยังเวลาที่เลือก', summary: 'กู้ข้อมูลทั้งชีตกลับไปเหมือนเวลาก่อนแก้ผิด (ทำไมปุ่ม “ย้อนข้อมูล” กดไม่ได้)', as: 'admin', roles: ['admin'],
+        run: async (r) => {
+          const p = r.page;
+          await openDemoFile(r);
+          const fileId = new URL(p.url()).pathname.split('/')[2];
+          const sheet = (await r.call('GET', `/files/${fileId}`)).sheets[0];
+          const at = thaiNow();
+          // the "mistake" to undo: a row deleted a few seconds after the chosen minute (the rollback brings it back)
+          const row = (await r.call('POST', `/sheets/${sheet.id}/rows/query`, { limit: 1 })).rows[0];
+          await p.waitForTimeout(1500);
+          await r.call('DELETE', `/rows/${row.id}`);
+          await r.settle(600);
+          const btn = role(p, 'button', 'ย้อนข้อมูลทั้งชีต');
+          await r.shot({ title: 'ปุ่ม “ย้อนข้อมูลทั้งชีต”', text: 'เปิดไฟล์และชีตที่ต้องการ แล้วกดปุ่มรูป**ลูกศรวนกลับ**ที่แถบเครื่องมือขวามือ (เห็นเฉพาะ Admin / Root)\nใช้เมื่อมีการแก้ไขผิดจำนวนมาก เช่น นำเข้าข้อมูลผิดไฟล์ หรือลบแถวผิด', marks: [{ el: btn, label: 'ย้อนข้อมูลทั้งชีต', place: 'left' }] });
+          await btn.click(); await r.settle();
+          const dlg = p.getByRole('dialog');
+          await dlg.locator('input[type="datetime-local"]').fill(at);
+          await r.shot({ title: '1. เลือกเวลาที่ต้องการย้อนกลับไป', text: 'เลือก**วันที่และเวลา**ก่อนที่ข้อมูลจะผิด ระบบจะทำให้ทั้งชีตเหมือนตอนเวลานั้น (คอลัมน์ไม่เปลี่ยน)', marks: [{ el: dlg.locator('input[type="datetime-local"]'), label: 'เวลาก่อนแก้ผิด', place: 'below' }] });
+          await role(dlg, 'button', 'ดูผลกระทบ').click(); await r.settle(900);
+          await r.shot({ title: '2. กด “ดูผลกระทบ”', text: 'ระบบนับให้ก่อนว่าจะ**เปลี่ยนกี่เซลล์ ลบกี่แถว กู้คืนกี่แถว** — ตรวจตัวเลขว่าตรงกับที่คาดไว้\nตอนนี้ปุ่ม **ย้อนข้อมูล** ยังเป็นสีจาง เพราะยังไม่ได้ใส่เหตุผล', marks: [{ el: dlg.getByText('แถวที่จะกู้คืน'), label: 'สิ่งที่จะเกิดขึ้น', place: 'below' }, { el: role(dlg, 'button', 'ย้อนข้อมูล', { exact: true }), label: 'ยังกดไม่ได้', place: 'above' }] });
+          await dlg.locator('textarea').fill('.');
+          await r.shot({ title: '3. ทำไมปุ่ม “ย้อนข้อมูล” กดไม่ได้', text: 'ช่อง**เหตุผล**ต้องมี**อย่างน้อย 5 ตัวอักษร** (เหตุผลถูกบันทึกในประวัติการแก้ไข) — พิมพ์แค่ “.” จะยังกดไม่ได้ ใต้ช่องบอกว่าต้องพิมพ์อีกกี่ตัว', marks: [{ el: dlg.getByText(/พิมพ์เหตุผลอีก/), label: 'บอกจำนวนที่ยังขาด', place: 'below' }] });
+          await dlg.locator('textarea').fill('ลบแถวผิดเมื่อสักครู่ ขอกู้คืน');
+          await r.shot({ title: '4. ใส่เหตุผลแล้วกด “ย้อนข้อมูล”', text: 'พิมพ์เหตุผลให้ครบ ปุ่ม **ย้อนข้อมูล** สีแดงจะกดได้ กดแล้วยืนยันอีกครั้ง', marks: [{ el: role(dlg, 'button', 'ย้อนข้อมูล', { exact: true }), label: 'กด ย้อนข้อมูล', place: 'above' }] });
+          await role(dlg, 'button', 'ย้อนข้อมูล', { exact: true }).click(); await r.settle(500);
+          const confirm = p.getByRole('dialog').last();
+          await r.shot({ title: '5. ยืนยัน', text: 'อ่านข้อความแล้วกด **ย้อนข้อมูลทั้งชีต** — การย้อนจะถูกบันทึกเป็นการแก้ไขใหม่ จึงย้อนกลับได้อีกจากประวัติ', marks: [{ el: role(confirm, 'button', 'ย้อนข้อมูลทั้งชีต'), label: 'ยืนยัน', place: 'above' }] });
+          await role(confirm, 'button', 'ย้อนข้อมูลทั้งชีต').click(); await r.settle(1200);
+          r.note({ title: 'ย้อนเฉพาะบางแถว', text: 'ถ้าผิดแค่แถวเดียว ไม่ต้องย้อนทั้งชีต: เปิดแถวนั้นแล้วใช้ **ประวัติ** ของแถว (ดูเรื่อง “ดูประวัติการแก้ไข”) หรือกู้แถวที่ลบจาก **แถวที่ถูกลบ**' });
+        },
+      },
     ],
   },
 
@@ -601,6 +678,10 @@ module.exports = [
         id: 'request-access', title: 'ขอสิทธิ์เข้าถึงไฟล์', summary: 'เปิดไฟล์ที่ยังไม่มีสิทธิ์ แล้วส่งคำขอพร้อมเหตุผล', as: 'user',
         run: async (r) => {
           const p = r.page;
+          // a re-run starts clean: "user" has no access to the file and no request waiting
+          const me = (await r.call('GET', '/users?pageSize=100')).items.find((u) => u.username === 'user');
+          await r.call('DELETE', `/files/${QH_FILE}/access/${me.id}`);
+          for (const q of await r.callAs('user', 'GET', '/access-requests?box=mine&status=pending')) await r.callAs('user', 'POST', `/access-requests/${q.id}/cancel`, {});
           await r.go(`/files/${QH_FILE}`, 1500);
           await r.shot({ title: 'เปิดไฟล์ที่ยังไม่มีสิทธิ์', text: 'ถ้าเปิดไฟล์ (หรือลิงก์) ที่ยังไม่มีสิทธิ์ จะเห็นหน้า **คุณยังไม่มีสิทธิ์เข้าถึงไฟล์นี้** พร้อมฟอร์มขอสิทธิ์', marks: [{ el: p.getByText('คุณยังไม่มีสิทธิ์เข้าถึงไฟล์นี้'), label: 'ยังไม่มีสิทธิ์' }] });
           const note = p.locator('textarea').first();
@@ -633,6 +714,139 @@ module.exports = [
             await r.shot({ title: 'ยืนยันระดับสิทธิ์', text: 'ปรับระดับหรือวันหมดอายุได้ก่อนยืนยัน แล้วกด **อนุมัติ** ผู้ขอได้รับการแจ้งเตือนทันที', marks: [{ el: dlg.getByRole('button', { name: /อนุมัติ/ }).last(), label: 'กด อนุมัติ', place: 'above' }] });
             await dlg.getByRole('button', { name: /อนุมัติ/ }).last().click(); await r.settle(800);
           }
+        },
+      },
+    ],
+  },
+
+  /* ================================================================ */
+  {
+    id: 'news', title: 'ข่าวสาร', icon: 'news', description: 'อ่านข่าว โพสต์ประกาศ และส่งถึงคนที่เกี่ยวข้องด้วย Tag',
+    guides: [
+      {
+        id: 'news-read', title: 'อ่านข่าวสาร', summary: 'ดูประกาศที่ส่งถึงคุณ ข่าวปักหมุด ข่าวใหม่ และค้นหาข่าว', as: 'user',
+        run: async (r) => {
+          const p = r.page;
+          await newsStage(r);
+          await r.go('/', 1200);
+          await r.shot({ title: 'เมนู “ข่าวสาร”', text: 'เมนู **ข่าวสาร** อยู่ทางซ้าย ตัวเลขสีส้ม = **ข่าวใหม่ที่ยังไม่ได้อ่าน** (นับเฉพาะข่าวที่ส่งถึง Tag ของคุณ)', marks: [{ el: sidebar(p, 'ข่าวสาร'), label: 'กด ข่าวสาร', place: 'right' }] });
+          await sidebar(p, 'ข่าวสาร').click(); await r.settle(1300);
+          const pinned = p.locator('article').filter({ hasText: NEWS_ALL });
+          const qc = p.locator('article').filter({ hasText: NEWS_QC });
+          await r.shot({
+            title: 'หน้าข่าวสาร',
+            text: '• ข่าว**ปักหมุด**อยู่บนสุดเสมอ\n• ป้าย **ใหม่** = ข่าวที่ยังไม่เคยเห็น (เปิดหน้านี้แล้วตัวเลขที่เมนูจะหายไป)\n• **ถึง** บอกว่าข่าวส่งถึง Tag ไหน — **All** = ทุกคน',
+            marks: [{ el: pinned.getByText('ปักหมุด', { exact: true }), label: 'ข่าวปักหมุด', place: 'left' }, { el: pinned.locator('header').getByText('All', { exact: true }), label: 'ส่งถึงทุกคน', place: 'right' }],
+          });
+          await qc.scrollIntoViewIfNeeded();
+          await r.shot({ title: 'ข่าวที่ส่งถึงเฉพาะกลุ่ม', text: 'ข่าวนี้ส่งถึง Tag **QC** จึงเห็นเฉพาะคนที่มี Tag QC (และผู้ดูแลระบบ) — ลิงก์ที่ขึ้นต้นด้วย https:// ในข้อความกดเปิดได้\nถ้าข่าวส่งถึง Tag ของคุณ (ที่ไม่ใช่ All) จะมี**แจ้งเตือน**ที่รูปกระดิ่งด้วย กดแจ้งเตือนเพื่อเปิดข่าวนั้น', marks: [{ el: qc.locator('header').getByText('QC', { exact: true }), label: 'ส่งถึง Tag QC', place: 'right' }] });
+          await pinned.locator('img').first().click(); await r.settle(600);
+          await r.shot({ title: 'ดูรูปขนาดใหญ่', text: 'กดรูปในข่าวเพื่อดูเต็มจอ (มีหลายรูปกดลูกศรซ้าย/ขวา) · กด **✕** มุมขวาบนเพื่อปิด', marks: [{ el: p.getByRole('dialog', { name: 'ดูรูปภาพ' }).getByRole('button', { name: 'ปิด' }), label: 'ปิดรูป', place: 'left' }] });
+          await p.getByRole('dialog', { name: 'ดูรูปภาพ' }).getByRole('button', { name: 'ปิด' }).click(); await r.settle(400);
+          await p.locator('#page-scroll').evaluate((el) => el.scrollTo(0, 0));
+          await r.shot({ title: 'ค้นหาและกรองข่าว', text: 'พิมพ์คำค้นในช่อง**ค้นหา** (หาจากหัวข้อและข้อความ) · เลือก **Tag** เพื่อดูเฉพาะข่าวของกลุ่มนั้น · เปิด **ข่าวที่ฉันโพสต์** เพื่อดูเฉพาะของตัวเอง', marks: [{ el: box(p.getByPlaceholder('ค้นหาหัวข้อ / ข้อความ…')), label: 'ค้นหา', place: 'below' }, { el: p.getByLabel('กรองตาม Tag'), label: 'กรองตาม Tag', place: 'below' }] });
+        },
+      },
+      {
+        id: 'news-post', title: 'โพสต์ข่าว / ประกาศ', summary: 'เขียนข่าว แนบรูป เลือก Tag ของคนที่ควรเห็น (All = ทุกคน)', as: 'user',
+        run: async (r) => {
+          const p = r.page;
+          const { qc } = await newsStage(r);
+          await r.go('/news', 1200);
+          await r.shot({ title: 'กด “โพสต์ข่าว”', text: 'ที่หน้า **ข่าวสาร** กดปุ่ม **โพสต์ข่าว** มุมขวาบน (Viewer อ่านได้อย่างเดียว ไม่มีปุ่มนี้)', marks: [{ el: role(p, 'button', 'โพสต์ข่าว').first(), label: 'กด โพสต์ข่าว', place: 'left' }] });
+          await role(p, 'button', 'โพสต์ข่าว').first().click(); await r.settle();
+          const dlg = p.getByRole('dialog');
+          await dlg.getByPlaceholder(/แจ้งหยุดไลน์/).fill(NEWS_MINE);
+          await dlg.getByPlaceholder(/พิมพ์ข้อความ/).fill('สัปดาห์หน้า (16–20 พ.ย.) ไลน์ PF1 สลับเป็นกะเช้า 06:00–14:00\nตรวจรายชื่อได้ที่บอร์ดหน้าไลน์');
+          await r.shot({ title: 'ใส่หัวข้อและรายละเอียด', text: 'พิมพ์**หัวข้อ**ให้สั้นและชัด แล้วพิมพ์**รายละเอียด** (ขึ้นบรรทัดใหม่ได้ ลิงก์ https:// จะกดได้)', marks: [{ el: dlg.getByPlaceholder(/แจ้งหยุดไลน์/), label: 'หัวข้อ', place: 'below' }, { el: dlg.getByPlaceholder(/พิมพ์ข้อความ/), label: 'รายละเอียด', place: 'below' }] });
+          const group = dlg.getByRole('group').filter({ hasText: 'ส่งถึง (Tag)' });
+          await group.getByRole('button', { name: 'QC', exact: true }).click(); await r.settle(300);
+          await r.shot({ title: 'เลือกว่าใครควรเห็น (Tag)', text: 'แตะ **Tag** ของคนที่เกี่ยวข้อง (เลือกได้หลาย Tag) ใต้ช่องจะบอกว่าใครเห็นได้\n• กด **ส่งถึงทุกคน (เลือก All)** = ทุกคนในระบบเห็น\n• ต้องเลือกอย่างน้อย 1 Tag', marks: [{ el: group.getByRole('button', { name: 'QC', exact: true }), label: 'ส่งถึง Tag QC', place: 'right' }, { el: group.getByRole('button', { name: 'ส่งถึงทุกคน (เลือก All)' }), label: 'หรือส่งถึงทุกคน', place: 'right' }] });
+          await dlg.locator('input[type="file"]').setInputFiles({ name: 'shift.png', mimeType: 'image/png', buffer: await r.picture(POSTER.replace('หยุดซ่อมบำรุง<br>ไลน์ PF1', 'เปลี่ยนกะ<br>ไลน์ PF1').replace('เสาร์ 14 พ.ย. 2026 · 08:00–17:00', '16–20 พ.ย. 2026 · กะเช้า 06:00–14:00')) });
+          await dlg.locator('img').first().waitFor(); await r.settle(500);
+          await r.shot({ title: 'แนบรูป (ไม่บังคับ)', text: 'กด **เพิ่มรูป** แล้วเลือกรูปจากเครื่อง/กล้องมือถือ (ได้ถึง 10 รูป รูปใหญ่ถูกย่อให้อัตโนมัติ) · กด **✕** บนรูปเพื่อเอาออก\nช่อง **ลิงก์** ใส่ลิงก์ไฟล์ใน DocHUB (ปุ่มแชร์ → คัดลอกลิงก์) หรือเว็บไซต์ได้', marks: [{ el: dlg.locator('img').first(), label: 'รูปที่แนบ', place: 'right' }] });
+          await r.shot({ title: 'กด “โพสต์”', text: 'ตรวจแล้วกด **โพสต์** — คนที่มี Tag ที่เลือกจะเห็นข่าวทันที และได้รับแจ้งเตือน', marks: [{ el: role(dlg, 'button', 'โพสต์', { exact: true }), label: 'กด โพสต์', place: 'above' }] });
+          await role(dlg, 'button', 'โพสต์', { exact: true }).click(); await r.settle(1300);
+          const mine = p.locator('article').filter({ hasText: NEWS_MINE });
+          await mine.getByRole('button', { name: 'ตัวเลือกข่าว' }).click(); await r.settle(300);
+          await r.shot({ title: 'แก้ไขหรือลบข่าวของตัวเอง', text: 'ข่าวที่โพสต์แล้วอยู่ในรายการ (ข่าวปักหมุดยังอยู่บนสุด) · กด **⋯** ที่ข่าวของคุณเพื่อ **แก้ไข** หรือ **ลบ** — Admin แก้/ลบข่าวของทุกคนได้', marks: [{ el: p.locator('[role="menu"]').last(), label: 'แก้ไข / ลบ', place: 'left' }] });
+          await p.keyboard.press('Escape'); await r.settle(200);
+        },
+      },
+      {
+        id: 'news-pin', title: 'ปักหมุดข่าวสำคัญ', summary: 'ให้ข่าวสำคัญอยู่บนสุดของหน้าข่าวสาร', as: 'master', roles: ['master', 'admin'],
+        run: async (r) => {
+          const p = r.page;
+          await newsStage(r);
+          await r.go('/news', 1200);
+          const qc = p.locator('article').filter({ hasText: NEWS_QC });
+          await qc.getByRole('button', { name: 'ตัวเลือกข่าว' }).click(); await r.settle(300);
+          await r.shot({ title: 'กด ⋯ แล้ว “ปักหมุดไว้บนสุด”', text: 'Master / Admin ปักหมุดข่าวได้ (ของใครก็ได้): กด **⋯** ที่ข่าว แล้วเลือก **ปักหมุดไว้บนสุด** · ข่าวที่ปักหมุดอยู่แล้วจะเป็น **เลิกปักหมุด**', marks: [{ el: p.getByRole('menuitem', { name: 'ปักหมุดไว้บนสุด' }).or(p.getByText('ปักหมุดไว้บนสุด')).last(), label: 'ปักหมุด', place: 'left' }] });
+          await p.getByText('ปักหมุดไว้บนสุด').last().click(); await r.settle(1000);
+          await r.shot({ title: 'ข่าวขึ้นไปอยู่บนสุด', text: 'ข่าวที่ปักหมุดมีป้าย **ปักหมุด** และกรอบสีน้ำเงิน เรียงอยู่บนสุดเสมอ (ปักหลายข่าวได้ ข่าวใหม่กว่าอยู่บน)\nตอนโพสต์ข่าว Master / Admin เปิดสวิตช์ **ปักหมุดไว้บนสุด** ได้เลย', marks: [{ el: p.locator('article').filter({ hasText: NEWS_QC }).getByText('ปักหมุด', { exact: true }), label: 'ปักหมุดแล้ว', place: 'left' }] });
+          await r.call('POST', `/news/${(await r.call('GET', '/news?pageSize=50')).items.find((x) => x.title === NEWS_QC).id}/pin`, { pinned: false });
+        },
+      },
+    ],
+  },
+
+  /* ================================================================ */
+  {
+    id: 'tags', title: 'Tag (กลุ่มผู้ใช้)', icon: 'tags', description: 'ดู Tag ของตัวเอง ขอ Tag อนุมัติคำขอ และกำหนด Tag ให้ผู้ใช้',
+    guides: [
+      {
+        id: 'tag-request', title: 'ขอ Tag (ขอเข้ากลุ่ม)', summary: 'ดู Tag ของตัวเอง แล้วส่งคำขอถึง Admin / Master ที่เลือก', as: 'user',
+        run: async (r) => {
+          const p = r.page;
+          await tagRequestReset(r);
+          await r.go('/', 900);
+          await r.shot({ title: 'กดเมนู “Tag”', text: 'กดเมนู **Tag** ทางซ้าย', marks: [{ el: sidebar(p, 'Tag'), label: 'กด Tag', place: 'right' }] });
+          await sidebar(p, 'Tag').click(); await r.settle(1000);
+          await r.shot({ title: 'Tag ของฉัน', text: '**Tag ของฉัน** = กลุ่มที่คุณอยู่ · ทุกคนมี Tag **All** · ได้ Tag แล้วจะเห็นไฟล์ โฟลเดอร์ และข่าวที่แชร์ให้ Tag นั้น\nถ้าต้องการเข้ากลุ่มอื่น กด **ขอ Tag**', marks: [{ el: p.locator('div.ds-card').filter({ hasText: 'Tag ของฉัน' }).first(), label: 'Tag ที่คุณมี', place: 'below' }, { el: role(p, 'button', 'ขอ Tag'), label: 'กด ขอ Tag', place: 'left' }] });
+          await role(p, 'button', 'ขอ Tag').click(); await r.settle(900);
+          const dlg = p.getByRole('dialog');
+          const sel = dlg.locator('select');
+          await sel.nth(0).selectOption({ label: (await sel.nth(0).locator('option').allInnerTexts()).find((t) => t.startsWith(REQ_TAG)) });
+          await sel.nth(1).selectOption({ label: (await sel.nth(1).locator('option').allInnerTexts()).find((t) => t.startsWith('สมชาย ใจดี')) });
+          await dlg.locator('textarea').fill('ย้ายมาประจำไลน์ PF1 ตั้งแต่ 16 พ.ย.');
+          await r.shot({ title: 'เลือก Tag และผู้อนุมัติ', text: '1. **Tag ที่ต้องการ** — เลือกกลุ่มที่จะขอเข้า\n2. **ส่งคำขอถึง** — เลือก Admin หรือ Master ที่จะอนุมัติ (เช่น หัวหน้าแผนก) คนนั้นจะได้รับแจ้งเตือน\n3. ใส่**เหตุผล** (ไม่บังคับ) แล้วกด **ส่งคำขอ**', marks: [{ el: sel.nth(0), label: 'Tag ที่ต้องการ', place: 'left' }, { el: sel.nth(1), label: 'ผู้อนุมัติ', place: 'left' }, { el: role(dlg, 'button', 'ส่งคำขอ'), label: 'กด ส่งคำขอ', place: 'above' }] });
+          await role(dlg, 'button', 'ส่งคำขอ').click(); await r.settle(1000);
+          const row = p.locator('div.ds-card').filter({ hasText: 'คำขอของฉัน' }).getByText('รออนุมัติ').first();
+          await r.shot({ title: 'ติดตามสถานะคำขอ', text: 'คำขออยู่ใน **คำขอของฉัน** สถานะ **รออนุมัติ** · เมื่อผู้อนุมัติกดอนุมัติ คุณจะได้แจ้งเตือนและ Tag ขึ้นใน **Tag ของฉัน** ทันที · กด **ยกเลิก** ถ้าไม่ต้องการแล้ว', marks: [{ el: row, label: 'สถานะคำขอ', place: 'left' }] });
+        },
+      },
+      {
+        id: 'tag-approve', title: 'อนุมัติคำขอ Tag', summary: 'ตรวจคำขอที่ส่งถึงคุณ แล้วอนุมัติหรือไม่อนุมัติ', as: 'master', roles: ['master', 'admin'],
+        run: async (r) => {
+          const p = r.page;
+          const { t, users } = await tagRequestReset(r);
+          const master = users.find((u) => u.username === 'master');
+          await r.callAs('user', 'POST', '/tag-requests', { tagId: t.id, approverId: master.id, note: 'ย้ายมาประจำไลน์ PF1 ตั้งแต่ 16 พ.ย.' });
+          await r.go('/', 1200);
+          await r.shot({ title: 'มีคำขอส่งถึงคุณ', text: 'เมื่อมีคนขอ Tag และเลือกส่งถึงคุณ จะมี**แจ้งเตือน**ที่กระดิ่ง และตัวเลขที่เมนู **Tag** — กดเมนู Tag', marks: [{ el: sidebar(p, 'Tag'), label: 'คำขอที่รอคุณ', place: 'right' }] });
+          await sidebar(p, 'Tag').click(); await r.settle(800);
+          await p.getByRole('button', { name: /คำขอ Tag/ }).click(); await r.settle(900);
+          const item = p.locator('div.ds-card div.divide-y > div').filter({ hasText: REQ_TAG }).first();
+          await r.shot({ title: 'แท็บ “คำขอ Tag”', text: 'แต่ละรายการบอก**ใคร**ขอ Tag **อะไร** และเหตุผล\n• **อนุมัติ** = ใส่ Tag ให้ผู้ใช้ทันที\n• **ไม่อนุมัติ** = ใส่เหตุผลให้ผู้ขอเห็น', marks: [{ el: role(item, 'button', 'อนุมัติ', { exact: true }), label: 'อนุมัติ', place: 'left' }, { el: role(item, 'button', 'ไม่อนุมัติ'), label: 'ไม่อนุมัติ', place: 'below' }] });
+          await role(item, 'button', 'อนุมัติ', { exact: true }).click(); await r.settle(1000);
+          await p.getByRole('button', { name: 'ทุกสถานะ' }).click(); await r.settle(800);
+          await r.shot({ title: 'อนุมัติแล้ว', text: 'ผู้ขอได้รับแจ้งเตือน และ Tag ขึ้นที่ **Tag ของฉัน** ของเขาทันที · เลือก **ทุกสถานะ** เพื่อดูคำขอที่พิจารณาแล้ว\nAdmin เลือก **ทั้งหมด (Admin)** เพื่อพิจารณาคำขอที่ส่งถึงคนอื่นแทนได้ (เช่น ผู้อนุมัติลา)', marks: [{ el: p.getByText('อนุมัติแล้ว', { exact: true }).first(), label: 'สถานะ', place: 'left' }] });
+        },
+      },
+      {
+        id: 'tag-manage', title: 'สร้าง Tag และกำหนด Tag ให้ผู้ใช้ (Master)', summary: 'Master / Admin สร้าง Tag ใส่หรือเอาผู้ใช้ออกจาก Tag', as: 'master', roles: ['master', 'admin'],
+        run: async (r) => {
+          const p = r.page;
+          await tagWith(r, 'QC', '#E11D48', ['user', 'master'], 'ฝ่ายควบคุมคุณภาพ');
+          await r.go('/tags?tab=manage', 1200);
+          const allCard = p.locator('div.ds-card').filter({ hasText: 'Tag ของระบบ' }).first();
+          await r.shot({ title: 'แท็บ “จัดการ Tag”', text: 'เมนู **Tag** → แท็บ **จัดการ Tag** (Master และ Admin) · กด **สร้าง Tag** เพื่อสร้างกลุ่มใหม่ เช่น แผนก ไลน์ผลิต กะ\nTag **All** เป็น Tag ของระบบ = ทุกคน (เปลี่ยนชื่อ ลบ หรือใส่สมาชิกไม่ได้)', marks: [{ el: role(p, 'button', 'สร้าง Tag').first(), label: 'สร้าง Tag', place: 'left' }, { el: allCard, label: 'Tag All = ทุกคน', place: 'below' }] });
+          const card = p.locator('div.ds-card').filter({ has: p.getByText('QC', { exact: true }) }).filter({ has: p.getByRole('button', { name: 'สมาชิก', exact: true }) }).first();
+          await card.getByRole('button', { name: 'สมาชิก', exact: true }).click(); await r.settle(900);
+          const m = p.getByRole('dialog');
+          await r.shot({ title: 'กำหนดสมาชิกของ Tag', text: 'กด **สมาชิก** ที่การ์ด Tag → ค้นหาชื่อแล้วกดเลือกเพื่อ**เพิ่ม** · กดรูปคนมีขีดเพื่อ**เอาออก** มีผลกับสิทธิ์ไฟล์และข่าวที่แชร์ให้ Tag นี้ทันที', marks: [{ el: m.getByText('ค้นหาผู้ใช้เพื่อเพิ่มเข้า Tag…'), label: 'ค้นหาเพื่อเพิ่ม', place: 'below' }] });
+          await role(m, 'button', 'ปิด').last().click(); await r.settle(300);
+          r.note({ title: 'ใครทำอะไรได้', text: '• **Master / Admin**: สร้าง แก้ไข Tag และกำหนดสมาชิก · อนุมัติคำขอ Tag\n• **Admin**: ลบ Tag ได้ด้วย (ลบแล้วสิทธิ์ที่แชร์ให้ Tag นั้นหายทั้งหมด)\n• **User / Viewer**: ขอ Tag ได้ที่แท็บ Tag ของฉัน → ขอ Tag' });
         },
       },
     ],
@@ -801,7 +1015,7 @@ module.exports = [
 
   /* ================================================================ */
   {
-    id: 'admin', title: 'ผู้ดูแลระบบ (Admin)', icon: 'shield', description: 'จัดการผู้ใช้ อนุมัติบัญชีใหม่ และ Tag', roles: ['admin'],
+    id: 'admin', title: 'ผู้ดูแลระบบ (Admin)', icon: 'shield', description: 'จัดการผู้ใช้ อนุมัติบัญชีใหม่ Tag และจัดการสิทธิ์ (Root)', roles: ['admin'],
     guides: [
       {
         id: 'admin-add-user', title: 'เพิ่มผู้ใช้ใหม่', summary: 'สร้างบัญชีให้พนักงาน กำหนดบทบาทและ Tag', as: 'admin', roles: ['admin'],
@@ -814,9 +1028,12 @@ module.exports = [
           const dlg = p.getByRole('dialog');
           const ins = dlg.locator('input');
           await ins.nth(0).fill('ประเสริฐ มั่นคง'); await ins.nth(1).fill('prasert'); await ins.nth(2).fill('prasert@example.com'); await ins.nth(3).fill('Welcome2026!');
-          await r.shot({ title: 'กรอกข้อมูลบัญชี', text: 'กรอก**ชื่อที่แสดง ชื่อผู้ใช้ อีเมล** และ**รหัสผ่านเริ่มต้น** (แจ้งพนักงานให้เปลี่ยนเองภายหลัง)', marks: [{ el: ins.nth(1), label: 'ชื่อผู้ใช้สำหรับเข้าสู่ระบบ', place: 'left' }, { el: ins.nth(3), label: 'รหัสผ่านเริ่มต้น', place: 'left' }] });
+          await r.shot({ title: 'กรอกข้อมูลบัญชี', text: 'กรอก**ชื่อที่แสดง ชื่อผู้ใช้** และ**รหัสผ่านเริ่มต้น** (แจ้งพนักงานให้เปลี่ยนเองภายหลัง) · **อีเมลไม่บังคับ** ไม่มีเว้นว่างได้', marks: [{ el: ins.nth(1), label: 'ชื่อผู้ใช้สำหรับเข้าสู่ระบบ', place: 'left' }, { el: ins.nth(3), label: 'รหัสผ่านเริ่มต้น', place: 'left' }] });
           await r.shot({ title: 'เลือกบทบาทและ Tag แล้วกด “สร้างผู้ใช้”', text: 'เลือก**บทบาท** (คำอธิบายใต้ช่องบอกว่าทำอะไรได้) และแตะ **Tag** ที่ต้องการ (เลือกได้หลาย Tag) แล้วกด **สร้างผู้ใช้**', marks: [{ el: dlg.locator('select').first(), label: 'บทบาท', place: 'left' }, { el: role(dlg, 'button', 'สร้างผู้ใช้'), label: 'กด สร้างผู้ใช้', place: 'above' }] });
-          await role(dlg, 'button', 'สร้างผู้ใช้').click(); await r.settle(1000);
+          // (a re-run: the example account is already there — close the form and use it)
+          const exists = (await r.call('GET', '/users?pageSize=100&search=prasert')).items.some((u) => u.username === 'prasert');
+          if (exists) { await role(dlg, 'button', 'ยกเลิก').click(); await r.settle(300); await p.getByPlaceholder('ค้นหาชื่อ ชื่อผู้ใช้ หรืออีเมล').fill('prasert'); await r.settle(900); }
+          else { await role(dlg, 'button', 'สร้างผู้ใช้').click(); await r.settle(1000); }
           const row = p.locator('tr').filter({ hasText: '@prasert' });
           await row.getByRole('button', { name: 'ตัวเลือก' }).click(); await r.settle(300);
           await r.shot({ title: 'แก้ไข / รีเซ็ตรหัสผ่าน / ปิดการใช้งาน', text: 'กดปุ่ม **⋯** ท้ายแถวผู้ใช้:\n• **แก้ไข** ชื่อ อีเมล บทบาท Tag\n• **รีเซ็ตรหัสผ่าน** เมื่อพนักงานลืมรหัสผ่าน\n• **ปิดการใช้งาน** เมื่อพนักงานลาออก (เข้าสู่ระบบไม่ได้ทันที)', marks: [{ el: p.locator('[role="menu"]').last(), label: 'คำสั่งของผู้ใช้', place: 'left' }] });
@@ -846,7 +1063,7 @@ module.exports = [
           const p = r.page;
           for (const t of await r.call('GET', '/tags')) if (t.name === 'กะดึก') await r.call('DELETE', `/tags/${t.id}`); // a re-run starts clean
           await r.go('/users/tags', 900);
-          await r.shot({ title: 'แท็บ “Tag” แล้วกด “สร้าง Tag”', text: 'ไปที่ **จัดการผู้ใช้ → Tag** แล้วกด **สร้าง Tag**', marks: [{ el: role(p, 'button', 'สร้าง Tag').first(), label: 'กด สร้าง Tag', place: 'left' }] });
+          await r.shot({ title: 'แท็บ “Tag” แล้วกด “สร้าง Tag”', text: 'ไปที่ **จัดการผู้ใช้ → Tag** (หรือเมนู **Tag** → **จัดการ Tag** ซึ่ง Master ใช้ได้ด้วย) แล้วกด **สร้าง Tag**', marks: [{ el: role(p, 'button', 'สร้าง Tag').first(), label: 'กด สร้าง Tag', place: 'left' }] });
           await role(p, 'button', 'สร้าง Tag').first().click(); await r.settle();
           const dlg = p.getByRole('dialog');
           await dlg.locator('input').first().fill('กะดึก');
@@ -877,10 +1094,27 @@ module.exports = [
         },
       },
       {
+        id: 'root-permissions', title: 'จัดการสิทธิ์ว่าบทบาทไหนเห็นหน้าไหน (Root)', summary: 'บัญชี Root กำหนดเมนูด้านซ้ายและปุ่ม AI ของแต่ละบทบาท', as: 'root', roles: ['root'],
+        run: async (r) => {
+          const p = r.page;
+          r.note({ title: 'เข้าสู่ระบบด้วยบัญชี Root (ครั้งแรก)', text: 'ระบบสร้างบัญชี **root** ให้เองครั้งแรกที่ server เปิดด้วยเวอร์ชันนี้\n• ชื่อผู้ใช้: **root**\n• รหัสผ่าน: **Root@** ตามด้วยวันที่วันนั้นตามเวลาไทยแบบ **วันเดือนปี ค.ศ. 8 หลัก** เช่น ติดตั้งวันที่ 11 พ.ย. 2026 → **Root@11112026**\nเข้าแล้ว**เปลี่ยนรหัสผ่านทันที** ที่ ตั้งค่า → เปลี่ยนรหัสผ่าน (ดูเรื่อง “เปลี่ยนรหัสผ่าน”)', tip: 'Root ทำได้ทุกอย่างเหมือน Admin · Admin แก้ไข/ปิด/รีเซ็ตรหัสผ่านบัญชี Root ไม่ได้ และให้บทบาท Root ได้เฉพาะ Root' });
+          await r.shot({ title: 'กดเมนู “จัดการสิทธิ์”', text: 'เมนู **จัดการสิทธิ์** เห็นเฉพาะบัญชี **Root**', marks: [{ el: sidebar(p, 'จัดการสิทธิ์'), label: 'กด จัดการสิทธิ์', place: 'right' }] });
+          await sidebar(p, 'จัดการสิทธิ์').click(); await r.settle(1300);
+          await r.shot({ title: 'ตารางสิทธิ์', text: 'แถว = หน้าในเมนูด้านซ้าย · คอลัมน์ = บทบาท · **ช่องติ๊ก** = บทบาทนั้นเห็นเมนูและเปิดหน้านั้นได้\nช่องที่มี**รูปกุญแจ**เปลี่ยนไม่ได้ เช่น **จัดการผู้ใช้** ต้องเป็น Admin ขึ้นไป · **หน้าแรก** และ **ตั้งค่า** ทุกคนต้องเห็น · Root เห็นทุกหน้าเสมอ', marks: [{ el: p.getByRole('checkbox', { name: 'จัดการผู้ใช้ — Master' }), label: 'กุญแจ = เปลี่ยนไม่ได้', place: 'left' }, { el: p.locator('thead').getByText('Root', { exact: true }), label: 'Root เห็นทุกหน้า', place: 'below' }] });
+          await p.getByRole('checkbox', { name: 'Monitor — Master' }).click(); await r.settle(300);
+          await r.shot({ title: 'ติ๊กเปิด / ปิด แล้วกด “บันทึก”', text: 'ตัวอย่าง: ให้ **Master** เห็นหน้า **Monitor** → ติ๊กช่อง Monitor ในคอลัมน์ Master · ด้านล่างขึ้นแถบ **มีการเปลี่ยนแปลงที่ยังไม่บันทึก** → กด **บันทึก**\nเมนูของผู้ใช้ที่เปิดเว็บอยู่จะเปลี่ยนตามทันทีโดยไม่ต้องออกจากระบบ', marks: [{ el: p.getByRole('checkbox', { name: 'Monitor — Master' }), label: 'ติ๊กเพื่อให้เห็น', place: 'left' }, { el: role(p, 'button', 'บันทึก').first(), label: 'กด บันทึก', place: 'left' }] });
+          await p.getByRole('checkbox', { name: 'Monitor — Master' }).click(); await r.settle(300); // (the demo keeps the defaults)
+          const ai = p.getByRole('checkbox', { name: /ผู้ช่วย AI.*— User/ });
+          await ai.scrollIntoViewIfNeeded();
+          await r.shot({ title: 'ปุ่ม AI บนแถบด้านบน', text: 'แถว **ผู้ช่วย AI** กำหนดว่าใครเห็นปุ่ม **AI** ที่แถบด้านบน · ค่าเริ่มต้น: เฉพาะ **Admin** และ **Root** · ติ๊กให้บทบาทอื่นได้ถ้าต้องการ', marks: [{ el: p.getByText('ผู้ช่วย AI (ไอคอน AI บนแถบด้านบน)'), label: 'ปุ่ม AI', place: 'right' }] });
+          r.note({ title: 'คืนค่าเริ่มต้น และข้อควรรู้', text: '• **คืนค่าเริ่มต้น** = ตั้งทุกบทบาทกลับเป็นค่าของระบบ (ต้องกดบันทึก)\n• การซ่อนเมนู**ไม่ได้ลบสิทธิ์ไฟล์** — ไฟล์ที่ถูกแชร์ยังเปิดจากลิงก์ได้\n• หน้าที่ถูกปิด ถ้าพิมพ์ที่อยู่เข้าไปตรงๆ ระบบจะพากลับหน้าแรก' });
+        },
+      },
+      {
         id: 'monitor', title: 'ดูการใช้งานระบบ (Monitor)', summary: 'จำนวนการใช้งานผ่าน Cloudflare และในโรงงาน ต่อนาที/ชั่วโมง/วัน/เดือน', as: 'admin', roles: ['admin'],
         run: async (r) => {
           const p = r.page;
-          await r.shot({ title: 'กดเมนู “Monitor”', text: 'กดเมนู **Monitor** ทางซ้าย (เห็นเฉพาะ Admin)', marks: [{ el: sidebar(p, 'Monitor'), label: 'กด Monitor', place: 'right' }] });
+          await r.shot({ title: 'กดเมนู “Monitor”', text: 'กดเมนู **Monitor** ทางซ้าย (ค่าเริ่มต้นเห็นเฉพาะ Admin / Root — Root เปิดให้บทบาทอื่นได้ที่ **จัดการสิทธิ์**)', marks: [{ el: sidebar(p, 'Monitor'), label: 'กด Monitor', place: 'right' }] });
           await sidebar(p, 'Monitor').click(); await r.settle(2500);
           await r.shot({
             title: 'ตัวเลขวันนี้',

@@ -83,7 +83,7 @@ export default function SignupPage() {
               <Field label="ชื่อ-นามสกุล" required><TextInput icon={<UserIcon />} value={f.displayName} onChange={set('displayName')} required maxLength={200} autoFocus={!oauthToken} /></Field>
               {!oauthToken && (
                 <>
-                  <Field label="อีเมล" required><TextInput icon={<Mail />} type="email" value={f.email} onChange={set('email')} required maxLength={255} autoComplete="email" /></Field>
+                  <Field label="อีเมล" hint="ไม่บังคับ — ไม่มีอีเมลเว้นว่างได้"><TextInput icon={<Mail />} type="email" value={f.email} onChange={set('email')} maxLength={255} autoComplete="email" /></Field>
                   <Field label="ชื่อผู้ใช้ (ใช้เข้าสู่ระบบ)" required hint="a-z 0-9 . _ - อย่างน้อย 3 ตัว">
                     <TextInput icon={<UserIcon />} value={f.username} onChange={set('username')} required minLength={3} maxLength={100} pattern="[a-zA-Z0-9._\-]+" autoComplete="username" />
                   </Field>

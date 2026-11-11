@@ -1,8 +1,8 @@
-import { isBasicRole } from '@/types';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
-import { Activity, BookOpen, CheckCircle2, Cpu, Database, FolderOpen, History, Home, KeyRound, LayoutDashboard, LogOut, Search, Settings, Trash2, Users, X } from 'lucide-react';
+import { LogOut, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { Badge, canSee, NAV } from '@/lib/pages';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { useUi } from '@/store/ui';
@@ -10,27 +10,15 @@ import { useUi } from '@/store/ui';
 function SidebarBody({ onNavigate, scope }: { onNavigate?: () => void; scope: string }) {
   const user = useAuth((s) => s.user)!;
   const logout = useAuth((s) => s.logout);
-  const pending = useData((s) => s.pendingReviews);
-  const pendingAccounts = useData((s) => s.pendingAccounts);
+  const counts: Record<Badge, number> = {
+    reviews: useData((s) => s.pendingReviews),
+    accounts: useData((s) => s.pendingAccounts),
+    tagRequests: useData((s) => s.pendingTagRequests),
+    news: useData((s) => s.newsUnread),
+  };
   const { pathname } = useLocation();
-  const inFiles = pathname.startsWith('/browse') || pathname.startsWith('/folders') || pathname.startsWith('/files');
-
-  const items = [
-    { to: '/', label: 'หน้าแรก', icon: <Home className="h-[18px] w-[18px]" />, active: pathname === '/' },
-    { to: '/browse', label: 'ไฟล์ทั้งหมด', icon: <FolderOpen className="h-[18px] w-[18px]" />, active: inFiles },
-    { to: '/access-requests', label: 'คำขอสิทธิ์', icon: <KeyRound className="h-[18px] w-[18px]" />, badge: pending },
-    ...(!isBasicRole(user.role) ? [{ to: '/audit', label: 'ประวัติการแก้ไข', icon: <History className="h-[18px] w-[18px]" /> }] : []),
-    ...(user.role === 'admin' ? [{ to: '/users', label: 'จัดการผู้ใช้', icon: <Users className="h-[18px] w-[18px]" />, badge: pendingAccounts }] : []),
-    ...(user.role === 'admin' ? [{ to: '/monitor', label: 'Monitor', icon: <Activity className="h-[18px] w-[18px]" /> }] : []),
-    { to: '/trash', label: 'ถังขยะ', icon: <Trash2 className="h-[18px] w-[18px]" /> },
-    ...(!isBasicRole(user.role) ? [{ to: '/devices', label: 'อุปกรณ์ (RFID/IoT)', icon: <Cpu className="h-[18px] w-[18px]" /> }] : []),
-    ...(!isBasicRole(user.role) ? [{ to: '/connectors', label: 'ดึงข้อมูลจากลิงก์/API', icon: <Database className="h-[18px] w-[18px]" /> }] : []),
-    { to: '/approvals', label: 'อนุมัติเอกสาร', icon: <CheckCircle2 className="h-[18px] w-[18px]" /> },
-    { to: '/traceback', label: 'Search', icon: <Search className="h-[18px] w-[18px]" /> },
-    { to: '/dashboards', label: 'แดชบอร์ด', icon: <LayoutDashboard className="h-[18px] w-[18px]" /> },
-    { to: '/guide', label: 'คู่มือ', icon: <BookOpen className="h-[18px] w-[18px]" /> },
-    { to: '/settings', label: 'ตั้งค่า', icon: <Settings className="h-[18px] w-[18px]" /> },
-  ];
+  // pages the role sees: set by a root on จัดการสิทธิ์ (lib/pages.tsx)
+  const items = NAV.filter((n) => canSee(user, n.key)).map((n) => ({ ...n, active: n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
 
   return (
     <div className="flex h-full flex-col">

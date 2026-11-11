@@ -4,6 +4,7 @@ import { ah, badRequest, likeEscape, ok } from '../../shared/http';
 import { mapColumn } from '../../shared/mappers';
 import { LV, PermCtx } from '../../shared/permissions';
 import { hydrateRows, userNames } from '../../services/rowQuery';
+import { requirePage } from '../pageAccess/service';
 
 /**
  * "Search" (menu Search): one word or phrase → every row of every sheet the user can read whose data contains it,
@@ -15,6 +16,7 @@ const PREVIEW_COLS = 4;
 
 router.get(
   '/search/data',
+  requirePage('search'),
   ah(async (req, res) => {
     const text = String(req.query.q ?? '').trim().slice(0, 100);
     if (text.length < 2) throw badRequest('พิมพ์อย่างน้อย 2 ตัวอักษร');

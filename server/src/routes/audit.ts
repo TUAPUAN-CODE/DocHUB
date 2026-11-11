@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { isBasicRole } from '../middleware/auth';
+import { isAdminRole, isBasicRole } from '../middleware/auth';
 import { jsonParam, q, q1, T } from '../config/db';
 import { ah, isGuid, likeEscape, ok, pageParams, safeJson } from '../shared/http';
 import { LV, PermCtx, requireFile } from '../shared/permissions';
@@ -17,7 +17,7 @@ router.get(
 
     if (qs.fileId && isGuid(qs.fileId)) {
       const fileId = qs.fileId.toLowerCase();
-      if (u.role !== 'admin') await requireFile(u, fileId, LV.manage);
+      if (!isAdminRole(u.role)) await requireFile(u, fileId, LV.manage);
       where.push('a.file_id = @file');
       p.file = T.uuid(fileId);
     } else if (isBasicRole(u.role)) {

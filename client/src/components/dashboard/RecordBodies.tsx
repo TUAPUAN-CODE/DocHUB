@@ -93,7 +93,8 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
       <div className="mb-2 flex shrink-0 items-center gap-2 rounded-xl border border-line bg-surface px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15" onMouseDown={(e) => e.stopPropagation()}>
         <Search className="h-4 w-4 shrink-0 text-muted" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={c.placeholder || (searchNames.length ? `ค้นหา ${searchNames.join(' / ')}` : 'ค้นหา…')}
-          className="h-11 min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" enterKeyHint="search" />
+          className="h-11 min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" enterKeyHint="search"
+          style={{ fontSize: 'max(16px, 1em)' }} /* iPhone zooms the page into a field smaller than 16 px */ />
         {q && <button onClick={() => setQ('')} aria-label="ล้างคำค้น" className="rounded-full p-1 text-muted hover:bg-ink/10"><X className="h-4 w-4" /></button>}
       </div>
       <div className="mb-1.5 flex shrink-0 flex-wrap items-center justify-between gap-x-3 text-xs opacity-70">

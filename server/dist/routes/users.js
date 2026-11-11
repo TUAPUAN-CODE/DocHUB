@@ -13,6 +13,10 @@ const http_1 = require("../shared/http");
 const mappers_1 = require("../shared/mappers");
 const routes_1 = require("../modules/tags/routes");
 const router = (0, express_1.Router)();
+/** e-mail is optional (some staff have none): '' → null */
+const zEmail = zod_1.z.string().trim().max(255).transform((v) => v.toLowerCase())
+    .refine((v) => v === '' || zod_1.z.string().email().safeParse(v).success, 'อีเมลไม่ถูกต้อง')
+    .transform((v) => v || null);
 const adminOnly = (0, auth_1.requireRole)('admin');
 const zRole = zod_1.z.enum(auth_1.ROLES);
 async function setRole(tx, userId, role, by) {
@@ -20,9 +24,18 @@ async function setRole(tx, userId, role, by) {
     await (0, db_1.q)(`INSERT INTO UserRoles (user_id, role_id, assigned_by) VALUES (@u, @r, @b)`, { u: db_1.T.uuid(userId), r: auth_1.ROLE_ID[role], b: db_1.T.uuid(by) }, tx);
 }
 async function activeAdminCount(excludeIds = []) {
-    const r = await (0, db_1.q1)(`SELECT COUNT(*) AS n FROM Users u JOIN UserRoles ur ON ur.user_id = u.user_id AND ur.role_id = 3
+    const r = await (0, db_1.q1)(`SELECT COUNT(DISTINCT u.user_id) AS n FROM Users u JOIN UserRoles ur ON ur.user_id = u.user_id AND ur.role_id >= 3
      WHERE u.is_active = 1 AND u.user_id NOT IN ${(0, db_1.idList)('@ex')}`, { ex: (0, db_1.jsonParam)(excludeIds) });
     return Number(r?.n ?? 0);
+}
+/** Root accounts and the root role are handled by a root only */
+function assertCanGrant(actor, role) {
+    if (role === 'root' && actor.role !== 'root')
+        throw (0, http_1.forbidden)('บทบาท Root ให้ได้เฉพาะผู้ใช้ Root เท่านั้น');
+}
+function assertCanManage(actor, targetRole) {
+    if (targetRole === 'root' && actor.role !== 'root')
+        throw (0, http_1.forbidden)('บัญชี Root แก้ไขได้เฉพาะผู้ใช้ Root เท่านั้น');
 }
 async function getUser(id) {
     return (0, db_1.q1)(`SELECT u.*, ${auth_1.ROLE_SQL} AS role FROM Users u WHERE u.user_id = @id`, { id: db_1.T.uuid(id) });
@@ -39,13 +52,13 @@ router.get('/users/lookup', (0, http_1.ah)(async (req, res) => {
 router.put('/users/me/profile', (0, http_1.ah)(async (req, res) => {
     const body = (0, http_1.parse)(zod_1.z.object({
         displayName: zod_1.z.string().trim().min(1).max(200),
-        email: zod_1.z.string().trim().email('อีเมลไม่ถูกต้อง').max(255),
+        email: zEmail.nullish(),
         avatarUrl: zod_1.z.string().max(1000).nullish(),
     }), req.body);
-    const dup = await (0, db_1.q1)(`SELECT user_id FROM Users WHERE email = @e AND user_id <> @id`, { e: body.email, id: db_1.T.uuid(req.user.id) });
-    if (dup)
+    const email = body.email ?? null;
+    if (email && (await (0, db_1.q1)(`SELECT user_id FROM Users WHERE email = @e AND user_id <> @id`, { e: email, id: db_1.T.uuid(req.user.id) })))
         throw (0, http_1.conflict)('อีเมลนี้ถูกใช้งานแล้ว');
-    await (0, db_1.q)(`UPDATE Users SET display_name = @n, email = @e, avatar_url = @a, updated_at = SYSUTCDATETIME() WHERE user_id = @id`, { n: body.displayName, e: body.email, a: db_1.T.text(body.avatarUrl ?? null), id: db_1.T.uuid(req.user.id) });
+    await (0, db_1.q)(`UPDATE Users SET display_name = @n, email = @e, avatar_url = @a, updated_at = SYSUTCDATETIME() WHERE user_id = @id`, { n: body.displayName, e: db_1.T.text(email), a: db_1.T.text(body.avatarUrl ?? null), id: db_1.T.uuid(req.user.id) });
     (0, auth_1.invalidateUserCache)(req.user.id);
     (0, http_1.ok)(res, (0, mappers_1.mapUser)(await getUser(req.user.id)));
 }));
@@ -62,7 +75,7 @@ router.get('/users', adminOnly, (0, http_1.ah)(async (req, res) => {
     }
     const tag = String(req.query.tag ?? '');
     if (/^[0-9a-f-]{36}$/i.test(tag)) {
-        where.push('EXISTS (SELECT 1 FROM UserTags ut WHERE ut.user_id = u.user_id AND ut.tag_id = @tag)');
+        where.push('EXISTS (SELECT 1 FROM UserTagsAll ut WHERE ut.user_id = u.user_id AND ut.tag_id = @tag)'); // view: + the system tag All
         p.tag = db_1.T.uuid(tag);
     }
     if (status === 'active')
@@ -89,20 +102,21 @@ router.get('/users', adminOnly, (0, http_1.ah)(async (req, res) => {
 }));
 const createSchema = zod_1.z.object({
     username: zod_1.z.string().trim().min(3, 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร').max(100).regex(/^[a-zA-Z0-9._-]+$/, 'ใช้ได้เฉพาะ a-z 0-9 . _ -'),
-    email: zod_1.z.string().trim().email('อีเมลไม่ถูกต้อง').max(255),
+    email: zEmail.nullish(),
     displayName: zod_1.z.string().trim().min(1).max(200),
     password: zod_1.z.string().min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร').max(200),
     role: zRole.default('user'),
 });
 router.post('/users', adminOnly, (0, http_1.ah)(async (req, res) => {
     const body = (0, http_1.parse)(createSchema, req.body);
-    const dup = await (0, db_1.q1)(`SELECT username, email FROM Users WHERE username = @u OR email = @e`, { u: body.username, e: body.email });
+    assertCanGrant(req.user, body.role);
+    const dup = await (0, db_1.q1)(`SELECT username, email FROM Users WHERE username = @u OR (@e IS NOT NULL AND email = @e)`, { u: body.username, e: db_1.T.text(body.email ?? null) });
     if (dup)
         throw (0, http_1.conflict)(dup.username?.toLowerCase() === body.username.toLowerCase() ? 'ชื่อผู้ใช้นี้ถูกใช้แล้ว' : 'อีเมลนี้ถูกใช้แล้ว');
     const hash = await bcryptjs_1.default.hash(body.password, 12);
     const id = await (0, db_1.withTx)(async (tx) => {
         const row = await (0, db_1.q1)(`INSERT INTO Users (username, email, password_hash, display_name, created_by) OUTPUT inserted.user_id
-         VALUES (@u, @e, @h, @n, @by)`, { u: body.username, e: body.email, h: hash, n: body.displayName, by: db_1.T.uuid(req.user.id) }, tx);
+         VALUES (@u, @e, @h, @n, @by)`, { u: body.username, e: db_1.T.text(body.email ?? null), h: hash, n: body.displayName, by: db_1.T.uuid(req.user.id) }, tx);
         await setRole(tx, row.user_id, body.role, req.user.id);
         await (0, audit_1.audit)({ userId: req.user.id, action: 'user_create', entityType: 'user', entityId: row.user_id,
             newValue: { username: body.username, role: body.role } }, req, tx);
@@ -113,7 +127,7 @@ router.post('/users', adminOnly, (0, http_1.ah)(async (req, res) => {
 router.put('/users/:id', adminOnly, (0, http_1.ah)(async (req, res) => {
     const id = (0, http_1.pid)(req);
     const body = (0, http_1.parse)(zod_1.z.object({
-        email: zod_1.z.string().trim().email().max(255).optional(),
+        email: zEmail.nullish(), // '' clears it
         displayName: zod_1.z.string().trim().min(1).max(200).optional(),
         role: zRole.optional(),
         isActive: zod_1.z.boolean().optional(),
@@ -121,12 +135,14 @@ router.put('/users/:id', adminOnly, (0, http_1.ah)(async (req, res) => {
     const before = await getUser(id);
     if (!before)
         throw (0, http_1.notFound)('ไม่พบผู้ใช้');
+    assertCanManage(req.user, before.role);
+    assertCanGrant(req.user, body.role);
     const self = id === req.user.id;
     if (self && body.isActive === false)
         throw (0, http_1.badRequest)('ไม่สามารถปิดการใช้งานบัญชีของตัวเองได้');
-    if (self && body.role && body.role !== 'admin')
+    if (self && body.role && auth_1.ROLE_ID[body.role] < auth_1.ROLE_ID[before.role])
         throw (0, http_1.badRequest)('ไม่สามารถลดสิทธิ์ของตัวเองได้');
-    const losingAdmin = before.role === 'admin' && ((body.role && body.role !== 'admin') || body.isActive === false);
+    const losingAdmin = (0, auth_1.isAdminRole)(before.role) && ((body.role && !(0, auth_1.isAdminRole)(body.role)) || body.isActive === false);
     if (losingAdmin && (await activeAdminCount([id])) === 0)
         throw (0, http_1.badRequest)('ระบบต้องมี Admin ที่ใช้งานได้อย่างน้อย 1 คน');
     if (body.email) {
@@ -135,8 +151,8 @@ router.put('/users/:id', adminOnly, (0, http_1.ah)(async (req, res) => {
             throw (0, http_1.conflict)('อีเมลนี้ถูกใช้แล้ว');
     }
     await (0, db_1.withTx)(async (tx) => {
-        await (0, db_1.q)(`UPDATE Users SET email = COALESCE(@e, email), display_name = COALESCE(@n, display_name),
-           is_active = COALESCE(@a, is_active), updated_at = SYSUTCDATETIME() WHERE user_id = @id`, { e: db_1.T.text(body.email ?? null), n: db_1.T.text(body.displayName ?? null), a: db_1.T.bit(body.isActive ?? null), id: db_1.T.uuid(id) }, tx);
+        await (0, db_1.q)(`UPDATE Users SET email = CASE WHEN @setE = 1 THEN @e ELSE email END, display_name = COALESCE(@n, display_name),
+           is_active = COALESCE(@a, is_active), updated_at = SYSUTCDATETIME() WHERE user_id = @id`, { setE: db_1.T.bit(body.email !== undefined), e: db_1.T.text(body.email ?? null), n: db_1.T.text(body.displayName ?? null), a: db_1.T.bit(body.isActive ?? null), id: db_1.T.uuid(id) }, tx);
         if (body.role && body.role !== before.role)
             await setRole(tx, id, body.role, req.user.id);
         if (body.isActive === false)
@@ -154,6 +170,7 @@ router.post('/users/:id/reset-password', adminOnly, (0, http_1.ah)(async (req, r
     const u = await getUser(id);
     if (!u)
         throw (0, http_1.notFound)('ไม่พบผู้ใช้');
+    assertCanManage(req.user, u.role);
     await (0, db_1.q)(`UPDATE Users SET password_hash = @h, updated_at = SYSUTCDATETIME() WHERE user_id = @id`, { h: await bcryptjs_1.default.hash(password, 12), id: db_1.T.uuid(id) });
     await (0, db_1.q)(`UPDATE RefreshTokens SET revoked_at = SYSUTCDATETIME() WHERE user_id = @id AND revoked_at IS NULL`, { id: db_1.T.uuid(id) });
     await (0, audit_1.audit)({ userId: req.user.id, action: 'password_reset', entityType: 'user', entityId: id }, req);
@@ -166,7 +183,14 @@ router.post('/users/bulk', adminOnly, (0, http_1.ah)(async (req, res) => {
         throw (0, http_1.badRequest)('ไม่สามารถเปลี่ยนแปลงบัญชีของตัวเองแบบกลุ่มได้');
     if (body.action === 'set_role' && !body.role)
         throw (0, http_1.badRequest)('กรุณาเลือกบทบาท');
-    if ((body.action === 'deactivate' || (body.action === 'set_role' && body.role !== 'admin')) && (await activeAdminCount(ids)) === 0)
+    if (body.action === 'set_role')
+        assertCanGrant(req.user, body.role);
+    if (req.user.role !== 'root') {
+        const roots = await (0, db_1.q1)(`SELECT COUNT(*) AS n FROM Users u WHERE u.user_id IN ${(0, db_1.idList)('@ids')} AND ${auth_1.ROLE_SQL} = 'root'`, { ids: (0, db_1.jsonParam)(ids) });
+        if (Number(roots?.n ?? 0) > 0)
+            throw (0, http_1.forbidden)('รายการที่เลือกมีบัญชี Root ซึ่งแก้ไขได้เฉพาะผู้ใช้ Root เท่านั้น');
+    }
+    if ((body.action === 'deactivate' || (body.action === 'set_role' && !(0, auth_1.isAdminRole)(body.role))) && (await activeAdminCount(ids)) === 0)
         throw (0, http_1.badRequest)('ระบบต้องมี Admin ที่ใช้งานได้อย่างน้อย 1 คน');
     await (0, db_1.withTx)(async (tx) => {
         if (body.action === 'set_role')

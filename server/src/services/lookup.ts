@@ -32,7 +32,7 @@ async function userLookupValues(tag: string | null | undefined, search?: string)
   const params: Record<string, unknown> = {};
   let where = 'u.is_active = 1';
   if (tag?.trim()) {
-    where += ` AND EXISTS (SELECT 1 FROM UserTags ut JOIN Tags t ON t.tag_id = ut.tag_id WHERE ut.user_id = u.user_id AND t.tag_name = @tag)`;
+    where += ` AND EXISTS (SELECT 1 FROM UserTagsAll ut JOIN Tags t ON t.tag_id = ut.tag_id WHERE ut.user_id = u.user_id AND t.tag_name = @tag)`;
     params.tag = T.text(tag.trim());
   }
   if (search?.trim()) {

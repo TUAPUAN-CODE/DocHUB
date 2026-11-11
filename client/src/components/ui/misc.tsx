@@ -37,7 +37,7 @@ const PERM_STYLE: Record<string, string> = {
 export const PermBadge = ({ perm }: { perm: string }) => (
   <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium', PERM_STYLE[perm] ?? PERM_STYLE.read)}>{PERM_LABEL[perm] ?? perm}</span>
 );
-const ROLE_STYLE: Record<string, string> = { admin: 'bg-danger/10 text-danger', master: 'bg-primary/10 text-primary', user: 'bg-success/10 text-success', viewer: 'bg-ink/5 text-ink/60' };
+const ROLE_STYLE: Record<string, string> = { root: 'bg-ink text-white', admin: 'bg-danger/10 text-danger', master: 'bg-primary/10 text-primary', user: 'bg-success/10 text-success', viewer: 'bg-ink/5 text-ink/60' };
 export const RoleBadge = ({ role }: { role: string }) => (
   <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold', ROLE_STYLE[role])}>{ROLE_LABEL[role] ?? role}</span>
 );

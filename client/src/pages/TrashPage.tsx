@@ -1,3 +1,4 @@
+import { isAdminRole } from '@/types';
 import { RotateCcw, Trash2 } from 'lucide-react';
 import { trashApi } from '@/api/endpoints';
 import { FileGlyph, FolderGlyph } from '@/components/files/icons';
@@ -11,7 +12,7 @@ import { useData } from '@/store/data';
 import { confirmDialog, toast } from '@/store/ui';
 
 export default function TrashPage() {
-  const isAdmin = useAuth((s) => s.user?.role === 'admin');
+  const isAdmin = useAuth((s) => isAdminRole(s.user?.role));
   const { data, loading, reload } = useLoad(() => trashApi.list(), []);
   const restore = async (type: 'file' | 'folder', id: string) => {
     try { await trashApi.restore(type, id); toast.success('กู้คืนแล้ว'); void useData.getState().loadTree(); void reload(true); } catch (e) { toast.error(e); }

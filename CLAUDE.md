@@ -47,4 +47,11 @@ are published as start-up seeds. Do not add other company data there without the
   users' names (`validation.lookup.users.tag`). Lines of a header row are entered by scanning or with a form (`settings.lines.entry`).
 - Code that runs inside a transaction (e.g. `registerAfterSheetCopied` hooks) must pass `tx` to every query: a query outside the
   transaction waits for the rows that transaction has just written (union sheets used to hang 120 s this way).
-- Access = own grants + grants to the user's tags (`FileTagAccess` / `FolderTagAccess` via `UserTags`), capped by role (`shared/permissions.ts`).
+- Access = own grants + grants to the user's tags (`FileTagAccess` / `FolderTagAccess`), capped by role (`shared/permissions.ts`).
+  Read tag memberships through the view `UserTagsAll` (adds the system tag All = everyone, which has no `UserTags` rows); write to `UserTags`.
+- Roles: viewer < user < master < admin < root. Use `isAdminRole()` (admin or root) instead of `role === 'admin'`; `requireRole` lets root through.
+  Only a root gives the root role or edits a root account. The root account is created at start-up (`scripts/rootAccount.ts`), never in the repo.
+- Pages of the left bar are listed in `server/src/modules/pageAccess/registry.ts` and `client/src/lib/pages.tsx` (same keys); a new page needs
+  both, plus `RequirePage` in `App.tsx` (and `requirePage(key)` on its API when anyone may be given it). See docs/NEWS_TAGS_ROOT.md.
+- E-mail is optional (`Users.email` may be NULL): never assume it is there.
+- The dashboard on phones (stacked layout) brings font sizes down (`phoneSized`); keep inputs at 16 px or iPhone zooms in.

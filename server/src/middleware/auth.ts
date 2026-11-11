@@ -5,12 +5,19 @@ import { env } from '../config/env';
 import { q1 } from '../config/db';
 import { AppError, forbidden } from '../shared/http';
 
-/** viewer = read only · user = data entry (cannot change structure) · master = builds forms/folders · admin = everything */
-export type Role = 'viewer' | 'user' | 'master' | 'admin';
-export const ROLES: Role[] = ['viewer', 'user', 'master', 'admin'];
-export const ROLE_ID: Record<Role, number> = { viewer: 0, user: 1, master: 2, admin: 3 };
+/**
+ * viewer = read only · user = data entry (cannot change structure) · master = builds forms/folders · admin = everything ·
+ * root = everything an admin can do + decides which pages of the left bar each role sees (modules/pageAccess)
+ */
+export type Role = 'viewer' | 'user' | 'master' | 'admin' | 'root';
+export const ROLES: Role[] = ['viewer', 'user', 'master', 'admin', 'root'];
+export const ROLE_ID: Record<Role, number> = { viewer: 0, user: 1, master: 2, admin: 3, root: 4 };
+/** Roles an admin may give (root is given by a root only) */
+export const ADMIN_GRANTABLE: Role[] = ['viewer', 'user', 'master', 'admin'];
 /** Roles without any builder / manager privileges */
 export const isBasicRole = (r: Role) => r === 'user' || r === 'viewer';
+/** admin or root: everything in the system (role_id >= 3 in SQL) */
+export const isAdminRole = (r: Role | string | null | undefined) => r === 'admin' || r === 'root';
 
 export interface AuthUser {
   id: string;
@@ -95,10 +102,11 @@ export const authenticate: RequestHandler = (req, _res, next) => {
     .catch(next);
 };
 
+/** root passes every role check (it is above admin) */
 export const requireRole =
   (...roles: Role[]): RequestHandler =>
   (req, _res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) return next(forbidden());
+    if (!req.user || !(roles.includes(req.user.role) || req.user.role === 'root')) return next(forbidden());
     next();
   };
 

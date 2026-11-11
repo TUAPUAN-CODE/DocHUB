@@ -8,7 +8,9 @@ const http_1 = require("../../shared/http");
 const secret_1 = require("../connectors/secret");
 const providers_1 = require("./providers");
 const tools_1 = require("./tools");
+const service_1 = require("../pageAccess/service");
 const router = (0, express_1.Router)();
+router.use('/ai', (0, service_1.requirePage)('ai')); // AI button: admin + root by default (จัดการสิทธิ์)
 const provSchema = zod_1.z.enum(['gemini', 'anthropic', 'openai']);
 const MAX_STEPS = 8;
 router.get('/ai/settings', (0, http_1.ah)(async (req, res) => {

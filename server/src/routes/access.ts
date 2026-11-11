@@ -73,7 +73,7 @@ async function tagGrants(kind: 'file' | 'folder', id: string) {
   const col = kind === 'file' ? 'file_id' : 'folder_id';
   return q(
     `SELECT t.tag_id, t.tag_name, t.color, ta.permission, ta.granted_at, ta.expires_at, gb.display_name AS granted_by_name,
-       (SELECT COUNT(*) FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = t.tag_id) AS member_count
+       (SELECT COUNT(*) FROM UserTagsAll ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = t.tag_id) AS member_count
      FROM ${table} ta JOIN Tags t ON t.tag_id = ta.tag_id LEFT JOIN Users gb ON gb.user_id = ta.granted_by
      WHERE ta.${col} = @id ORDER BY t.tag_name`,
     { id: T.uuid(id) },
@@ -98,7 +98,7 @@ async function upsertTagGrant(kind: 'file' | 'folder', targetId: string, g: z.in
      WHEN NOT MATCHED THEN INSERT (${col}, tag_id, permission, granted_by, expires_at) VALUES (s.target_id, s.tag_id, @p, @by, @e);`,
     { id: T.uuid(targetId), tag: T.uuid(g.tagId), p: g.permission, by: T.uuid(by), e: T.dt(g.expiresAt ?? null) },
   );
-  const members = (await q(`SELECT ut.user_id FROM UserTags ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = @t`, { t: T.uuid(g.tagId) }))
+  const members = (await q(`SELECT ut.user_id FROM UserTagsAll ut JOIN Users u ON u.user_id = ut.user_id AND u.is_active = 1 WHERE ut.tag_id = @t`, { t: T.uuid(g.tagId) }))
     .map((r) => r.user_id as string);
   return { name: tag.tag_name as string, members };
 }

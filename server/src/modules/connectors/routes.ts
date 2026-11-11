@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { env } from '../../config/env';
 import { q, q1, T } from '../../config/db';
-import { requireRole } from '../../middleware/auth';
+import { isAdminRole, requireRole } from '../../middleware/auth';
 import { audit } from '../../shared/audit';
 import { ah, badRequest, forbidden, notFound, ok, parse, pid, safeJson, zId } from '../../shared/http';
 import { LV, requireSheet } from '../../shared/permissions';
@@ -44,13 +44,13 @@ const map = (r: any) => ({
 async function owned(req: any) {
   const r = await q1(`SELECT * FROM Connectors WHERE connector_id = @i AND is_deleted = 0`, { i: T.uuid(pid(req)) });
   if (!r) throw notFound('ไม่พบ connector');
-  if (r.created_by.toLowerCase() !== req.user.id.toLowerCase() && req.user.role !== 'admin') throw forbidden('connector นี้เป็นของผู้ใช้อื่น');
+  if (r.created_by.toLowerCase() !== req.user.id.toLowerCase() && !isAdminRole(req.user.role)) throw forbidden('connector นี้เป็นของผู้ใช้อื่น');
   return r;
 }
 const needsAuthJson = (e: NeedsAuth) => ({ code: 'NEEDS_AUTH', kind: e.kind });
 
 router.get('/connectors', manage, ah(async (req, res) => {
-  const rows = await q(`SELECT * FROM Connectors WHERE is_deleted = 0 ${req.user!.role === 'admin' ? '' : 'AND created_by = @u'} ORDER BY name`, { u: T.uuid(req.user!.id) });
+  const rows = await q(`SELECT * FROM Connectors WHERE is_deleted = 0 ${isAdminRole(req.user!.role) ? '' : 'AND created_by = @u'} ORDER BY name`, { u: T.uuid(req.user!.id) });
   ok(res, { items: rows.map(map), microsoft: msConfigured() });
 }));
 
@@ -97,7 +97,7 @@ router.put('/connectors/:id/credentials', manage, ah(async (req, res) => {
 router.post('/connectors/preview', manage, ah(async (req, res) => {
   const b = parse(z.object({ id: zId.optional(), kind: z.enum(['http', 'sharepoint']), config: cfgSchema, credentials: z.object({ type: z.enum(['none', 'basic', 'bearer', 'header']), username: z.string().optional(), password: z.string().optional(), token: z.string().optional(), headerName: z.string().optional() }).optional() }), req.body);
   let enc: string | null = null;
-  if (b.id) { const cur = await q1(`SELECT * FROM Connectors WHERE connector_id = @i AND is_deleted = 0`, { i: T.uuid(b.id) }); if (cur && (cur.created_by.toLowerCase() === req.user!.id.toLowerCase() || req.user!.role === 'admin')) enc = cur.secret_enc; }
+  if (b.id) { const cur = await q1(`SELECT * FROM Connectors WHERE connector_id = @i AND is_deleted = 0`, { i: T.uuid(b.id) }); if (cur && (cur.created_by.toLowerCase() === req.user!.id.toLowerCase() || isAdminRole(req.user!.role))) enc = cur.secret_enc; }
   if (b.credentials) enc = encryptJson(b.credentials);
   try {
     const f = await fetchSource(b.kind, b.config, enc, b.id ? async (e) => { await q(`UPDATE Connectors SET secret_enc = @s WHERE connector_id = @i`, { s: T.text(e), i: T.uuid(b.id!) }); } : undefined);

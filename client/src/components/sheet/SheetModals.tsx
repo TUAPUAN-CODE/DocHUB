@@ -237,6 +237,7 @@ export function RowHistoryModal({ row, columns, canRollback, onClose, onChanged 
 }
 
 /* ---------------- Sheet point-in-time rollback (admin) ---------------- */
+const REASON_MIN = 5; // same rule as the server (routes/rows.ts)
 export function RollbackModal({ open, onClose, sheetId, sheetName, onDone }: { open: boolean; onClose: () => void; sheetId: string; sheetName: string; onDone: () => void }) {
   const [at, setAt] = useState('');
   const [reason, setReason] = useState('');
@@ -244,6 +245,9 @@ export function RollbackModal({ open, onClose, sheetId, sheetName, onDone }: { o
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (open) { setAt(''); setReason(''); setPreview(null); } }, [open]);
   const iso = at ? new Date(at).toISOString() : '';
+  // the button stays grey until: a time is picked → "ดูผลกระทบ" pressed → a reason of at least REASON_MIN characters
+  const short = Math.max(0, REASON_MIN - reason.trim().length);
+  const nothing = !!preview && preview.cells + preview.rowsToDelete + preview.rowsToRestore === 0;
   const doPreview = async () => {
     setBusy(true);
     try { setPreview(await rowsApi.sheetRollback(sheetId, { at: iso, preview: true })); } catch (e) { toast.error(e); } finally { setBusy(false); }
@@ -261,7 +265,7 @@ export function RollbackModal({ open, onClose, sheetId, sheetName, onDone }: { o
   return (
     <Modal open={open} onClose={onClose} size="md" icon={<RotateCcw className="h-5 w-5" />} title="ย้อนข้อมูลทั้งชีตไปยังเวลาที่เลือก" description="ใช้กู้คืนเมื่อมีการแก้ไขผิดพลาดจำนวนมาก (โครงสร้างคอลัมน์จะไม่ถูกเปลี่ยน)"
       footer={<><Button variant="secondary" onClick={onClose}>ยกเลิก</Button><Button variant="secondary" onClick={doPreview} disabled={!at} loading={busy && !preview}>ดูผลกระทบ</Button>
-        <Button variant="danger" onClick={apply} disabled={!preview || reason.trim().length < 5} loading={busy && !!preview}>ย้อนข้อมูล</Button></>}>
+        <Button variant="danger" onClick={apply} disabled={!preview || nothing || short > 0} loading={busy && !!preview}>ย้อนข้อมูล</Button></>}>
       <div className="space-y-4">
         <Field label="ย้อนกลับไปยังเวลา" required><TextInput type="datetime-local" value={at} onChange={(e) => { setAt(e.target.value); setPreview(null); }} max={new Date().toISOString().slice(0, 16)} /></Field>
         {preview && (
@@ -271,7 +275,14 @@ export function RollbackModal({ open, onClose, sheetId, sheetName, onDone }: { o
             ))}
           </div>
         )}
-        <Field label="เหตุผล" required hint="จะถูกบันทึกลงประวัติการแก้ไข"><TextArea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="เช่น นำเข้าข้อมูลผิดไฟล์เมื่อเช้านี้" /></Field>
+        {nothing && <p className="rounded-xl bg-warning/10 px-3 py-2 text-xs text-warning">ไม่มีข้อมูลที่เปลี่ยนหลังเวลานี้ — ไม่ต้องย้อน</p>}
+        <Field label={`เหตุผล (อย่างน้อย ${REASON_MIN} ตัวอักษร)`} required
+          hint={short > 0
+            ? <span className="text-warning">พิมพ์เหตุผลอีก {short} ตัวอักษร ปุ่ม “ย้อนข้อมูล” จึงจะกดได้</span>
+            : 'จะถูกบันทึกลงประวัติการแก้ไข'}>
+          <TextArea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="เช่น นำเข้าข้อมูลผิดไฟล์เมื่อเช้านี้" />
+        </Field>
+        {!preview && at && <p className="text-xs text-muted">กด “ดูผลกระทบ” ก่อน เพื่อดูว่าจะเปลี่ยนกี่เซลล์ / กี่แถว</p>}
       </div>
     </Modal>
   );

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onlineSockets = void 0;
 exports.initSocket = initSocket;
+exports.emitToAll = emitToAll;
 exports.emitToUser = emitToUser;
 exports.emitToSheet = emitToSheet;
 const rowCount_1 = require("./services/rowCount");
@@ -91,6 +92,10 @@ async function broadcastPresence(sheetId) {
     catch (e) {
         logger_1.logger.warn(`presence failed: ${e?.message}`);
     }
+}
+/** every signed-in browser (e.g. the page permissions changed) */
+function emitToAll(event, payload) {
+    io?.emit(event, payload);
 }
 function emitToUser(userId, event, payload) {
     io?.to(`user:${userId}`).emit(event, payload);

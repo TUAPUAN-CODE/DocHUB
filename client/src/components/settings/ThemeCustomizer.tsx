@@ -1,3 +1,4 @@
+import { isAdminRole } from '@/types';
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Moon, RotateCcw, Save, Search, Sun, Building2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -115,7 +116,7 @@ function Preview({ t }: { t: Theme }) {
 
 export function ThemeCustomizer() {
   const { draft, saved, update, setMode, save, revert, resetPersonal, saveAsOrg, resetOrg, orgDefault } = useTheme();
-  const isAdmin = useAuth((s) => s.user?.role === 'admin');
+  const isAdmin = useAuth((s) => isAdminRole(s.user?.role));
   const [comp, setComp] = useState<ComponentKey>('card');
   const [busy, setBusy] = useState(false);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);

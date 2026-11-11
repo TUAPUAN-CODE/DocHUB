@@ -10,6 +10,7 @@ exports.managersOf = managersOf;
 const cluster_1 = require("../services/cluster");
 const env_1 = require("../config/env");
 const db_1 = require("../config/db");
+const auth_1 = require("../middleware/auth");
 const http_1 = require("./http");
 /**
  * Permission levels.
@@ -77,19 +78,19 @@ class PermCtx {
     }
     static async load(user) {
         const index = await getFolderIndex();
-        if (user.role === 'admin')
+        if ((0, auth_1.isAdminRole)(user.role))
             return new PermCtx(user, index, new Map(), new Map());
         // own grants + grants to any tag the user has (the higher level wins)
         const [fg, fi] = await Promise.all([
             (0, db_1.q)(`SELECT folder_id, permission FROM FolderAccess
          WHERE user_id = @u AND (expires_at IS NULL OR expires_at > SYSUTCDATETIME())
          UNION ALL
-         SELECT ta.folder_id, ta.permission FROM FolderTagAccess ta JOIN UserTags ut ON ut.tag_id = ta.tag_id
+         SELECT ta.folder_id, ta.permission FROM FolderTagAccess ta JOIN UserTagsAll ut ON ut.tag_id = ta.tag_id
          WHERE ut.user_id = @u AND (ta.expires_at IS NULL OR ta.expires_at > SYSUTCDATETIME())`, { u: user.id }),
             (0, db_1.q)(`SELECT file_id, permission FROM FileAccess
          WHERE user_id = @u AND (expires_at IS NULL OR expires_at > SYSUTCDATETIME())
          UNION ALL
-         SELECT ta.file_id, ta.permission FROM FileTagAccess ta JOIN UserTags ut ON ut.tag_id = ta.tag_id
+         SELECT ta.file_id, ta.permission FROM FileTagAccess ta JOIN UserTagsAll ut ON ut.tag_id = ta.tag_id
          WHERE ut.user_id = @u AND (ta.expires_at IS NULL OR ta.expires_at > SYSUTCDATETIME())`, { u: user.id }),
         ]);
         const maxMap = (rows, key) => {
@@ -101,7 +102,7 @@ class PermCtx {
         return new PermCtx(user, index, maxMap(fg, 'folder_id'), maxMap(fi, 'file_id'));
     }
     get isAdmin() {
-        return this.user.role === 'admin';
+        return (0, auth_1.isAdminRole)(this.user.role);
     }
     cap(l) {
         if (this.user.role === 'viewer')
@@ -267,7 +268,7 @@ async function managersOf(target) {
         const direct = await (0, db_1.q)(`SELECT fa.user_id FROM FileAccess fa JOIN UserRoles ur ON ur.user_id = fa.user_id AND ur.role_id >= 2
        WHERE fa.file_id = @id AND fa.permission = 'manage'
        UNION
-       SELECT ut.user_id FROM FileTagAccess ta JOIN UserTags ut ON ut.tag_id = ta.tag_id JOIN UserRoles ur ON ur.user_id = ut.user_id AND ur.role_id >= 2
+       SELECT ut.user_id FROM FileTagAccess ta JOIN UserTagsAll ut ON ut.tag_id = ta.tag_id JOIN UserRoles ur ON ur.user_id = ut.user_id AND ur.role_id >= 2
        WHERE ta.file_id = @id AND ta.permission = 'manage' AND (ta.expires_at IS NULL OR ta.expires_at > SYSUTCDATETIME())`, { id: target.id });
         direct.forEach((r) => ids.add(r.user_id));
     }
@@ -284,12 +285,12 @@ async function managersOf(target) {
         const rows = await (0, db_1.q)(`SELECT fa.user_id FROM FolderAccess fa JOIN UserRoles ur ON ur.user_id = fa.user_id AND ur.role_id >= 2
        WHERE fa.permission = 'manage' AND fa.folder_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(@ids))
        UNION
-       SELECT ut.user_id FROM FolderTagAccess ta JOIN UserTags ut ON ut.tag_id = ta.tag_id JOIN UserRoles ur ON ur.user_id = ut.user_id AND ur.role_id >= 2
+       SELECT ut.user_id FROM FolderTagAccess ta JOIN UserTagsAll ut ON ut.tag_id = ta.tag_id JOIN UserRoles ur ON ur.user_id = ut.user_id AND ur.role_id >= 2
        WHERE ta.permission = 'manage' AND (ta.expires_at IS NULL OR ta.expires_at > SYSUTCDATETIME())
          AND ta.folder_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(@ids))`, { ids: JSON.stringify(chain) });
         rows.forEach((r) => ids.add(r.user_id));
     }
-    const admins = await (0, db_1.q)(`SELECT u.user_id FROM Users u JOIN UserRoles ur ON ur.user_id = u.user_id AND ur.role_id = 3 WHERE u.is_active = 1`);
+    const admins = await (0, db_1.q)(`SELECT u.user_id FROM Users u JOIN UserRoles ur ON ur.user_id = u.user_id AND ur.role_id >= 3 WHERE u.is_active = 1`);
     admins.forEach((r) => ids.add(r.user_id));
     return [...ids];
 }

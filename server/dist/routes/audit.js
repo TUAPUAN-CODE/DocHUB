@@ -14,7 +14,7 @@ router.get('/audit', (0, http_1.ah)(async (req, res) => {
     const qs = req.query;
     if (qs.fileId && (0, http_1.isGuid)(qs.fileId)) {
         const fileId = qs.fileId.toLowerCase();
-        if (u.role !== 'admin')
+        if (!(0, auth_1.isAdminRole)(u.role))
             await (0, permissions_1.requireFile)(u, fileId, permissions_1.LV.manage);
         where.push('a.file_id = @file');
         p.file = db_1.T.uuid(fileId);

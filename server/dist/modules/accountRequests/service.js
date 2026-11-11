@@ -40,7 +40,7 @@ async function uniqueUsername(base) {
     return `${name}${crypto_1.default.randomBytes(3).toString('hex')}`;
 }
 async function notifyAdmins(title, message) {
-    const admins = await (0, db_1.q)(`SELECT u.user_id FROM Users u JOIN UserRoles ur ON ur.user_id = u.user_id AND ur.role_id = 3 WHERE u.is_active = 1`);
+    const admins = await (0, db_1.q)(`SELECT u.user_id FROM Users u JOIN UserRoles ur ON ur.user_id = u.user_id AND ur.role_id >= 3 WHERE u.is_active = 1`);
     await (0, notify_1.notify)(admins.map((a) => a.user_id), { type: 'account_request', title, message, link: '/users/requests' });
 }
 //# sourceMappingURL=service.js.map

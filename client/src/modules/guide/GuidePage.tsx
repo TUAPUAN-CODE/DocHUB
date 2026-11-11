@@ -1,8 +1,8 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  BookOpen, ChevronLeft, ChevronRight, FileSpreadsheet, FolderOpen, Lightbulb, LayoutDashboard, Monitor, Printer, Rocket, Search, Share2,
-  ShieldCheck, Smartphone, Sparkles, X, ZoomIn,
+  BookOpen, ChevronLeft, ChevronRight, FileSpreadsheet, FolderOpen, Lightbulb, LayoutDashboard, Megaphone, Monitor, Printer, Rocket, Search, Share2,
+  ShieldCheck, Smartphone, Sparkles, Tags, X, ZoomIn,
 } from 'lucide-react';
 import { Page } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
@@ -15,8 +15,10 @@ import type { Guide, GuideManifest, GuideStep, GuideTopic } from './types';
 const BASE = `${import.meta.env.BASE_URL}guide/`;
 const ICONS: Record<string, ReactNode> = {
   rocket: <Rocket />, folder: <FolderOpen />, sheet: <FileSpreadsheet />, share: <Share2 />, sparkles: <Sparkles />,
-  dashboard: <LayoutDashboard />, shield: <ShieldCheck />, phone: <Smartphone />, book: <BookOpen />,
+  dashboard: <LayoutDashboard />, shield: <ShieldCheck />, phone: <Smartphone />, book: <BookOpen />, news: <Megaphone />, tags: <Tags />,
 };
+/** who a guide is for (badge) */
+const forWho = (roles: string[]) => (roles.includes('master') ? 'Master / Admin' : roles.includes('admin') ? 'Admin' : 'Root');
 
 let cache: GuideManifest | null = null;
 function useManifest() {
@@ -35,9 +37,11 @@ function useManifest() {
 /** topics / guides this user may see */
 function useVisible(m: GuideManifest | null) {
   const role = useAuth((s) => s.user?.role) ?? 'viewer';
+  // root sees every guide (it can do everything an admin can)
+  const may = (roles?: string[]) => !roles || role === 'root' || roles.includes(role);
   return useMemo(() => (m?.topics ?? [])
-    .filter((t) => !t.roles || t.roles.includes(role))
-    .map((t) => ({ ...t, guides: t.guides.filter((g) => !g.roles || g.roles.includes(role)) }))
+    .filter((t) => may(t.roles))
+    .map((t) => ({ ...t, guides: t.guides.filter((g) => may(g.roles)) }))
     .filter((t) => t.guides.length), [m, role]);
 }
 
@@ -86,7 +90,7 @@ function GuideIndex({ topics }: { topics: GuideTopic[] }) {
                     <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                       <span>{g.steps.length} ขั้นตอน</span>
                       <span className="inline-flex items-center gap-1">{g.device === 'phone' ? <><Smartphone className="h-3.5 w-3.5" />มือถือ</> : <><Monitor className="h-3.5 w-3.5" />คอมพิวเตอร์</>}</span>
-                      {g.roles && <span className="rounded-full bg-warning/15 px-2 py-0.5 font-medium text-warning">{g.roles.includes('master') ? 'Master / Admin' : 'Admin'}</span>}
+                      {g.roles && <span className="rounded-full bg-warning/15 px-2 py-0.5 font-medium text-warning">{forWho(g.roles)}</span>}
                     </span>
                   </span>
                 </Link>
@@ -119,7 +123,7 @@ function GuideReader({ topic, guide, prev, next }: { topic: GuideTopic; guide: G
             <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
               <span className="rounded-full bg-ink/5 px-3 py-1">{guide.steps.length} ขั้นตอน</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-ink/5 px-3 py-1">{phone ? <><Smartphone className="h-3.5 w-3.5" />ภาพจากมือถือ</> : <><Monitor className="h-3.5 w-3.5" />ภาพจากคอมพิวเตอร์</>}</span>
-              {guide.roles && <span className="rounded-full bg-warning/15 px-3 py-1 font-medium text-warning">สำหรับ {guide.roles.includes('master') ? 'Master / Admin' : 'Admin'}</span>}
+              {guide.roles && <span className="rounded-full bg-warning/15 px-3 py-1 font-medium text-warning">สำหรับ {forWho(guide.roles)}</span>}
               <Button size="sm" variant="secondary" className="ml-auto print:hidden" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>พิมพ์ / บันทึก PDF</Button>
             </div>
           </header>
