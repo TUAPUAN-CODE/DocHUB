@@ -40,8 +40,11 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
   const cols = useColumns(ds?.sheetId);
   const byId = useMemo(() => new Map(cols.map((x) => [x.id, x])), [cols]);
   const titleIds: string[] = (c.titleColumnIds ?? []).filter((id: string) => byId.has(id));
-  const fieldIds: string[] = (c.fieldColumnIds ?? []).filter((id: string) => byId.has(id));
   const imageCol = c.imageColumnId ? byId.get(c.imageColumnId) : undefined;
+  /** fieldColumnsAll: every column that is not a heading or a picture, in sheet order — columns added later show up by themselves */
+  const fieldIds: string[] = c.fieldColumnsAll
+    ? cols.filter((x) => x.dataType !== 'image' && !titleIds.includes(x.id)).map((x) => x.id)
+    : (c.fieldColumnIds ?? []).filter((id: string) => byId.has(id));
   const searchIds: string[] = (c.searchColumnIds ?? []).filter((id: string) => byId.has(id));
   const pageSize = Math.max(5, Math.min(200, Number(c.pageSize) || 20));
 

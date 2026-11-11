@@ -117,7 +117,8 @@ function RecordsDataTab({ w, set, ds, setDs, cols, fileId, fileName, fileSheets,
         <>
           <Field label="ค้นหาจากคอลัมน์" hint="เช่น Sub Doc No. และ Short Code (ไม่เลือก = ค้นทุกคอลัมน์)"><ColumnChecks cols={textual} value={c.searchColumnIds ?? []} onChange={(v) => setC({ searchColumnIds: v })} /></Field>
           <Field label="หัวข้อการ์ด (สูงสุด 3)" hint="อันแรกเป็นหัวข้อใหญ่ (แถวที่ค่าซ้ำกันรวมเป็นการ์ดเดียว) ที่เหลือเป็นป้ายย่อย เช่น Short Code"><ColumnChecks cols={shown} value={c.titleColumnIds ?? []} onChange={(v) => setC({ titleColumnIds: v })} max={3} /></Field>
-          <Field label="รายละเอียดที่แสดง"><ColumnChecks cols={shown} value={c.fieldColumnIds ?? []} onChange={(v) => setC({ fieldColumnIds: v })} /></Field>
+          <Toggle checked={!!c.fieldColumnsAll} onChange={(v) => setC({ fieldColumnsAll: v })} label="แสดงทุกคอลัมน์ที่เหลือ (คอลัมน์ที่เพิ่มภายหลังขึ้นเอง)" />
+          {!c.fieldColumnsAll && <Field label="รายละเอียดที่แสดง"><ColumnChecks cols={shown} value={c.fieldColumnIds ?? []} onChange={(v) => setC({ fieldColumnIds: v })} /></Field>}
           <Field label="คอลัมน์รูปภาพ">
             <Select value={c.imageColumnId ?? ''} onChange={(e) => setC({ imageColumnId: e.target.value || null })}>
               <option value="">— ไม่แสดงรูป —</option>
