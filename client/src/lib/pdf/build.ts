@@ -2,7 +2,7 @@ import { alertColor } from '@/modules/alerts/level';
 import { displayValue } from '@/lib/format';
 import type { Column, Row } from '@/types';
 import { collectData, CurrentView, resolveColumns, SheetData } from './data';
-import { loadPdfMake } from './fonts';
+import { loadPdfMake, withSymbols } from './fonts';
 import { preloadImages } from './images';
 import './blocks';
 import { getBlockModule } from './registry';
@@ -21,6 +21,8 @@ export interface BuildCtx {
   contentWidth: number; vars: Vars; rowVars?: Vars;
   /** names typed for the signature slots in the export dialog (slot id → name) */
   signers: Record<string, string>;
+  /** perRow on a header sheet: header row id (lower case) → its line row ids */
+  lineMap?: Map<string, Set<string>>;
 }
 
 
@@ -211,7 +213,16 @@ function blockToNode(b: Simple, c: BuildCtx, row?: Row, sd?: SheetData): any | n
       for (const col of b.cols) for (const x of col.blocks) if (x.type === 'image' && x.source === 'column') { const u = rowImg(x.columnId, x.columnName); if (u && x.columnId) imgs[x.columnId] = u; }
       node = columnsBlock(b, c, imgs); break;
     }
-    case 'table': node = tableBlock(b, c); break;
+    case 'table': {
+      // a document's own lines only (perRow on a header sheet)
+      const sdT = c.tables.get(b.id);
+      if (b.rowLines && row && sdT) {
+        const mine = c.lineMap?.get(row.id.toLowerCase()) ?? new Set<string>();
+        const rows = sdT.rows.filter((x) => mine.has(x.id.toLowerCase()));
+        node = tableBlock(b, { ...c, tables: new Map(c.tables).set(b.id, { ...sdT, rows, total: rows.length, truncated: false }) });
+      } else node = tableBlock(b, c);
+      break;
+    }
     case 'fields': node = row && sd ? fieldsBlock(b, c, row, sd) : { text: '(ฟิลด์ข้อมูลของแถว — ใช้ได้ในโหมด “แบบฟอร์มต่อแถว”)', italics: true, color: '#9CA3AF' }; break;
     default: { const m = getBlockModule((b as { type: string }).type); node = m ? m.build(b, c) : null; }
   }
@@ -253,7 +264,15 @@ export async function buildDocDefinition(t: PdfTemplate, o: PdfRunOptions) {
   const sheetName = (t.mode === 'perRow' ? t.perRow?.sheetName : firstTable?.sheetName) ?? '';
   const rowCount = t.mode === 'perRow' ? tables.get(t.perRow?.sheetId ?? '')?.rows.length ?? 0 : (firstTable ? tables.get(firstTable.id)?.total ?? 0 : 0);
   const vars: Vars = resolveVariables({ now, fileName: o.fileName, sheetName, user: o.user, rowCount, prompts: o.values?.prompts ?? {}, settings: t.settings });
-  const ctx: BuildCtx = { fileName: o.fileName, user: o.user, now, tables, images, base: t.base, contentWidth, vars, signers: o.values?.signers ?? {} };
+  // tables of "only this document's lines": which lines belong to which printed row
+  let lineMap: Map<string, Set<string>> | undefined;
+  if (t.mode === 'perRow' && t.perRow && t.blocks.some((b) => b.type === 'table' && b.rowLines)) {
+    const heads = tables.get(t.perRow.sheetId)?.rows ?? [];
+    const { linesApi } = await import('@/modules/scan/api');
+    const m = heads.length ? await linesApi.map(t.perRow.sheetId, heads.map((r) => r.id)).catch(() => ({} as Record<string, string[]>)) : {};
+    lineMap = new Map(Object.entries(m).map(([k, v]) => [k, new Set(v)]));
+  }
+  const ctx: BuildCtx = { fileName: o.fileName, user: o.user, now, tables, images, base: t.base, contentWidth, vars, signers: o.values?.signers ?? {}, lineMap };
 
   const content: any[] = [];
   if (t.mode === 'perRow' && t.perRow) {
@@ -300,7 +319,7 @@ export async function buildDocDefinition(t: PdfTemplate, o: PdfRunOptions) {
     doc.background = () => ({ image: wmImg, width: wmW, opacity: t.watermark.opacity, absolutePosition: { x: Math.max(0, (width - wmW) / 2), y: pageH / 3 } });
   } else if (t.watermark.enabled && t.watermark.text) doc.watermark = { text: t.watermark.text, color: t.watermark.color, opacity: t.watermark.opacity, bold: true, fontSize: t.watermark.size, angle: t.watermark.angle };
   if (t.lockEditing) { doc.ownerPassword = crypto.randomUUID?.() ?? String(Math.random()); doc.permissions = { printing: 'highResolution', modifying: false, copying: false, annotating: false, fillingForms: false, contentAccessibility: true, documentAssembly: false }; }
-  return { doc, fonts: [...fonts], truncated: [...tables.values()].some((x) => x.truncated) };
+  return { doc: withSymbols(doc), fonts: [...fonts], truncated: [...tables.values()].some((x) => x.truncated) };
 }
 
 export async function generatePdf(t: PdfTemplate, o: PdfRunOptions): Promise<{ blob: Blob; truncated: boolean }> {

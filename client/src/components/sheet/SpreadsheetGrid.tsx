@@ -1,7 +1,7 @@
 import { ClipboardEvent, KeyboardEvent, MouseEvent as RMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDownAZ, ArrowUpAZ, Camera, ChevronDown, ClipboardPaste, Copy, Eraser, Eye, EyeOff, Filter, History, Maximize2, MoveHorizontal,
-  Pin, PinOff, Settings2, SquarePen, Trash2, ArrowDownUp,
+  Pin, PinOff, Settings2, SquarePen, Trash2, ArrowDownUp, Check, X,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { ColumnStat, rowsApi } from '@/api/endpoints';
@@ -31,8 +31,12 @@ interface Props {
   onDeleteRows: (ids: string[]) => void;
   /** Ids of the rows touched by the current selection (drives the toolbar delete button) */
   onSelectRows?: (ids: string[]) => void;
+  /** PC: a blank row (*) under the last row, typed into like Excel; saved as a new row once its required cells are filled */
+  onAddRow?: (values: Record<string, CellValue>) => Promise<Row | null>;
   /** Opens the read-only full detail of a row (eye icon) */
   onViewRow?: (row: Row) => void;
+  /** a column next to the row number showing the link to another sheet (a header's lines / a line's header) */
+  rowLink?: { label: string; render: (row: Row) => React.ReactNode };
 }
 
 const isEmpty = (v: unknown) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
@@ -47,7 +51,7 @@ function cellStyle(base: React.CSSProperties | undefined, col: Column, values: R
   return a ? { ...base, backgroundColor: tint(a.color, 0.3), boxShadow: `inset 3px 0 0 ${a.color}` } : base;
 }
 
-export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHistory, onRowHistory, onFilterColumn, onColumnSettings, onDeleteRows, onSelectRows, onViewRow }: Props) {
+export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHistory, onRowHistory, onFilterColumn, onColumnSettings, onDeleteRows, onSelectRows, onViewRow, rowLink, onAddRow }: Props) {
   const { columns: cols, rows, prefs, setPrefs, query, setQuery, commit, users, flash } = view;
   const scrollRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -56,10 +60,47 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
   const [menu, setMenu] = useState<{ anchor: Anchor; kind: 'cell' | 'header' | 'row'; r: number; c: number } | null>(null);
   const [resize, setResize] = useState<{ kind: 'col' | 'row'; id: string; size: number } | null>(null);
   const dragging = useRef(false);
+  /* ---------- the blank row (*) at the bottom: rows[rows.length] while it is on ---------- */
+  const draftOn = !!onAddRow && canWrite && !coarsePointer;
+  const [draft, setDraft] = useState<Record<string, CellValue>>({});
+  const [draftSaving, setDraftSaving] = useState(false);
+  /** after a save the cursor goes to the (new) blank row, first column — like Enter at the end of a row in Excel */
+  const toDraft = useRef(false);
+  useEffect(() => {
+    if (!toDraft.current || !draftOn) return;
+    toDraft.current = false;
+    setSel({ a: { r: rows.length, c: 0 }, f: { r: rows.length, c: 0 } });
+    requestAnimationFrame(() => scrollRef.current?.focus({ preventScroll: true }));
+  }, [rows.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const DRAFT_ID = '__new';
+  const draftRow: Row = useMemo(() => ({ id: DRAFT_ID, order: 0, values: draft, meta: {}, createdBy: '', createdAt: '', updatedBy: null, updatedAt: '' }), [draft]);
+  const nRows = rows.length + (draftOn ? 1 : 0);
+  const rowAt = (r: number): Row | undefined => (draftOn && r === rows.length ? draftRow : rows[r]);
+  /** cells the new row still needs before it can be saved (auto-numbered, computed and defaulted columns fill themselves) */
+  const draftMissing = (vals: Record<string, CellValue>) => cols.filter((c) => c.isRequired && !isReadOnlyCol(c) && c.dataType !== 'doc_number' && isEmpty(c.defaultValue ?? null) && isEmpty(vals[c.id] ?? null));
+  const saveDraft = async (vals: Record<string, CellValue>) => {
+    if (!onAddRow || draftSaving) return;
+    const values = Object.fromEntries(Object.entries(vals).filter(([, v]) => !isEmpty(v ?? null)));
+    if (!Object.keys(values).length) return;
+    const miss = draftMissing(values);
+    if (miss.length) return toast.info(`ยังบันทึกแถวใหม่ไม่ได้`, `กรอก ${miss.map((c) => `“${c.name}”`).join(', ')} ก่อน`);
+    setDraftSaving(true);
+    try {
+      const r = await onAddRow(values);
+      if (r) { setDraft({}); toDraft.current = true; toast.success('เพิ่มแถวแล้ว'); }
+    } catch (e) { toast.error(e, 'เพิ่มแถวไม่สำเร็จ'); } finally { setDraftSaving(false); }
+  };
+  /** a value typed into the blank row: kept here until the row has everything it needs, then saved */
+  const setDraftValues = (changes: Record<string, CellValue>) => {
+    const next = { ...draft, ...changes };
+    setDraft(next);
+    if (!draftMissing(next).length) void saveDraft(next);
+  };
 
   const z = prefs.zoom;
   const HEAD = Math.round(38 * z);
-  const RN = Math.round(64 * z);
+  const LINK = rowLink ? (typeof window !== 'undefined' && window.innerWidth < 640 ? 100 : 150) : 0; // phones: a narrower link column
+  const RN = Math.round((64 + LINK) * z);
   /**
    * The width a column needs to show its whole name in the header (type icon + name + * + sort / menu room). A column opens at
    * least this wide; a width the user dragged or auto-fitted (prefs.colWidths) is kept as it is.
@@ -102,12 +143,12 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
   // keep selection valid when data changes
   useEffect(() => {
     if (!sel) return;
-    const maxR = rows.length - 1;
+    const maxR = nRows - 1;
     const maxC = cols.length - 1;
     if (maxR < 0 || maxC < 0) return setSel(null);
     const clamp = (p: Pos) => ({ r: Math.min(p.r, maxR), c: Math.min(p.c, maxC) });
     if (sel.a.r > maxR || sel.f.r > maxR || sel.a.c > maxC || sel.f.c > maxC) setSel({ a: clamp(sel.a), f: clamp(sel.f) });
-  }, [rows.length, cols.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nRows, cols.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!sel) return;
@@ -137,22 +178,29 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
   const focusGrid = () => scrollRef.current?.focus({ preventScroll: true });
 
   const move = (dr: number, dc: number, extend = false, jump = false) => {
-    if (!rows.length || !cols.length) return;
+    if (!nRows || !cols.length) return;
     const cur = sel?.f ?? { r: 0, c: 0 };
-    const r = jump ? (dr > 0 ? rows.length - 1 : dr < 0 ? 0 : cur.r) : Math.max(0, Math.min(rows.length - 1, cur.r + dr));
+    const r = jump ? (dr > 0 ? nRows - 1 : dr < 0 ? 0 : cur.r) : Math.max(0, Math.min(nRows - 1, cur.r + dr));
     const c = jump ? (dc > 0 ? cols.length - 1 : dc < 0 ? 0 : cur.c) : Math.max(0, Math.min(cols.length - 1, cur.c + dc));
     setSel(extend && sel ? { a: sel.a, f: { r, c } } : { a: { r, c }, f: { r, c } });
   };
 
+  /** keys typed before the editor has appeared (fast typing / scanners) are added to its first text instead of restarting it */
+  const typedAhead = useRef<string | null>(null);
+  useEffect(() => { if (!editing) typedAhead.current = null; }, [editing]);
   const startEdit = (r: number, c: number, initial?: string) => {
+    typedAhead.current = null;
     const col = cols[c];
-    const row = rows[r];
+    const row = rowAt(r);
     if (!col || !row) return;
     if (!canWrite) return toast.info('คุณมีสิทธิ์ดูข้อมูลเท่านั้น', 'ขอสิทธิ์แก้ไขได้จากเมนูของไฟล์');
     if (isComputed(col)) return toast.info('คอลัมน์นี้คำนวณจากสูตรอัตโนมัติ', 'แก้ไขสูตรได้ที่ “ตั้งค่าคอลัมน์”');
     if (isAutoStamp(col)) return toast.info('คอลัมน์นี้ระบบเติมให้อัตโนมัติ', 'อัปเดตเองเมื่อมีการแก้ไขข้อมูลในแถว');
-    if (col.dataType === 'boolean') return void commit([{ rowId: row.id, columnId: col.id, value: !row.values[col.id] }]);
-    setEditing({ r, c, initial: initial !== undefined && EDIT_INLINE_TYPED.has(col.dataType) ? initial : undefined });
+    if (row.id === DRAFT_ID && isReadOnlyCol(col)) return;
+    if (col.dataType === 'boolean') return row.id === DRAFT_ID ? setDraftValues({ [col.id]: !row.values[col.id] }) : void commit([{ rowId: row.id, columnId: col.id, value: !row.values[col.id] }]);
+    const typed = initial !== undefined && EDIT_INLINE_TYPED.has(col.dataType) ? initial : undefined;
+    typedAhead.current = typed ?? null;
+    setEditing({ r, c, initial: typed });
   };
 
   /** Tap the camera of an image cell: the phone's camera opens at once, the photo is added to the cell */
@@ -173,10 +221,18 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
 
   const finishEdit = (value: CellValue, mv: Move) => {
     if (!editing) return;
-    const row = rows[editing.r];
+    typedAhead.current = null;
+    const row = rowAt(editing.r);
     const col = cols[editing.c];
     setEditing(null);
-    if (row && col) {
+    if (row?.id === DRAFT_ID && col) {
+      const cur = row.values[col.id] ?? null;
+      if (JSON.stringify(cur) !== JSON.stringify(value ?? null)) {
+        const ch: Record<string, CellValue> = { [col.id]: value };
+        for (const d of dependentsOf(col.id, cols)) if (row.values[d.id] != null) ch[d.id] = null;
+        setDraftValues(ch);
+      }
+    } else if (row && col) {
       const cur = row.values[col.id] ?? null;
       if (JSON.stringify(cur) !== JSON.stringify(value ?? null)) {
         const changes: CellChange[] = [{ rowId: row.id, columnId: col.id, value }];
@@ -201,6 +257,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
         const col = cols[c];
         if (row && col && !isReadOnlyCol(col) && !isEmpty(row.values[col.id])) changes.push({ rowId: row.id, columnId: col.id, value: null });
       }
+    if (draftOn && bounds.r2 >= rows.length) setDraft((d) => Object.fromEntries(Object.entries(d).filter(([k]) => !cols.slice(bounds.c1, bounds.c2 + 1).some((c) => c.id === k))));
     if (changes.length) void commit(changes, { partial: true, source: 'edit' });
   };
 
@@ -217,10 +274,11 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
 
   const pasteText = (text: string) => {
     if (!bounds || !canWrite) return;
+    if (bounds.r1 >= rows.length) return toast.info('วางลงแถวใหม่ (*) ไม่ได้', 'วางในแถวที่มีอยู่ หรือนำเข้าไฟล์เพื่อเพิ่มหลายแถว');
     const grid = parseTsv(text);
     if (!grid.length) return;
     const single = grid.length === 1 && grid[0].length === 1;
-    const rEnd = single ? bounds.r2 : Math.min(rows.length - 1, bounds.r1 + grid.length - 1);
+    const rEnd = single ? Math.min(bounds.r2, rows.length - 1) : Math.min(rows.length - 1, bounds.r1 + grid.length - 1);
     const cEnd = single ? bounds.c2 : Math.min(cols.length - 1, bounds.c1 + Math.max(...grid.map((g) => g.length)) - 1);
     const changes: CellChange[] = [];
     for (let r = bounds.r1; r <= rEnd; r++)
@@ -246,12 +304,13 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
     if (mod) return;
     const arrows: Record<string, [number, number]> = { ArrowDown: [1, 0], ArrowUp: [-1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
     if (arrows[k]) { e.preventDefault(); move(arrows[k][0], arrows[k][1], e.shiftKey, e.altKey); return; }
-    if (!sel) { if (rows.length && cols.length && (k === 'Enter' || k === 'Tab')) { e.preventDefault(); setSel({ a: { r: 0, c: 0 }, f: { r: 0, c: 0 } }); } return; }
+    if (!sel) { if (nRows && cols.length && (k === 'Enter' || k === 'Tab')) { e.preventDefault(); setSel({ a: { r: 0, c: 0 }, f: { r: 0, c: 0 } }); } return; }
     if (k === 'Tab') { e.preventDefault(); move(0, e.shiftKey ? -1 : 1); return; }
     if (k === 'Enter' || k === 'F2') { e.preventDefault(); startEdit(sel.f.r, sel.f.c); return; }
     if (k === 'Escape') { setSel({ a: sel.f, f: sel.f }); return; }
     if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); clearSelection(); return; }
     if (k === ' ' && cols[sel.f.c]?.dataType === 'boolean') { e.preventDefault(); startEdit(sel.f.r, sel.f.c); return; }
+    if (k.length === 1 && !e.altKey && typedAhead.current !== null) { e.preventDefault(); const t = typedAhead.current += k; setEditing((x) => (x ? { ...x, initial: t } : x)); return; }
     if (k.length === 1 && !e.altKey) { e.preventDefault(); startEdit(sel.f.r, sel.f.c, k); }
   };
 
@@ -432,7 +491,9 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
           </colgroup>
           <thead>
             <tr style={{ height: HEAD }}>
-              <th className="rownum" style={{ position: 'sticky', left: 0, top: 0, zIndex: 30, fontSize: '0.85em' }}>#</th>
+              <th className="rownum" style={{ position: 'sticky', left: 0, top: 0, zIndex: 30, fontSize: '0.85em' }}>
+                {rowLink ? <span className="flex w-full items-center"><span style={{ width: 64 * z }} className="shrink-0 text-center">#</span><span className="min-w-0 flex-1 truncate border-l border-current/10 px-2 text-left font-medium text-primary">{rowLink.label}</span></span> : '#'}
+              </th>
               {cols.map((c, ci) => {
                 const s = sortOf(c.id);
                 return (
@@ -462,14 +523,59 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, ri) => {
+            {(draftOn ? [...rows, draftRow] : rows).map((row, ri) => {
               const frow = ri < fr;
+              const isDraft = row.id === DRAFT_ID;
+              if (isDraft) return (
+                <tr key={DRAFT_ID} style={{ height: rowH(row) }} className="draft-row">
+                  <td className="rownum" style={{ position: 'sticky', left: 0, zIndex: 11, fontSize: '0.85em' }}
+                    title="แถวใหม่ — พิมพ์ลงในเซลล์ได้เลย ระบบบันทึกเมื่อกรอกช่องที่จำเป็นครบ">
+                    <span className="flex w-full items-center justify-center gap-1.5">
+                      {draftSaving ? <span className="text-primary">…</span> : <span className="font-semibold text-primary">*</span>}
+                      {Object.keys(draft).length > 0 && !draftSaving && (<>
+                        <button onClick={(e) => { e.stopPropagation(); void saveDraft(draft); }} className="text-success" title="บันทึกแถวใหม่" aria-label="บันทึกแถวใหม่"><Check className="h-[1.1em] w-[1.1em]" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); setDraft({}); }} className="text-muted hover:text-danger" title="ล้างแถวใหม่" aria-label="ล้างแถวใหม่"><X className="h-[1.1em] w-[1.1em]" /></button>
+                      </>)}
+                      {!Object.keys(draft).length && LINK > 0 && <span className="truncate text-left text-muted">แถวใหม่</span>}
+                    </span>
+                  </td>
+                  {cols.map((col, ci) => {
+                    const v = row.values[col.id];
+                    const isEdit = editing?.r === ri && editing?.c === ci;
+                    const auto = isReadOnlyCol(col) || col.dataType === 'doc_number';
+                    return (
+                      <td key={col.id} data-cell={`${ri}:${ci}`} role="gridcell" aria-selected={inSel(ri, ci)}
+                        className={cn(inSel(ri, ci) && 'sel', sel?.f.r === ri && sel?.f.c === ci && 'focus', ci === fc - 1 && 'freeze-col-edge', col.dataType === 'boolean' && 'text-center',
+                          Object.keys(draft).length > 0 && col.isRequired && !auto && isEmpty(v) && isEmpty(col.defaultValue ?? null) && 'req-empty')}
+                        style={cellStyle(stickyCell(ri, ci), col, row.values, nowMs)}
+                        onMouseDown={(e) => {
+                          if (e.button !== 0 || isEdit) return;
+                          setSel((x) => (e.shiftKey && x ? { a: x.a, f: { r: ri, c: ci } } : { a: { r: ri, c: ci }, f: { r: ri, c: ci } }));
+                          focusGrid();
+                        }}
+                        onDoubleClick={() => startEdit(ri, ci)}
+                        onContextMenu={(e) => e.preventDefault()}>
+                        <div className="flex h-full items-center overflow-hidden" style={{ padding: `0 ${8 * z}px` }}>
+                          <div className="min-w-0 flex-1 truncate">{auto ? <span className="text-[0.85em] text-muted/70">อัตโนมัติ</span> : <CellDisplay col={col} value={v} />}</div>
+                        </div>
+                        {isEdit && (
+                          <CellEditor col={col} value={v} rowValues={row.values} initial={editing?.initial}
+                            anchor={tableRef.current?.querySelector<HTMLElement>(`[data-cell="${ri}:${ci}"]`) ?? null}
+                            onCommit={finishEdit} onCancel={() => { typedAhead.current = null; setEditing(null); requestAnimationFrame(focusGrid); }} />
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
               return (
                 <tr key={row.id} style={{ height: rowH(row), animationDelay: `${Math.min(ri, 24) * 12}ms` }} className="row-in">
                   <td className={cn('rownum group/rn', flash.has(`${row.id}:__row`) && 'cell-flash', ri === fr - 1 && 'freeze-row-edge')}
                     style={{ position: 'sticky', left: 0, top: frow ? tops[ri] : undefined, zIndex: frow ? 16 : 11, fontSize: '0.85em' }}
                     onClick={() => cols.length && setSel({ a: { r: ri, c: 0 }, f: { r: ri, c: cols.length - 1 } })}
                     onContextMenu={(e) => { e.preventDefault(); setMenu({ anchor: { x: e.clientX, y: e.clientY }, kind: 'row', r: ri, c: 0 }); }}>
+                    <span className={rowLink ? 'flex w-full items-center' : 'contents'}>
+                    <span className={rowLink ? 'shrink-0' : 'contents'} style={rowLink ? { width: 64 * z } : undefined}>
                     <span className="flex w-full items-center justify-center gap-1 group-hover/rn:hidden">
                       <span>{row.order}</span>
                       {onViewRow && <button onClick={(e) => { e.stopPropagation(); onViewRow(row); }} className="text-muted" title="ดูข้อมูลทั้งแถว" aria-label="ดูข้อมูลทั้งแถว"><Eye className="h-[1.05em] w-[1.05em]" /></button>}
@@ -484,6 +590,9 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
                           <Trash2 className="h-[1.05em] w-[1.05em]" />
                         </button>
                       )}
+                    </span>
+                    </span>
+                    {rowLink && <span className="min-w-0 flex-1 truncate border-l border-line px-1.5 text-left" onClick={(e) => e.stopPropagation()}>{rowLink.render(row)}</span>}
                     </span>
                     <span className="row-resizer" onMouseDown={(e) => startRowResize(e, row)} />
                   </td>
@@ -520,7 +629,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
                         {isEdit && (
                           <CellEditor col={col} value={v} rowValues={row.values} initial={editing?.initial}
                             anchor={tableRef.current?.querySelector<HTMLElement>(`[data-cell="${ri}:${ci}"]`) ?? null}
-                            onCommit={finishEdit} onCancel={() => { setEditing(null); requestAnimationFrame(focusGrid); }} />
+                            onCommit={finishEdit} onCancel={() => { typedAhead.current = null; setEditing(null); requestAnimationFrame(focusGrid); }} />
                         )}
                       </td>
                     );
@@ -578,7 +687,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
             )}
           </>
         ) : (
-          <span className="whitespace-nowrap">คลิกเซลล์เพื่อเลือก · คลิกชื่อคอลัมน์เพื่อดูจำนวนแถว/ผลรวม (Ctrl+คลิก เลือกหลายคอลัมน์) · ดับเบิลคลิกหรือ Enter เพื่อแก้ไข · Ctrl+Z ย้อนกลับ</span>
+          <span className="whitespace-nowrap">คลิกเซลล์เพื่อเลือก · คลิกชื่อคอลัมน์เพื่อดูจำนวนแถว/ผลรวม (Ctrl+คลิก เลือกหลายคอลัมน์) · พิมพ์ทับได้เลยหรือดับเบิลคลิก/Enter เพื่อแก้ไข · Tab / ลูกศร ย้ายช่อง{draftOn ? ' · พิมพ์ในแถว * ล่างสุดเพื่อเพิ่มแถวใหม่' : ''} · Ctrl+Z ย้อนกลับ</span>
         )}
       </div>}
 

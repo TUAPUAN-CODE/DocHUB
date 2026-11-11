@@ -128,4 +128,68 @@ router.post('/sheets/:id/rows/:rowId/lines/action', ah(async (req, res) => {
   ok(res, { count: lines.length, result: res2 });
 }));
 
+/* ---- showing the link between a header sheet and its line sheet in the table (column next to the row number) ---- */
+
+/** header sheet: how many lines each of these rows has */
+router.post('/sheets/:id/lines/counts', ah(async (req, res) => {
+  const sheetId = pid(req);
+  await requireSheet(req.user!, sheetId, LV.read);
+  const { rowIds } = parse(z.object({ rowIds: z.array(zId).max(1000) }), req.body);
+  if (!rowIds.length) return ok(res, {});
+  const rows = await q(
+    `SELECT l.parent_row_id, COUNT(*) AS n FROM RowLinks l JOIN Rows r ON r.row_id = l.child_row_id AND r.is_deleted = 0
+     WHERE l.role = N'contains' AND l.parent_row_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(@ids)) GROUP BY l.parent_row_id`,
+    { ids: T.text(JSON.stringify(rowIds)) },
+  );
+  ok(res, Object.fromEntries(rows.map((r) => [String(r.parent_row_id).toLowerCase(), Number(r.n)])));
+}));
+
+/** header sheet: the line row ids of each of these rows (PDF: a table of only the lines of the printed document) */
+router.post('/sheets/:id/lines/map', ah(async (req, res) => {
+  const sheetId = pid(req);
+  await requireSheet(req.user!, sheetId, LV.read);
+  const { rowIds } = parse(z.object({ rowIds: z.array(zId).max(5000) }), req.body);
+  if (!rowIds.length) return ok(res, {});
+  const rows = await q(
+    `SELECT l.parent_row_id, l.child_row_id FROM RowLinks l JOIN Rows r ON r.row_id = l.child_row_id AND r.is_deleted = 0
+     WHERE l.role = N'contains' AND l.parent_row_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(@ids)) ORDER BY l.link_id`,
+    { ids: T.text(JSON.stringify(rowIds)) },
+  );
+  const out: Record<string, string[]> = {};
+  for (const r of rows) (out[String(r.parent_row_id).toLowerCase()] ??= []).push(String(r.child_row_id).toLowerCase());
+  ok(res, out);
+}));
+
+/** line sheet: the sheet of the same file whose rows hold this sheet's rows as their lines (null: none) */
+router.get('/sheets/:id/lines/header-sheet', ah(async (req, res) => {
+  const sheetId = pid(req);
+  const { sheet } = await requireSheet(req.user!, sheetId, LV.read);
+  const sheets = await q(`SELECT sheet_id, sheet_name, settings_json FROM Sheets WHERE file_id = @f AND is_deleted = 0 AND sheet_id <> @s`, { f: T.uuid(sheet.file_id), s: T.uuid(sheetId) });
+  const h = sheets.find((x) => { try { return String(JSON.parse(x.settings_json ?? '{}')?.lines?.lineSheetId ?? '').toLowerCase() === sheetId.toLowerCase(); } catch { return false; } });
+  ok(res, h ? { sheetId: h.sheet_id, sheetName: h.sheet_name } : null);
+}));
+
+/** line sheet: the header row of each of these rows, named by the header sheet's first column (e.g. its document number) */
+router.post('/sheets/:id/lines/parents', ah(async (req, res) => {
+  const sheetId = pid(req);
+  await requireSheet(req.user!, sheetId, LV.read);
+  const { rowIds, headerSheetId } = parse(z.object({ rowIds: z.array(zId).max(1000), headerSheetId: zId }), req.body);
+  await requireSheet(req.user!, headerSheetId, LV.read);
+  if (!rowIds.length) return ok(res, {});
+  const links = await q(
+    `SELECT l.child_row_id, l.parent_row_id, p.row_id, p.row_order, p.created_by, p.created_at, p.updated_by, p.updated_at, p.deleted_at, p.deleted_by
+     FROM RowLinks l JOIN Rows p ON p.row_id = l.parent_row_id AND p.is_deleted = 0 AND p.sheet_id = @h
+     WHERE l.role = N'contains' AND l.child_row_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(@ids))`,
+    { ids: T.text(JSON.stringify(rowIds)), h: T.uuid(headerSheetId) },
+  );
+  const cols = await loadColumns(headerSheetId);
+  const { rows } = await hydrateRows(links, cols.slice(0, 1));
+  const label = new Map(rows.map((r: any) => [String(r.id).toLowerCase(), { order: r.order, value: cols[0] ? (r.values as Record<string, unknown>)[cols[0].column_id] : null }]));
+  ok(res, Object.fromEntries(links.map((l) => {
+    const p = label.get(String(l.parent_row_id).toLowerCase());
+    const v = p?.value;
+    return [String(l.child_row_id).toLowerCase(), { rowId: l.parent_row_id, label: v === null || v === undefined || v === '' ? `แถว ${p?.order ?? ''}` : Array.isArray(v) ? v.join(', ') : String(v) }];
+  })));
+}));
+
 export default router;

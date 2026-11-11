@@ -9,6 +9,14 @@ export const linesApi = {
   add: (sheetId: string, rowId: string, b: { text?: string; lineRowId?: string; profileId?: string | null }) => post<{ rowId: string; how: string; moved?: boolean; already?: boolean }>(`/sheets/${sheetId}/rows/${rowId}/lines`, b),
   remove: (sheetId: string, rowId: string, lineRowId: string) => del(`/sheets/${sheetId}/rows/${rowId}/lines/${lineRowId}`),
   action: (sheetId: string, rowId: string, index: number) => post<{ count: number }>(`/sheets/${sheetId}/rows/${rowId}/lines/action`, { index }),
+  /** header sheet: the line row ids of each row (row id lower case → line ids) */
+  map: (sheetId: string, rowIds: string[]) => post<Record<string, string[]>>(`/sheets/${sheetId}/lines/map`, { rowIds }),
+  /** header sheet: number of lines of these rows (row id lower case → n) */
+  counts: (sheetId: string, rowIds: string[]) => post<Record<string, number>>(`/sheets/${sheetId}/lines/counts`, { rowIds }),
+  /** line sheet: the sheet whose rows hold this one's rows as lines */
+  headerSheet: (sheetId: string) => get<{ sheetId: string; sheetName: string } | null>(`/sheets/${sheetId}/lines/header-sheet`),
+  /** line sheet: the header row of each row (row id lower case → { rowId, label }) */
+  parents: (sheetId: string, headerSheetId: string, rowIds: string[]) => post<Record<string, { rowId: string; label: string }>>(`/sheets/${sheetId}/lines/parents`, { rowIds, headerSheetId }),
 };
 export const formLayoutApi = {
   save: (sheetId: string, layout: import('@/api/endpoints').FormLayout | null) => put(`/sheets/${sheetId}/form-layout`, { layout }),

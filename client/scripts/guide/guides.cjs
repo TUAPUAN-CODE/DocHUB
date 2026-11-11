@@ -485,6 +485,32 @@ module.exports = [
         },
       },
       {
+        id: 'type-excel', title: 'พิมพ์ลงตารางแบบ Excel (คอมพิวเตอร์)', summary: 'คลิกช่องแล้วพิมพ์ทับได้เลย · เพิ่มแถวใหม่โดยพิมพ์ในแถว * ล่างสุด', as: 'user',
+        run: async (r) => {
+          const p = r.page;
+          await openDemoFile(r);
+          const colOf = (name) => p.evaluate((n) => [...document.querySelectorAll('thead th')].findIndex((th) => th.textContent.includes(n)) - 1, name);
+          const qty = await colOf('ยอดผลิต');
+          const cell = p.locator(`[data-cell="0:${qty}"]`);
+          await cell.click(); await r.settle(200);
+          await p.keyboard.type('1250'); await r.settle(300);
+          await r.shot({ title: 'คลิกช่อง แล้วพิมพ์ทับได้เลย', text: 'คลิกช่องครั้งเดียว แล้ว**พิมพ์ได้ทันที** (ค่าเดิมถูกแทนที่) กด **Enter** ลงไปช่องล่าง · **Tab** ไปช่องขวา · ลูกศรย้ายช่อง · **Delete** ล้างค่า · **Ctrl+C / Ctrl+V** คัดลอก-วางจาก Excel ได้', marks: [{ el: cell, label: 'พิมพ์ทับได้เลย' }] });
+          await p.keyboard.press('Escape'); await r.settle(300); // Esc: the old value stays
+          const last = await p.locator('tbody tr').count();
+          const d = last - 1;
+          const draft = p.locator('tr.draft-row');
+          await draft.scrollIntoViewIfNeeded();
+          await p.locator(`[data-cell="${d}:${qty}"]`).click(); await r.settle(200);
+          await p.keyboard.type('980'); await p.keyboard.press('Tab'); await r.settle(200); await p.keyboard.type('4'); await p.keyboard.press('Enter'); await r.settle(500);
+          await r.shot({
+            title: 'แถวใหม่: พิมพ์ในแถว * ล่างสุด',
+            text: 'แถวที่มีเครื่องหมาย “*” ล่างสุดคือแถวใหม่ พิมพ์ทีละช่องได้เลย ช่องที่**จำเป็น**ซึ่งยังว่างจะเป็นสีชมพู · เมื่อกรอกช่องจำเป็นครบ ระบบ**บันทึกเป็นแถวใหม่ให้เอง** แล้วขึ้นแถว * ใหม่ให้พิมพ์ต่อ · ปุ่ม ✓ บันทึกทันที · ✕ ล้างแถวที่พิมพ์ค้างไว้',
+            marks: [{ el: draft.locator('td').first(), label: 'แถวใหม่ (*)', place: 'right' }],
+          });
+          await draft.getByRole('button', { name: 'ล้างแถวใหม่' }).click(); await r.settle(300);
+        },
+      },
+      {
         id: 'row-view', title: 'ดูและแก้ไขข้อมูลทั้งแถว', summary: 'เปิดแถวในฟอร์มเพื่ออ่านข้อมูลยาวๆ หรือแก้หลายช่องพร้อมกัน', as: 'user',
         run: async (r) => {
           const p = r.page;
@@ -1095,6 +1121,16 @@ module.exports = [
           await r.shot({ title: 'ช่องผลการตรวจจับวัตถุดิบ แล้วบันทึก', text: 'Result / รอบ A / Object / รอบ B / สรุปผล ตั้งต้นเป็น **-** (ไม่พบปัญหา) เปลี่ยนเมื่อเครื่องตรวจจับโลหะ · กรอก Code / Batch, MD Detect (NG), Checked By แล้วกด **เพิ่มแถว**', tip: 'ติ๊ก **เพิ่มต่ออีกแถว** ถ้าจะบันทึกหลายรายการติดกัน', marks: [{ el: saveLine, label: 'กด เพิ่มแถว', place: 'above' }] });
           await saveLine.click(); await r.settle(1500);
           await r.shot({ title: 'รายการอยู่ในใบตรวจแล้ว', text: 'รายการแสดงในหน้าต่างของใบนี้ · แตะที่รายการเพื่อแก้ไข · รูปถังขยะเพื่อลบ\nเปิดใบเดิมภายหลัง: ชีต **หัวเอกสาร** → กดรูป**ตา**หน้าแถว → **รายการในแถว**', marks: [{ el: p.getByRole('dialog').locator('tbody tr').first(), label: 'รายการที่บันทึก', place: 'below' }] });
+          await p.getByRole('dialog').getByRole('button', { name: 'ปิด' }).first().click(); await r.settle(800);
+          const docRow = p.locator('tbody tr').filter({ hasText: /\d+ รายการ/ }).last();
+          await r.shot({ title: 'คอลัมน์ “รายการตรวจ” หน้าเลขแถว', text: 'ชีต **หัวเอกสาร** มีคอลัมน์ **รายการตรวจ** บอกว่าใบนี้มีกี่รายการ กดเพื่อเปิดรายการของใบนั้น (ใบที่ยังไม่มีรายการขึ้น **เพิ่มรายการ**)', marks: [{ el: docRow.getByRole('button', { name: /รายการ/ }).first(), label: 'จำนวนรายการของใบนี้', place: 'right' }] });
+          await docRow.locator('td').nth(2).click(); await r.settle(300);
+          await role(p, 'button', 'ส่งออก').click(); await r.settle(400);
+          const pdfItem = p.getByRole('menuitem', { name: /PDF — ใบตรวจ F3QCPF06/ }).first();
+          await r.shot({ title: 'พิมพ์ใบตรวจเป็น PDF', text: 'คลิกแถวของใบที่ต้องการ (เลือกหลายใบได้ แต่ละใบขึ้นหน้าใหม่) แล้วกด **ส่งออก → PDF — ใบตรวจ F3QCPF06** · ในตารางผลการตรวจของ PDF มีเฉพาะ**รายการของใบนั้น**', marks: [{ el: pdfItem, label: 'PDF ใบตรวจ', place: 'left' }] });
+          await p.keyboard.press('Escape'); await r.settle(300);
+          await role(p, 'button', 'รายการตรวจ').click(); await r.settle(1200);
+          await r.shot({ title: 'ชีตรายการตรวจบอกว่าเป็นของใบไหน', text: 'ชีต **รายการตรวจ** มีคอลัมน์ **หัวเอกสาร** บอกเลขที่ใบตรวจของแต่ละรายการ กดเพื่อไปที่ใบนั้น', marks: [{ el: p.locator('tbody tr').first().getByRole('button').filter({ hasText: /MD-/ }).first(), label: 'ใบตรวจของรายการนี้', place: 'right' }] });
         },
       },
       {

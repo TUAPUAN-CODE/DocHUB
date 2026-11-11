@@ -48,6 +48,8 @@ export interface TableBlock extends BlockBase {
   imageSizeMm: number; maxImagesPerCell: number;
   summary: { columnId: string; agg: Agg; label?: string }[]; summaryLabel: string;
   /** a line of text before the table (supports tokens) */ caption?: string;
+  /** form per row (perRow) on a header sheet: only the lines of the printed row (หัวเอกสาร → รายการ) */
+  rowLines?: boolean;
 }
 export interface FieldsBlock extends BlockBase {
   type: 'fields'; columns: TableCol[]; perRow: 1 | 2 | 3; label: TextStyle; value: TextStyle; border: { color: string; width: number } | null; imageSizeMm: number;
