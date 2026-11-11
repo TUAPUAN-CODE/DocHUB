@@ -3,6 +3,7 @@ import { cn } from '@/lib/cn';
 import { fromLocalInput, toLocalInput } from '@/lib/format';
 import type { CellValue, Column } from '@/types';
 import { TextArea, TextInput, Toggle } from '../ui/Inputs';
+import { DateTimeInput } from '../ui/DateTimeInput';
 import { SearchSelect } from '../ui/SearchSelect';
 import { useLookupOptions } from '@/lib/lookup';
 import { DocNumberField } from './DocNumberField';
@@ -29,7 +30,7 @@ export function FieldInput({ col, value, onChange, invalid, autoFocus, rowValues
     case 'date':
       return <TextInput type="date" value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value || null)} invalid={invalid} autoFocus={autoFocus} />;
     case 'datetime':
-      return <TextInput type="datetime-local" value={toLocalInput(value as string)} onChange={(e) => onChange(fromLocalInput(e.target.value))} invalid={invalid} autoFocus={autoFocus} />;
+      return <DateTimeInput value={toLocalInput(value as string)} onChange={(v) => onChange(fromLocalInput(v))} invalid={invalid} autoFocus={autoFocus} />;
     case 'boolean':
       return <div className="flex h-10 items-center"><Toggle checked={!!value} onChange={(v) => onChange(v)} label={value ? 'ใช่' : 'ไม่ใช่'} /></div>;
     case 'select':
