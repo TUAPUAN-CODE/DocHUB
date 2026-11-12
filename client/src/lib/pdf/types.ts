@@ -35,7 +35,7 @@ export interface PageBreakBlock extends BlockBase { type: 'pageBreak' }
 export interface ColumnsBlock extends BlockBase {
   type: 'columns'; gap: number; cols: { widthPct: number; blocks: (TextBlock | ImageBlock)[] }[];
 }
-export interface TableCol { columnId: string; columnName: string; header?: string; widthMm?: number | null; align?: Align; /** print only the first word of each value (e.g. F0 of “F0 Sensitivity test”) */ firstWord?: boolean }
+export interface TableCol { columnId: string; columnName: string; header?: string; widthMm?: number | null; align?: Align; /** print only the first word of each value (e.g. F0 of “F0 Sensitivity test”) */ firstWord?: boolean; /** date-time column: print only the time HH:mm */ timeOnly?: boolean }
 export type Agg = 'sum' | 'avg' | 'count' | 'min' | 'max';
 export interface TableBlock extends BlockBase {
   type: 'table'; sheetId: string; sheetName: string; columns: TableCol[];

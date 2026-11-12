@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -50,7 +50,8 @@ import { displayValue, fmtDateTime, levelToPerm } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { confirmDialog, toast, useUi } from '@/store/ui';
-import { Column, LV, Row, isAdminRole, isBasicRole } from '@/types';
+import { CellValue, Column, LV, Row, isAdminRole, isBasicRole } from '@/types';
+import { isReadOnlyCol } from '@/lib/columnTypes';
 
 const TOOLS_KEY = 'ds.sheetTools';
 /** Tools (header, toolbar, filter bar) shown? The viewer's last choice on this device; a phone starts with the data only. */
@@ -98,6 +99,34 @@ export default function FilePage() {
   const [parents, setParents] = useState<Record<string, { rowId: string; label: string }>>({});
   /** a line sheet row with no header yet: pick its document */
   const [linkFor, setLinkFor] = useState<Row | null>(null);
+  /*
+   * Typing a line straight into the line sheet (blank row *): pick its document first; the line is saved into that document and gets
+   * its date / shift / machine … (columns of the same name). The document stays picked for the next lines.
+   */
+  const [draftHeader, setDraftHeader] = useState<{ row: Row; label: string; cols: Column[] } | null>(null);
+  const [pickHeader, setPickHeader] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(0);
+  useEffect(() => { setDraftHeader(null); }, [sheetId]);
+  const draftPrefill = useMemo(() => {
+    if (!draftHeader) return null;
+    const byName = new Map(draftHeader.cols.map((c) => [c.name.trim().toLowerCase(), c]));
+    const values: Record<string, CellValue> = {};
+    for (const c of view.columns) {
+      const h = byName.get(c.name.trim().toLowerCase());
+      if (h && h.dataType === c.dataType && !isReadOnlyCol(c)) values[c.id] = (draftHeader.row.values[h.id] ?? null) as CellValue;
+    }
+    return { key: `${draftHeader.row.id}:${draftSaved}`, values };
+  }, [draftHeader, draftSaved, view.columns]);
+  const addLine = async (values: Record<string, CellValue>) => {
+    if (!headerSheet || !draftHeader || !sheetId) return null;
+    const r = await view.addRow(values);
+    if (r) {
+      await linesApi.add(headerSheet.sheetId, draftHeader.row.id, { lineRowId: r.id });
+      setDraftSaved((n) => n + 1);
+      linesApi.parents(sheetId, headerSheet.sheetId, [...view.rows.map((x) => x.id), r.id]).then((p) => setParents((cur) => ({ ...cur, ...p }))).catch(() => undefined);
+    }
+    return r;
+  };
   const lineSheetName = linesCfg ? sheets.find((x) => x.id.toLowerCase() === String(linesCfg.lineSheetId).toLowerCase())?.name ?? 'รายการ' : null;
   useEffect(() => { setHeaderSheet(null); if (sheetId && !linesCfg) linesApi.headerSheet(sheetId).then(setHeaderSheet).catch(() => undefined); }, [sheetId, !!linesCfg]); // eslint-disable-line react-hooks/exhaustive-deps
   const rowKey = view.rows.map((r) => r.id).join();
@@ -416,7 +445,13 @@ export default function FilePage() {
               ) : (
                 <SpreadsheetGrid view={view} canWrite={canWrite} canManage={canManage && !union} onOpenRow={(row) => setRowForm({ row })} onCellHistory={(row, col) => setCellHist({ row, col })}
                   onRowHistory={setRowHist} onFilterColumn={(colId, el) => setFilterFor({ colId, el })} onColumnSettings={() => setModal('columns')} onDeleteRows={deleteRows} onSelectRows={setSelRows} onViewRow={setRowView} rowLink={rowLink}
-                  onAddRow={canWrite && !union && !headerSheet ? view.addRow : undefined} />
+                  onAddRow={canWrite && !union ? (headerSheet ? addLine : view.addRow) : undefined}
+                  draftNeeds={headerSheet && !draftHeader ? `เลือกใบ (${headerSheet.sheetName}) ที่ช่อง “เลือกใบ…” ของแถว * ก่อน` : null}
+                  draftPrefill={headerSheet ? draftPrefill : null}
+                  draftLink={headerSheet && canWrite ? (
+                    <button onClick={() => setPickHeader(true)} title="รายการที่พิมพ์ในแถว * จะอยู่ในใบนี้" className={cn('inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.95em] font-medium hover:bg-primary/10', draftHeader ? 'text-primary' : 'text-warning')}>
+                      <CornerLeftUp className="h-[1.05em] w-[1.05em] shrink-0" /><span className="truncate">{draftHeader ? draftHeader.label : 'เลือกใบ…'}</span></button>
+                  ) : undefined} />
               )}
               {view.loadingRows && view.rows.length > 0 && <div className="absolute inset-x-0 top-0 h-0.5 animate-pulse bg-primary" />}
             </div>
@@ -450,6 +485,8 @@ export default function FilePage() {
             }}
             onSave={(changes) => view.commit(changes.map((c) => ({ ...c, rowId: rowForm!.row!.id })), { partial: true })} />
           {headerSheet && <LinkHeaderDialog line={linkFor} header={headerSheet} onClose={() => setLinkFor(null)} onLinked={loadLinks} />}
+          {headerSheet && <LinkHeaderDialog line={null} open={pickHeader} header={headerSheet} onClose={() => setPickHeader(false)} onLinked={() => undefined}
+            onPick={(row, label, cols) => setDraftHeader({ row, label, cols })} />}
           <RowViewModal row={rowView} rows={view.rows} columns={view.columns} users={view.users} onClose={() => setRowView(null)} onNavigate={setRowView} formRev={formRevOf}
             onEdit={canWrite ? (r) => { setRowView(null); setRowForm({ row: r }); } : undefined}
             onLines={linesCfg ? openLines : undefined} />
