@@ -15,17 +15,21 @@ import { linesApi } from '@/modules/scan/api';
  * A line typed straight into the line sheet (not through the header's "รายการ" window) belongs to no document: pick its header row here.
  * The header rows are listed newest first with their first columns (e.g. เลขที่ใบตรวจ · วันที่ · กะ · เครื่อง).
  */
-export function LinkHeaderDialog({ line, header, onClose, onLinked }: {
+export function LinkHeaderDialog({ line, header, onClose, onLinked, open, onPick }: {
   line: Row | null; header: { sheetId: string; sheetName: string }; onClose: () => void; onLinked: () => void;
+  /** pick mode (the blank row of the line sheet): no line yet — just hand back the chosen document */
+  open?: boolean; onPick?: (row: Row, label: string, cols: Column[]) => void;
 }) {
+  const shown = !!line || !!open;
   const [cols, setCols] = useState<Column[]>([]);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [q, setQ] = useState('');
   const dq = useDebounce(q.trim(), 300);
   const [busy, setBusy] = useState<string | null>(null);
-  useEffect(() => { if (line) void loadCols(header.sheetId).then((c) => setCols(c.filter((x) => !x.isDeleted).slice(0, 4))).catch(() => setCols([])); }, [line, header.sheetId]);
+  const [allCols, setAllCols] = useState<Column[]>([]);
+  useEffect(() => { if (shown) void loadCols(header.sheetId).then((c) => { const live = c.filter((x) => !x.isDeleted); setAllCols(live); setCols(live.slice(0, 4)); }).catch(() => setCols([])); }, [shown, header.sheetId]);
   useEffect(() => {
-    if (!line) return;
+    if (!shown) return;
     let live = true;
     setRows(null);
     const body = { pageSize: 50, search: dq || undefined, sorts: [], filters: [] };
@@ -38,8 +42,9 @@ export function LinkHeaderDialog({ line, header, onClose, onLinked }: {
       if (live) setRows([...(prev?.rows ?? []), ...page.rows].reverse());
     })().catch(() => live && setRows([]));
     return () => { live = false; };
-  }, [line, header.sheetId, dq]);
+  }, [shown, header.sheetId, dq]);
   const pick = async (h: Row) => {
+    if (onPick) { onPick(h, cols.slice(0, 1).map((c) => displayValue(c, h.values[c.id] ?? null)).join('') || `แถว ${h.order}`, allCols); onClose(); return; }
     if (!line) return;
     setBusy(h.id);
     try {
@@ -49,7 +54,7 @@ export function LinkHeaderDialog({ line, header, onClose, onLinked }: {
     } catch (e) { toast.error(e, 'ผูกรายการไม่สำเร็จ'); } finally { setBusy(null); }
   };
   return (
-    <Modal open={!!line} onClose={onClose} size="md" icon={<CornerLeftUp className="h-5 w-5" />} title={`รายการนี้เป็นของใบไหน (${header.sheetName})`}
+    <Modal open={shown} onClose={onClose} size="md" icon={<CornerLeftUp className="h-5 w-5" />} title={`รายการนี้เป็นของใบไหน (${header.sheetName})`}
       description="เลือกแถวของหัวเอกสาร — รายการจะขึ้นในหน้าต่างรายการของใบนั้นและใน PDF ของใบนั้น"
       footer={<Button variant="secondary" onClick={onClose}>ยกเลิก</Button>}>
       <TextInput icon={<Search />} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา เลขที่ใบ / วันที่ / เครื่อง …" autoFocus />

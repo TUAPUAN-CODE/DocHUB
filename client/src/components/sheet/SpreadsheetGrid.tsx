@@ -33,6 +33,12 @@ interface Props {
   onSelectRows?: (ids: string[]) => void;
   /** PC: a blank row (*) under the last row, typed into like Excel; saved as a new row once its required cells are filled */
   onAddRow?: (values: Record<string, CellValue>) => Promise<Row | null>;
+  /** blank row of a line sheet: the "which document" picker shown in its link column */
+  draftLink?: React.ReactNode;
+  /** blank row: why it cannot be saved yet (e.g. no document picked) — null = it can */
+  draftNeeds?: string | null;
+  /** blank row: values to put in its empty cells (e.g. date / shift / machine of the picked document); `key` changes = apply again */
+  draftPrefill?: { key: string; values: Record<string, CellValue> } | null;
   /** Opens the read-only full detail of a row (eye icon) */
   onViewRow?: (row: Row) => void;
   /** a column next to the row number showing the link to another sheet (a header's lines / a line's header) */
@@ -51,7 +57,7 @@ function cellStyle(base: React.CSSProperties | undefined, col: Column, values: R
   return a ? { ...base, backgroundColor: tint(a.color, 0.3), boxShadow: `inset 3px 0 0 ${a.color}` } : base;
 }
 
-export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHistory, onRowHistory, onFilterColumn, onColumnSettings, onDeleteRows, onSelectRows, onViewRow, rowLink, onAddRow }: Props) {
+export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHistory, onRowHistory, onFilterColumn, onColumnSettings, onDeleteRows, onSelectRows, onViewRow, rowLink, onAddRow, draftLink, draftNeeds, draftPrefill }: Props) {
   const { columns: cols, rows, prefs, setPrefs, query, setQuery, commit, users, flash } = view;
   const scrollRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -84,6 +90,7 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
     if (!Object.keys(values).length) return;
     const miss = draftMissing(values);
     if (miss.length) return toast.info(`ยังบันทึกแถวใหม่ไม่ได้`, `กรอก ${miss.map((c) => `“${c.name}”`).join(', ')} ก่อน`);
+    if (draftNeeds) return toast.info('ยังบันทึกแถวใหม่ไม่ได้', draftNeeds);
     setDraftSaving(true);
     try {
       const r = await onAddRow(values);
@@ -94,8 +101,17 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
   const setDraftValues = (changes: Record<string, CellValue>) => {
     const next = { ...draft, ...changes };
     setDraft(next);
-    if (!draftMissing(next).length) void saveDraft(next);
+    if (!draftMissing(next).length && !draftNeeds) void saveDraft(next);
   };
+  // values from outside (the picked document) fill the blank row's empty cells
+  useEffect(() => {
+    if (!draftPrefill) return;
+    setDraft((d) => {
+      const next = { ...d };
+      for (const [k, v] of Object.entries(draftPrefill.values)) if (isEmpty(next[k] ?? null) && !isEmpty(v ?? null)) next[k] = v;
+      return next;
+    });
+  }, [draftPrefill?.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const z = prefs.zoom;
   const HEAD = Math.round(38 * z);
@@ -530,13 +546,16 @@ export function SpreadsheetGrid({ view, canWrite, canManage, onOpenRow, onCellHi
                 <tr key={DRAFT_ID} style={{ height: rowH(row) }} className="draft-row">
                   <td className="rownum" style={{ position: 'sticky', left: 0, zIndex: 11, fontSize: '0.85em' }}
                     title="แถวใหม่ — พิมพ์ลงในเซลล์ได้เลย ระบบบันทึกเมื่อกรอกช่องที่จำเป็นครบ">
-                    <span className="flex w-full items-center justify-center gap-1.5">
+                    <span className={draftLink ? 'flex w-full items-center' : 'contents'}>
+                    <span className="flex shrink-0 items-center justify-center gap-1.5" style={draftLink ? { width: 64 * z } : { width: '100%' }}>
                       {draftSaving ? <span className="text-primary">…</span> : <span className="font-semibold text-primary">*</span>}
                       {Object.keys(draft).length > 0 && !draftSaving && (<>
                         <button onClick={(e) => { e.stopPropagation(); void saveDraft(draft); }} className="text-success" title="บันทึกแถวใหม่" aria-label="บันทึกแถวใหม่"><Check className="h-[1.1em] w-[1.1em]" /></button>
                         <button onClick={(e) => { e.stopPropagation(); setDraft({}); }} className="text-muted hover:text-danger" title="ล้างแถวใหม่" aria-label="ล้างแถวใหม่"><X className="h-[1.1em] w-[1.1em]" /></button>
                       </>)}
-                      {!Object.keys(draft).length && LINK > 0 && <span className="truncate text-left text-muted">แถวใหม่</span>}
+                      {!draftLink && !Object.keys(draft).length && LINK > 0 && <span className="truncate text-left text-muted">แถวใหม่</span>}
+                    </span>
+                    {draftLink && <span className="min-w-0 flex-1 truncate border-l border-line px-1.5 text-left" onClick={(e) => e.stopPropagation()}>{draftLink}</span>}
                     </span>
                   </td>
                   {cols.map((col, ci) => {

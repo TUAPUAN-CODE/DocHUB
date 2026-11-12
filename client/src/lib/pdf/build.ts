@@ -154,7 +154,8 @@ function tableBlock(b: TableBlock, c: BuildCtx) {
         return nodes.length ? { stack: [...nodes.map((n: any) => ({ ...n, margin: [0, 0, 0, 2] })), ...(more > 0 ? [{ text: `+${more}`, fontSize: 8, color: '#6B7280' }] : [])] } : { text: '' };
       }
       const alert = col.validation?.alert ? alertColor(col.validation.alert, r.values, c.now.getTime()) : null; // colour alerts, as of the time of printing
-      const shown = ref.firstWord ? (Array.isArray(v) ? v.map((x) => String(x).trim().split(/\s+/)[0]).join(', ') : displayValue(col, v).trim().split(/\s+/)[0] ?? '') : displayValue(col, v);
+      const hhmm = (x: unknown) => { const d = new Date(String(x)); return Number.isNaN(+d) ? displayValue(col, v) : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+      const shown = ref.timeOnly && col.dataType === 'datetime' && v ? hhmm(v) : ref.firstWord ? (Array.isArray(v) ? v.map((x) => String(x).trim().split(/\s+/)[0]).join(', ') : displayValue(col, v).trim().split(/\s+/)[0] ?? '') : displayValue(col, v);
       return { text: shown, alignment: cellAlign(col, ref), fontSize: b.body.fontSize, color: b.body.color, lineHeight: b.body.lineHeight, ...(alert ? { fillColor: alert.color } : {}) };
     }),
   ]);

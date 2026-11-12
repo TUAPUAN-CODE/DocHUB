@@ -190,6 +190,7 @@ export function ColumnPicker({ cols, available, onChange, showWidth }: { cols: T
                 {showWidth ? <TextInput value={c.widthMm ?? ''} placeholder="กว้าง mm" inputMode="decimal" className="!h-8 text-xs" onChange={(e) => onChange(cols.map((x, j) => (j === i ? { ...x, widthMm: e.target.value === '' ? null : Number(e.target.value) || null } : x)))} /> : <span />}
                 {showWidth ? <Select value={c.align ?? ''} className="[&>select]:!h-8 [&>select]:text-xs" onChange={(e) => onChange(cols.map((x, j) => (j === i ? { ...x, align: (e.target.value || undefined) as Align | undefined } : x)))}><option value="">แนวอัตโนมัติ</option><option value="left">ซ้าย</option><option value="center">กลาง</option><option value="right">ขวา</option></Select> : <span />}
               </div>
+              {showWidth && real?.dataType === 'datetime' && <Checkbox checked={!!c.timeOnly} onChange={(v) => onChange(cols.map((x, j) => (j === i ? { ...x, timeOnly: v || undefined } : x)))} label="แสดงเฉพาะเวลา (ไม่แสดงวันที่)" />}
               {showWidth && <Checkbox checked={!!c.firstWord} onChange={(v) => onChange(cols.map((x, j) => (j === i ? { ...x, firstWord: v || undefined } : x)))} label="แสดงเฉพาะคำแรก (เช่น F0 จาก “F0 Sensitivity test”)" />}
             </div>
           );
