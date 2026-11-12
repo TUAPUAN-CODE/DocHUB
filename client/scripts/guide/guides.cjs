@@ -36,6 +36,8 @@ async function openMd(r, fileName) {
 const QH_DASH = '1e6bcab4-c396-44a7-9522-48c85ae4ae3e';
 const QI_FILE = '54d453cc-9f4c-4fee-a9c6-a8705dfad684'; // Quality Highlight - Incoming (seed quality_highlight_incoming.sql)
 const QI_DASH = 'f1dec61e-7270-435a-92c7-98279a338ea9';
+const BONE_FILE = 'db868a7e-d59a-4aa3-9857-e5fc18c0eec5'; // ตรวจก้างหลังคัดมือ (F3QCPF51), seed bone_f3qcpf51.sql + _data
+const BONE_DASH = 'e43a81f9-6123-4b74-a160-4baf68307fe6';
 /** pick a value from a SearchSelect popover */
 async function choose(r, button, text) {
   await button.click();
@@ -1203,6 +1205,45 @@ module.exports = [
           const cell = p.locator('tbody tr').first().locator('td').nth(7);
           await r.shot({ title: 'แก้ค่า Fe / SUS / ML ในชีตของโรงผลิต', text: 'ดับเบิลคลิกช่องที่จะแก้ พิมพ์ค่าใหม่แล้วกด Enter · เพิ่มโปรแกรมใหม่ด้วย **+ เพิ่มแถว** (กรอกหมายเลขเครื่อง Program No. ชื่อ และค่า)', marks: [{ el: cell, label: 'ดับเบิลคลิกเพื่อแก้' }] });
           await r.shot({ title: 'คอลัมน์ “โปรแกรม / Sensitivity” สร้างเอง', text: 'คอลัมน์สุดท้ายรวม **Program No. + Name + ค่า** ให้เอง (เช่น 001 Chunk (Fe 5.2 / SUS 5.6)) ข้อความนี้คือสิ่งที่ขึ้นในตัวเลือกของใบตรวจ · ชีตรวมอัปเดตตามภายใน 1 นาที', marks: [{ el: p.locator('th').filter({ hasText: 'โปรแกรม / Sensitivity' }).first(), label: 'สร้างจากสูตร (แก้เองไม่ได้)', place: 'below' }] });
+        },
+      },
+    ],
+  },
+
+  /* ================================================================ */
+  {
+    id: 'bone', title: 'ตรวจก้าง (Bone · F3QCPF51)', icon: 'sheet', description: 'ลงข้อมูลก้างที่พบหลังคัดมือ และดู Anatomy ว่าพบก้างส่วนไหนเท่าไหร่',
+    guides: [
+      {
+        id: 'bone-entry', title: 'ลงข้อมูลก้างหลังคัดมือ', summary: '1 แถว = 1 คันที่สุ่ม · ใส่เฉพาะจำนวนก้างที่พบ ที่เหลือเป็น 0', as: 'admin',
+        run: async (r) => {
+          const p = r.page;
+          await r.go(`/files/${BONE_FILE}`, 2000);
+          await r.shot({
+            title: 'ไฟล์ตรวจก้างหลังคัดมือ',
+            text: 'อยู่ที่ **ไฟล์ทั้งหมด → Bone** · 1 แถว = 1 คันรถเข็นที่สุ่ม · คอลัมน์ก้าง No.1–No.10 (No.2 / No.3 แยกขนาด <1, 1-2, >2 cm), เกล็ด, หนัง\n**รวมก้าง** และ **ก้าง/100kg** คำนวณให้เอง',
+            marks: [{ el: p.locator('thead th').filter({ hasText: 'No.1 ก้างเข็มหมุด' }).first(), label: 'จำนวนก้างแต่ละส่วน', place: 'below' }],
+          });
+          await p.getByRole('button', { name: 'เพิ่มแถว' }).first().click(); await r.settle(800);
+          await r.shot({
+            title: 'กด + เพิ่มแถว แล้วกรอกเฉพาะที่พบ',
+            text: 'กรอก **วันที่ · กะ · เวลา · Code · Batch** แล้วใส่จำนวนเฉพาะส่วนที่พบก้าง (ช่องอื่นเป็น 0 อยู่แล้ว) · โรงผลิต PF1 และพื้นที่ Tomra ใส่ให้เอง\nบนคอมพิมพ์ในแถว * ล่างสุดของตารางได้เหมือน Excel',
+            marks: [{ el: p.getByRole('dialog').getByText('No.1 ก้างเข็มหมุด').first(), label: 'ใส่จำนวนที่พบ', place: 'right' }],
+          });
+          await p.getByRole('dialog').getByRole('button', { name: 'ยกเลิก' }).click(); await r.settle(300);
+        },
+      },
+      {
+        id: 'bone-anatomy', title: 'Anatomy: พบก้างส่วนไหนเท่าไหร่', summary: 'รูปปลาพร้อมจำนวนก้างแต่ละส่วน เทรนด์ก้าง vs จำนวนคัน แยกกะ DS / NS', as: 'admin',
+        run: async (r) => {
+          const p = r.page;
+          await r.go(`/files/${BONE_FILE}/dashboards/${BONE_DASH}`, 6000);
+          await r.shot({
+            title: 'แดชบอร์ด Anatomy-Manual',
+            text: 'เลือก **ช่วงวันที่ · กะ · โรงผลิต · Code · Batch** ด้านบน → ตัวเลขบนรูปปลาแสดงจำนวนก้างแต่ละส่วนของช่วงนั้น (เช่นเลือกวันเดียว + กะ DS = Anatomy ของกะนั้น)\nด้านบนรูป: จำนวนคันที่สุ่ม · ก้างรวม · pcs/100kg · เกล็ด · หนัง',
+            marks: [{ el: p.getByRole('button', { name: 'DS', exact: true }).first(), label: 'เลือกกะ', place: 'below' }],
+          });
+          await r.note({ title: 'กราฟและตาราง', text: 'เลื่อนลงจะเห็น: ก้างแต่ละส่วนแยกกะ · **เทรนด์ก้างที่พบ vs จำนวนคัน** ต่อวัน (กะ DS และ NS) · pcs/100kg ต่อวัน · รายเดือน · Pareto Code · ตารางสรุปรายวัน/รายเดือน/แต่ละส่วน (คลิกหัวคอลัมน์เพื่อเรียง)' });
         },
       },
     ],

@@ -25,7 +25,8 @@ Import scripts read the company's files on the server at run time (see `server/s
 Exceptions, decided by the owner: the Quality Highlight master data (`database/seed/quality_highlight_rev9.sql` + pictures in
 `database/seed/files`) and the Metal Detector program / sensitivity tables + form F3QCPF06 (`database/seed/metal_detector_f3qcpf06.sql`)
 are published as start-up seeds, and so is the Metal Detector problem log F3QCPP28 (`metal_detector_record_problem.sql`, owner's
-request 2026-11). The empty Quality Highlight - Incoming file + dashboard (`quality_highlight_incoming.sql`)
+request 2026-11), and the bone check log F3QCPF51 (`bone_f3qcpf51.sql` + `bone_f3qcpf51_data.sql`, a compact data seed written by
+`server/scripts/buildBone.ts --data-sql`). The empty Quality Highlight - Incoming file + dashboard (`quality_highlight_incoming.sql`)
 is a structure-only seed (no data). Do not add other company data there without the owner asking for it.
 
 - `database/seed/*.sql` run at start-up after the migrations, once per database (`AppliedSeeds`), each in its own

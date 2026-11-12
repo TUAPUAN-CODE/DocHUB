@@ -23,7 +23,7 @@ const dataSourceSchema = zod_1.z.object({
         label: zod_1.z.string().max(200).nullish(),
     }))
         .min(1)
-        .max(12),
+        .max(24), // e.g. one series per bone part (F3QCPF51 has 14)
     groupByColumnId: zod_1.z.string().max(60).nullish().transform((s) => s?.toLowerCase() ?? null),
     filters: zod_1.z.array(schemas_1.filterSchema).max(20).optional(),
     sort: zod_1.z.enum(['x_asc', 'x_desc', 'value_asc', 'value_desc']).optional(),
