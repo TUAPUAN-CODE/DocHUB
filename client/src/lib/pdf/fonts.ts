@@ -23,6 +23,10 @@ async function b64(file: string): Promise<string> {
 /** ✓ ✗ ☐ ★ … are not in the Thai fonts (they print as empty boxes): those characters are written with a small
  *  subset of DejaVu Sans (public/fonts/DejaVuSans-Symbols.ttf, ~7 KB; regenerate with pyftsubset for more characters). */
 export const SYMBOL_FONT = 'Symbols';
+/** The digit 0 with a bar inside it (Sarabun Bold's "0" + a diagonal bar, ~2 KB; only the glyph "0"): ink-code character grids.
+ *  Regenerate with server/scripts/makeZeroFont.py Sarabun-Bold.ttf SarabunZero-Bold.ttf "Sarabun Zero". */
+export const ZERO_FONT = 'Zero';
+const ZERO_FILE = 'SarabunZero-Bold.ttf';
 const SYMBOL_FILE = 'DejaVuSans-Symbols.ttf';
 const SYMBOLS = /([\u2194-\u2199\u25A1-\u25B1\u25B4\u25B5\u25B8-\u25BB\u25BE\u25BF\u25C2-\u25C5\u25C7-\u25CF\u2605\u2606\u2610-\u2612\u26A0\u2713-\u2718]+)/;
 
@@ -69,6 +73,8 @@ export async function loadPdfMake(fonts: PdfFont[]) {
   }
   vfs[SYMBOL_FILE] = await b64(SYMBOL_FILE);
   defs[SYMBOL_FONT] = { normal: SYMBOL_FILE, bold: SYMBOL_FILE, italics: SYMBOL_FILE, bolditalics: SYMBOL_FILE };
+  vfs[ZERO_FILE] = await b64(ZERO_FILE);
+  defs[ZERO_FONT] = { normal: ZERO_FILE, bold: ZERO_FILE, italics: ZERO_FILE, bolditalics: ZERO_FILE };
   pm.addVirtualFileSystem(vfs);
   pm.addFonts(defs);
   return pm;
