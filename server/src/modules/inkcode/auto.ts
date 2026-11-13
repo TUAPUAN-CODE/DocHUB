@@ -33,25 +33,56 @@ async function ensureFolder(user: AuthUser, parentId: string, name: string): Pro
   return row!.folder_id as string;
 }
 
-/** The folder tree made by seedInkCodeTree.ts — nothing is invented when it is missing */
-async function roots() {
+/**
+ * The folders under "InkCode" (any depth). The tree made by seedInkCodeTree.ts may be moved / renamed by the users: the parts are
+ * found by their own names wherever they are under InkCode — the file "แม่แบบรายวัน", the plant folders PF1 / PF2, and the
+ * folder "แผนผลิต" — not by a fixed path.
+ */
+async function inkFolders(): Promise<{ root: string; list: { id: string; name: string; parent: string | null; depth: number }[] } | null> {
   const root = await folderChild(null, TREE.root);
-  const tree = root ? await folderChild(root, TREE.tree) : null;
-  const tplFolder = tree ? await folderChild(tree, TREE.templateFolder) : null;
-  const tpl = tplFolder ? await fileIn(tplFolder, TREE.dayTemplate) : null;
-  if (!tree || !tpl) throw badRequest(`ยังไม่มีโครงโฟลเดอร์ "${TREE.tree}" / แม่แบบรายวัน — รัน seedInkCodeTree.ts ก่อน`);
-  return { tree, templateFileId: tpl };
+  if (!root) return null;
+  const all = (await q(`SELECT folder_id, folder_name, parent_id FROM Folders WHERE is_deleted = 0`)) as { folder_id: string; folder_name: string; parent_id: string | null }[];
+  const kids = new Map<string, typeof all>();
+  for (const f of all) if (f.parent_id) { const k = String(f.parent_id).toLowerCase(); kids.set(k, [...(kids.get(k) ?? []), f]); }
+  const list: { id: string; name: string; parent: string | null; depth: number }[] = [{ id: root, name: TREE.root, parent: null, depth: 0 }];
+  for (let i = 0; i < list.length && list.length < 20_000; i++) for (const c of kids.get(list[i].id.toLowerCase()) ?? []) list.push({ id: c.folder_id, name: String(c.folder_name).trim(), parent: list[i].id, depth: list[i].depth + 1 });
+  return { root, list };
 }
+/** A file of that name in any folder under InkCode (the shallowest one) */
+async function fileUnder(name: string): Promise<string | null> {
+  const t = await inkFolders();
+  if (!t) return null;
+  const depth = new Map(t.list.map((f) => [f.id.toLowerCase(), f.depth]));
+  const hits = ((await q(`SELECT file_id, folder_id FROM Files WHERE is_deleted = 0 AND file_name = @n`, { n: name })) as { file_id: string; folder_id: string | null }[])
+    .filter((h) => h.folder_id && depth.has(String(h.folder_id).toLowerCase()))
+    .sort((a, b) => depth.get(String(a.folder_id).toLowerCase())! - depth.get(String(b.folder_id).toLowerCase())!);
+  return hits[0]?.file_id ?? null;
+}
+
+/** Day template + plant folders — nothing is invented when they are missing */
+async function roots() {
+  const t = await inkFolders();
+  const tpl = await fileUnder(TREE.dayTemplate);
+  if (!t || !tpl) throw badRequest(`ไม่พบไฟล์ "${TREE.dayTemplate}" ในโฟลเดอร์ ${TREE.root} (ย้ายได้ แต่ห้ามลบหรือเปลี่ยนชื่อไฟล์นี้) — รัน seedInkCodeTree.ts ถ้ายังไม่เคยสร้าง`);
+  // the plant folder PF1 / PF2 (the shallowest of that name; outside the plan-drop folders)
+  const plantFolder = (plant: string) => t.list.find((f) => f.name.toUpperCase() === plant.toUpperCase() && !pathNames(t.list, f).includes(TREE.plans))?.id ?? null;
+  return { templateFileId: tpl, plantFolder };
+}
+const pathNames = (list: { id: string; name: string; parent: string | null }[], f: { parent: string | null }) => {
+  const out: string[] = [];
+  for (let p = f.parent; p;) { const x = list.find((y) => y.id === p); if (!x) break; out.push(x.name); p = x.parent; }
+  return out;
+};
 
 export const sheetsOf = async (fileId: string) => (await q(`SELECT sheet_id, sheet_name FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: T.uuid(fileId) })) as { sheet_id: string; sheet_name: string }[];
 
 /** Day file of a plant (…/PF1/2026/10 ตุลาคม/2026-10-03). `create` = false only looks. */
 export async function dayFile(user: AuthUser, plant: string, date: string, create: boolean, req?: Request): Promise<{ id: string | null; folderPath: string; created: boolean }> {
-  const { tree, templateFileId } = await roots();
-  const plantId = await folderChild(tree, plant);
-  if (!plantId) throw badRequest(`ไม่มีโฟลเดอร์โรงงาน "${plant}" ใน ${TREE.tree} (มีเฉพาะ ${TREE.plants.join(', ')}) — ตรวจคอลัมน์ Plant ของไลน์ในตาราง ไลน์ หรือเลือกโรงงานเองในเมนู นำเข้าแผนผลิต`);
+  const { templateFileId, plantFolder } = await roots();
+  const plantId = plantFolder(plant);
+  if (!plantId) throw badRequest(`ไม่มีโฟลเดอร์โรงงาน "${plant}" ในโฟลเดอร์ ${TREE.root} (มีเฉพาะ ${TREE.plants.join(', ')}) — ตรวจคอลัมน์ Plant ของไลน์ในตาราง ไลน์ หรือเลือกโรงงานเองในเมนู นำเข้าแผนผลิต`);
   const p = dayPath(date);
-  const path = `${TREE.tree} / ${plant} / ${p.year} / ${p.month}`;
+  const path = `${plant} / ${p.year} / ${p.month}`;
   let yearId = await folderChild(plantId, p.year);
   let monthId = yearId ? await folderChild(yearId, p.month) : null;
   let id = monthId ? await fileIn(monthId, p.file) : null;
@@ -69,8 +100,7 @@ export async function dayFile(user: AuthUser, plant: string, date: string, creat
 async function pdfMasterId(templateFileId: string): Promise<string | null> {
   const t = await q1(`SELECT pdf_master_id FROM Files WHERE file_id = @f`, { f: T.uuid(templateFileId) });
   if (t?.pdf_master_id) return t.pdf_master_id as string;
-  const root = await folderChild(null, TREE.root);
-  return root ? ((await q1(`SELECT file_id FROM Files WHERE is_deleted = 0 AND folder_id = @r AND file_name = N'InkCode - ใบออกโค้ดนอกแผน'`, { r: T.uuid(root) }))?.file_id ?? null) : null;
+  return fileUnder('InkCode - ใบออกโค้ดนอกแผน');
 }
 
 async function prepare(user: AuthUser, buf: Buffer, o: AutoOptions) {
@@ -152,18 +182,18 @@ export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, re
   return out;
 }
 
-/** Is `folderId` inside "<TREE.tree> / แผนผลิต" (the folder where plan files are dropped)? */
+/** Is `folderId` inside a folder "แผนผลิต" somewhere under "InkCode" (the folders where plan files are dropped)? */
 async function inPlanFolder(folderId: string): Promise<boolean> {
   let cur: string | null = folderId;
   const names: string[] = [];
-  for (let i = 0; cur && i < 8; i++) {
+  for (let i = 0; cur && i < 12; i++) {
     const f = await q1(`SELECT folder_name, parent_id FROM Folders WHERE folder_id = @f AND is_deleted = 0`, { f: T.uuid(cur) });
     if (!f) break;
-    names.push(f.folder_name);
+    names.push(String(f.folder_name).trim());
     cur = f.parent_id;
   }
   const at = names.indexOf(TREE.plans);
-  return at >= 0 && names[at + 1] === TREE.tree;
+  return at >= 0 && names[names.length - 1] === TREE.root && !cur;
 }
 
 /**
@@ -172,7 +202,7 @@ async function inPlanFolder(folderId: string): Promise<boolean> {
  */
 export async function dropPlan(user: AuthUser, buf: Buffer, originalName: string, folderId: string, req?: Request): Promise<AutoResult & { recordFileId: string }> {
   await requireFolder(user, folderId, LV.write);
-  if (!(await inPlanFolder(folderId))) throw badRequest(`วางแผนผลิตได้เฉพาะในโฟลเดอร์ ${TREE.tree} / ${TREE.plans} / ปี / เดือน`);
+  if (!(await inPlanFolder(folderId))) throw badRequest(`วางแผนผลิตได้เฉพาะในโฟลเดอร์ ${TREE.plans} / ปี / เดือน ภายใต้ ${TREE.root}`);
   const r = await importAuto(user, buf, { onlyMatched: true }, req);
   const base = originalName.replace(/\.xlsx?$/i, '').slice(0, 150);
   const name = `แผน ${r.date} · ${base}`;

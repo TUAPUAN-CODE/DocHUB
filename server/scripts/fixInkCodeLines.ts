@@ -35,13 +35,22 @@ async function allRows(sheetId: string) {
   return rows;
 }
 
+/** The file of that name in any folder under InkCode (the folders may have been moved / renamed — the file name is what counts) */
+async function fileUnder(tree: any[], rootId: string, name: string): Promise<any> {
+  const list = [rootId];
+  for (let i = 0; i < list.length; i++) for (const f of tree) if (f.parentId === list[i]) list.push(f.id);
+  for (const id of list) { const hit = (await api('GET', `/folders/${id}/contents`)).files.find((f: any) => f.name === name); if (hit) return hit; }
+  return null;
+}
+
 async function main() {
   const user = process.env.DOCHUB_USER, password = process.env.DOCHUB_PASSWORD;
   if (!user || !password) throw new Error('ตั้ง DOCHUB_USER และ DOCHUB_PASSWORD (บัญชี master/admin)');
   token = (await api('POST', '/auth/login', { username: user, password })).accessToken;
-  const root = (await api<any[]>('GET', '/folders/tree')).find((f) => f.name === ROOT && !f.parentId);
+  const tree = await api<any[]>('GET', '/folders/tree');
+  const root = tree.find((f) => f.name === ROOT && !f.parentId);
   if (!root) throw new Error(`ไม่พบโฟลเดอร์ ${ROOT}`);
-  const file = (await api('GET', `/folders/${root.id}/contents`)).files.find((f: any) => f.name === REF_FILE);
+  const file = await fileUnder(tree, root.id, REF_FILE);
   if (!file) throw new Error(`ไม่พบไฟล์ "${REF_FILE}"`);
   let sheets = (await api('GET', `/files/${file.id}`)).sheets as { id: string; name: string }[];
   const lineSheet = sheets.find((s) => s.name === SHEETS.line);
