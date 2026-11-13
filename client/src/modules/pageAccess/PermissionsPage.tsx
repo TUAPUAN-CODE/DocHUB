@@ -80,7 +80,7 @@ export default function PermissionsPage() {
 
   return (
     <Page>
-      <PageHeader icon={<ShieldCheck />} title="จัดการสิทธิ์" subtitle="กำหนดว่าแต่ละบทบาทเห็นหน้าไหนในเมนูด้านซ้าย และใช้ปุ่ม AI ได้หรือไม่ (เฉพาะ Root)"
+      <PageHeader icon={<ShieldCheck />} title="จัดการสิทธิ์" subtitle="กำหนดว่าแต่ละบทบาทเห็นหน้าไหนในเมนูด้านซ้าย และใช้ปุ่ม AI ได้หรือไม่ · เปลี่ยนชื่อเมนูได้ (Admin / Root)"
         actions={<>
           <Button variant="secondary" icon={<RotateCcw className="h-4 w-4" />} onClick={() => void resetDefaults()} disabled={!data}>คืนค่าเริ่มต้น</Button>
           <Button icon={<Save className="h-4 w-4" />} onClick={() => void save()} loading={busy} disabled={!dirty}>บันทึก</Button>

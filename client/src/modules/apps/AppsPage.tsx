@@ -40,6 +40,7 @@ function AppIcon({ app, size = 64 }: { app: Pick<AppItem, 'iconUrl' | 'color' | 
 export default function AppsPage() {
   const nav = useNavigate();
   const role = useAuth((s) => s.user?.role);
+  const title = useAuth((s) => s.user?.pageLabels?.apps) || 'Application';
   const admin = role === 'admin' || role === 'root';
   const [apps, setApps] = useState<AppItem[] | null>(null);
   const [q, setQ] = useState('');
@@ -58,7 +59,7 @@ export default function AppsPage() {
 
   return (
     <Page>
-      <PageHeader icon={<AppWindow />} title="Application" subtitle={apps ? `${apps.filter((a) => !a.hidden).length} แอปที่คุณเปิดได้` : 'กำลังโหลด…'}
+      <PageHeader icon={<AppWindow />} title={title} subtitle={apps ? `${apps.filter((a) => !a.hidden).length} แอปที่คุณเปิดได้` : 'กำลังโหลด…'}
         actions={admin ? <Button icon={<Plus className="h-4 w-4" />} onClick={() => setAdding(true)}>เพิ่ม App</Button> : undefined} />
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <TextInput icon={<Search />} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาแอป…" className="!h-11 min-w-[220px] flex-1" />
