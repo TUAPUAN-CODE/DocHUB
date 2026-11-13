@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createSystemPost = createSystemPost;
 const express_1 = require("express");
 const zod_1 = require("zod");
 const db_1 = require("../../config/db");
@@ -199,4 +200,23 @@ router.delete('/news/:id', (0, http_1.ah)(async (req, res) => {
     (0, http_1.ok)(res, { deleted: true });
 }));
 exports.default = router;
+/**
+ * A post written by the system on behalf of a user (e.g. the InkCode plan import: "New Code ตรวจ 100%"), to the given tags.
+ * Same visibility, unread badge and bell notification as a post from the page. Returns the post id.
+ */
+async function createSystemPost(author, p) {
+    if (!p.tagIds.length)
+        return null;
+    const tags = await (0, db_1.q)(`SELECT tag_id, tag_name, is_system FROM Tags WHERE tag_id IN ${(0, db_1.idList)('@ids')}`, { ids: (0, db_1.jsonParam)(p.tagIds) });
+    if (!tags.length)
+        return null;
+    const id = await (0, db_1.withTx)(async (tx) => {
+        const row = await (0, db_1.q1)(`INSERT INTO NewsPosts (title, body, link_url, is_pinned, created_by) OUTPUT inserted.post_id VALUES (@t, @b, @l, 0, @u)`, { t: p.title.slice(0, 200), b: db_1.T.text(p.body.slice(0, 20000)), l: db_1.T.text(p.linkUrl ?? null), u: db_1.T.uuid(author.id) }, tx);
+        await writeTags(tx, row.post_id, tags.map((t) => t.tag_id));
+        return row.post_id;
+    });
+    await notifyTagged(id, p.title, author, tags);
+    (0, socket_1.emitToAll)('news:changed', { id });
+    return id;
+}
 //# sourceMappingURL=routes.js.map

@@ -9,11 +9,27 @@ import { parsePlan } from './plan';
 import { dropPlan, importAuto, previewAuto } from './auto';
 import { ensureMsConnector, fetchPlanFromLink } from './planLink';
 import { traceCode } from './trace';
+import { newsTagIds, setNewsTagIds } from './news';
+import { idList, jsonParam, q } from '../../config/db';
 import { requirePage } from '../pageAccess/service';
 
 const router = Router();
 
 /** Search › ย้อนรอยโค้ด Ink: printed code → day-sheet rows + what the plan said + raw materials */
+/** Tags that get the news post "New Code ตรวจ 100%" of each imported plan (page นำเข้าแผนผลิต, master/admin) */
+router.get('/inkcode/news-tags', ah(async (req, res) => {
+  if (isBasicRole(req.user!.role)) throw badRequest('เฉพาะ Master หรือ Admin');
+  ok(res, { tagIds: await newsTagIds(req.user!) });
+}));
+router.put('/inkcode/news-tags', ah(async (req, res) => {
+  if (isBasicRole(req.user!.role)) throw badRequest('เฉพาะ Master หรือ Admin');
+  const { tagIds } = parse(z.object({ tagIds: z.array(z.string().min(30).max(40)).max(50) }), req.body);
+  const found = tagIds.length ? await q(`SELECT tag_id FROM Tags WHERE tag_id IN ${idList('@ids')}`, { ids: jsonParam(tagIds) }) : [];
+  if (found.length !== new Set(tagIds.map((t) => t.toLowerCase())).size) throw badRequest('มี Tag ที่ไม่พบในระบบ');
+  await setNewsTagIds(tagIds, req.user!);
+  ok(res, { tagIds });
+}));
+
 router.get('/inkcode/trace', requirePage('search'), ah(async (req, res) => ok(res, await traceCode(req.user!, String(req.query.q ?? '')))));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
 
