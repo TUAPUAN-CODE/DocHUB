@@ -19,6 +19,8 @@ export interface SignatureBlock extends BlockBase {
   slots: SignatureSlot[];
   perRow: number;
   boxHeightMm: number;
+  /** space below each row of boxes (mm, default 5) */
+  rowGapMm?: number;
   gapMm: number;
   lineColor: string;
   lineWidth: number;
@@ -73,7 +75,7 @@ export function buildSignature(b: SignatureBlock, c: BuildCtx) {
       table: { widths, body },
       // each cell says which of its borders are drawn (see `border` above); the layout gives them their width and colour
       layout: { hLineWidth: () => b.lineWidth, vLineWidth: () => b.lineWidth, hLineColor: () => lineColor, vLineColor: () => lineColor, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
-      margin: [0, 0, 0, pt(5)],
+      margin: [0, 0, 0, pt(b.rowGapMm ?? 5)],
     });
   }
   return { stack: rows, margin: [pt(b.marginLeft ?? 0), pt(b.marginTop ?? 0), pt(b.marginRight ?? 0), pt(b.marginBottom ?? 0)] };

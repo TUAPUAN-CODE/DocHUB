@@ -1,4 +1,5 @@
 import { registerBlockModule } from '../registry';
+import { buildCodeSheet, CodeSheetBlock, newCodeSheet } from './codeSheet';
 import { buildCharGrid, CharGridBlock, newCharGrid } from './charGrid';
 import { buildInfoRow, InfoRowBlock, newInfoRow } from './infoRow';
 import { buildSignature, newSignature, SignatureBlock } from './signature';
@@ -15,4 +16,8 @@ registerBlockModule<InfoRowBlock>({
 registerBlockModule<CharGridBlock>({
   type: 'charGrid', label: 'กริดตัวอักษร (1 ตัว 1 ช่อง)', scopes: ['body'], create: newCharGrid, build: buildCharGrid,
   summary: (b) => `${b.lines.length} บรรทัด × ${b.cells} ช่อง`,
+});
+registerBlockModule<CodeSheetBlock>({
+  type: 'codeSheet', label: 'ตารางโค้ด (ฟอร์มใบแจ้งโค้ด)', scopes: ['body'], create: newCodeSheet, build: buildCodeSheet,
+  summary: (b) => `${b.left.length + b.right.length} คอลัมน์ข้าง · ${b.lines.length} บรรทัด × ${b.cells} ช่อง`,
 });

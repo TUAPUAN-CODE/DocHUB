@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.duplicateFile = duplicateFile;
 exports.copySheet = copySheet;
 const crypto_1 = __importDefault(require("crypto"));
 const express_1 = require("express");
@@ -198,6 +199,29 @@ async function relinkCopiedLines(tx, copies, userId) {
         }
     }
 }
+/** Copies a file (sheets with columns / formulas / settings, PDF layouts) into `folderId`; permissions of the caller are checked by the caller */
+async function duplicateFile(u, file, folderId, name, includeData, req) {
+    const id = file.file_id;
+    return (0, db_1.withTx)(async (tx) => {
+        const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by, doc_type) OUTPUT inserted.file_id
+       VALUES (@n, @fo, @d, @c, @i, @u, @dt)`, { n: name, fo: db_1.T.uuid(folderId), d: db_1.T.text(file.description), c: file.color, i: file.icon, u: db_1.T.uuid(u.id), dt: db_1.T.text(file.doc_type ?? null) }, tx);
+        const sheets = await (0, db_1.q)(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: db_1.T.uuid(id) }, tx);
+        const copies = new Map();
+        for (const [i, s] of sheets.entries())
+            copies.set(s.sheet_id, await copySheetFull(tx, s.sheet_id, f.file_id, i, u.id, includeData));
+        await relinkCopiedLines(tx, copies, u.id);
+        // PDF layouts travel with the file (a file that follows a master keeps following it)
+        if (file.pdf_master_id)
+            await (0, db_1.q)(`UPDATE Files SET pdf_master_id = @m WHERE file_id = @f`, { m: db_1.T.uuid(file.pdf_master_id), f: db_1.T.uuid(f.file_id) }, tx);
+        const tpls = (0, pdfTemplates_1.parseTemplates)(file.pdf_templates);
+        if (tpls.length) {
+            const mapped = (0, pdfTemplates_1.remapTemplates)(tpls, await (0, pdfTemplates_1.sheetsOfFile)(id, tx), await (0, pdfTemplates_1.sheetsOfFile)(f.file_id, tx), false);
+            await (0, db_1.q)(`UPDATE Files SET pdf_templates = @t WHERE file_id = @f`, { t: db_1.T.text(JSON.stringify(mapped)), f: db_1.T.uuid(f.file_id) }, tx);
+        }
+        await (0, audit_1.audit)({ userId: u.id, action: 'file_duplicate', entityType: 'file', entityId: f.file_id, fileId: f.file_id, newValue: { sourceFileId: id, includeData } }, req, tx);
+        return f.file_id;
+    });
+}
 router.post('/files/:id/duplicate', (0, http_1.ah)(async (req, res) => {
     const id = (0, http_1.pid)(req);
     const u = req.user;
@@ -207,24 +231,7 @@ router.post('/files/:id/duplicate', (0, http_1.ah)(async (req, res) => {
     const body = (0, http_1.parse)(zod_1.z.object({ name: zod_1.z.string().trim().min(1).max(300).optional(), folderId: http_1.zId.optional(), includeData: zod_1.z.boolean().default(false) }), req.body);
     const folderId = body.folderId ?? file.folder_id;
     await (0, permissions_1.requireFolder)(u, folderId, permissions_1.LV.write);
-    const newId = await (0, db_1.withTx)(async (tx) => {
-        const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by, doc_type) OUTPUT inserted.file_id
-         VALUES (@n, @fo, @d, @c, @i, @u, @dt)`, { n: body.name ?? `${file.file_name} (สำเนา)`, fo: db_1.T.uuid(folderId), d: db_1.T.text(file.description), c: file.color, i: file.icon, u: db_1.T.uuid(u.id), dt: db_1.T.text(file.doc_type ?? null) }, tx);
-        const sheets = await (0, db_1.q)(`SELECT sheet_id FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: db_1.T.uuid(id) }, tx);
-        const copies = new Map();
-        for (const [i, s] of sheets.entries())
-            copies.set(s.sheet_id, await copySheetFull(tx, s.sheet_id, f.file_id, i, u.id, body.includeData));
-        await relinkCopiedLines(tx, copies, u.id);
-        // PDF layouts travel with the file
-        const tpls = (0, pdfTemplates_1.parseTemplates)(file.pdf_templates);
-        if (tpls.length) {
-            const mapped = (0, pdfTemplates_1.remapTemplates)(tpls, await (0, pdfTemplates_1.sheetsOfFile)(id, tx), await (0, pdfTemplates_1.sheetsOfFile)(f.file_id, tx), false);
-            await (0, db_1.q)(`UPDATE Files SET pdf_templates = @t WHERE file_id = @f`, { t: db_1.T.text(JSON.stringify(mapped)), f: db_1.T.uuid(f.file_id) }, tx);
-        }
-        await (0, audit_1.audit)({ userId: u.id, action: 'file_duplicate', entityType: 'file', entityId: f.file_id, fileId: f.file_id,
-            newValue: { sourceFileId: id, includeData: body.includeData } }, req, tx);
-        return f.file_id;
-    });
+    const newId = await duplicateFile(u, file, folderId, body.name ?? `${file.file_name} (สำเนา)`, body.includeData, req);
     (0, http_1.ok)(res, { id: newId }, 201);
 }));
 router.delete('/files/:id', (0, http_1.ah)(async (req, res) => {

@@ -288,6 +288,9 @@ async function remapAfterCopy(tx, newSheetId, columnMap) {
             continue;
         v.formula.expr = expr.replace(/\[#([0-9a-fA-F-]{36})\]/g, (_m, id) => `[#${map.get(id.toLowerCase()) ?? id.toLowerCase()}]`);
         await (0, db_1.q)(`UPDATE Columns SET validation_rule = @v WHERE column_id = @c`, { v: db_1.T.text(JSON.stringify(v)), c: db_1.T.uuid(r.column_id) }, tx);
+        // the copy reads the same source sheets: record it (inside this transaction — a second connection would wait for it forever)
+        for (const src of new Set((v.formula.sources ?? []).map((x) => x.sheetId.toLowerCase())))
+            await (0, db_1.q)(`INSERT INTO FormulaSources (column_id, sheet_id, source_sheet_id) VALUES (@c, @s, @src)`, { c: db_1.T.uuid(r.column_id), s: db_1.T.uuid(newSheetId), src: db_1.T.uuid(src) }, tx);
     }
 }
 async function countRows(sheetId) {

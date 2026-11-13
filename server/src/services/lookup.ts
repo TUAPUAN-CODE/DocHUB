@@ -44,8 +44,12 @@ async function userLookupValues(tag: string | null | undefined, search?: string)
 }
 
 /** Distinct values of the source column (optionally limited to one parent value), as strings */
-export async function lookupValues(l: Lookup, parentValue: string | null, search?: string): Promise<string[]> {
-  if (l.users) return userLookupValues(l.users.tag, search);
+/**
+ * `limit`: first N values only (the drop-down shows a page and searches the whole table on the server as you type); no limit = all.
+ * `exact`: only that value (to check a typed value without loading the list).
+ */
+export async function lookupValues(l: Lookup, parentValue: string | null, search?: string, exact?: string, limit?: number): Promise<string[]> {
+  if (l.users) { const v = await userLookupValues(l.users.tag, search); return exact !== undefined ? v.filter((x) => x === exact) : v; }
   if (l.parent && (parentValue === null || parentValue === '')) return [];
   // a union sheet is a copy of other sheets, refreshed when somebody opens it: refresh it from here too
   const own = await q1(`SELECT sheet_id, union_config FROM Sheets WHERE sheet_id = @s`, { s: T.uuid(l.sheetId) });
@@ -67,8 +71,9 @@ export async function lookupValues(l: Lookup, parentValue: string | null, search
     params.sv = T.text(`%${search.trim().replace(/[%_[]/g, (m) => `[${m}]`)}%`);
     like = `AND ${textExpr(src.data_type, 'v')} LIKE @sv`;
   }
+  if (exact !== undefined) { params.ev = T.text(exact); like += ` AND ${textExpr(src.data_type, 'v')} = @ev`; }
   const rows = await q(
-    `SELECT DISTINCT TOP 1000 ${textExpr(src.data_type, 'v')} AS val
+    `SELECT DISTINCT ${limit ? `TOP ${Math.max(1, Math.min(100000, Math.floor(limit)))}` : ''} ${textExpr(src.data_type, 'v')} AS val
      FROM Rows r JOIN Cells v ON v.row_id = r.row_id AND v.column_id = @vc ${join}
      WHERE r.sheet_id = @s AND r.is_deleted = 0 AND ${textExpr(src.data_type, 'v')} IS NOT NULL AND ${textExpr(src.data_type, 'v')} <> N'' ${like}
      ORDER BY val`,
@@ -80,9 +85,9 @@ export async function lookupValues(l: Lookup, parentValue: string | null, search
 /** Memoised option lookup for one request (an import checks thousands of cells against a handful of lists) */
 export function lookupResolver() {
   const cache = new Map<string, Promise<string[]>>();
-  return (l: Lookup, parentValue: string | null) => {
-    const key = l.users ? `users|${l.users.tag ?? ''}` : `${l.sheetId}|${l.columnId}|${l.parent?.foreignColumnId ?? ''}|${parentValue ?? ''}`;
-    if (!cache.has(key)) cache.set(key, lookupValues(l, parentValue));
+  return (l: Lookup, parentValue: string | null, exact?: string) => {
+    const key = l.users ? `users|${l.users.tag ?? ''}|${exact ?? ''}` : `${l.sheetId}|${l.columnId}|${l.parent?.foreignColumnId ?? ''}|${parentValue ?? ''}|${exact ?? ''}`;
+    if (!cache.has(key)) cache.set(key, lookupValues(l, parentValue, undefined, exact));
     return cache.get(key)!;
   };
 }
@@ -98,7 +103,11 @@ export async function normalizeWithLookup(
 ): Promise<NormResult> {
   const l = getLookup(col);
   if (!l) return normalizeValue(col, raw, opts);
-  const values = await resolve(l, parentValue);
+  // the typed value is checked against the source itself (an exact lookup), so the size of the source list never matters
+  const typed = (Array.isArray(raw) ? raw : [raw]).filter((x): x is string | number => typeof x === 'string' || typeof x === 'number').map((x) => String(x).trim()).filter(Boolean);
+  const found = new Set<string>();
+  for (const t of [...new Set(typed)]) for (const v of await resolve(l, parentValue, t)) found.add(v);
+  const values = [...found];
   const res = normalizeValue({ ...col, options: values.map((v) => ({ value: v, label: v })) }, raw, opts);
   if (!res.ok && l.parent && !values.length && !(parentValue ?? '').trim()) return { ok: false, error: `กรุณาเลือกค่าของคอลัมน์ที่เชื่อมโยงก่อน ("${col.column_name}" ขึ้นกับคอลัมน์อื่น)` };
   return res;
