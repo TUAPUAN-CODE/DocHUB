@@ -14,9 +14,27 @@ const plan_1 = require("./plan");
 const auto_1 = require("./auto");
 const planLink_1 = require("./planLink");
 const trace_1 = require("./trace");
+const news_1 = require("./news");
+const db_1 = require("../../config/db");
 const service_1 = require("../pageAccess/service");
 const router = (0, express_1.Router)();
 /** Search › ย้อนรอยโค้ด Ink: printed code → day-sheet rows + what the plan said + raw materials */
+/** Tags that get the news post "New Code ตรวจ 100%" of each imported plan (page นำเข้าแผนผลิต, master/admin) */
+router.get('/inkcode/news-tags', (0, http_1.ah)(async (req, res) => {
+    if ((0, auth_1.isBasicRole)(req.user.role))
+        throw (0, http_1.badRequest)('เฉพาะ Master หรือ Admin');
+    (0, http_1.ok)(res, { tagIds: await (0, news_1.newsTagIds)(req.user) });
+}));
+router.put('/inkcode/news-tags', (0, http_1.ah)(async (req, res) => {
+    if ((0, auth_1.isBasicRole)(req.user.role))
+        throw (0, http_1.badRequest)('เฉพาะ Master หรือ Admin');
+    const { tagIds } = (0, http_1.parse)(zod_1.z.object({ tagIds: zod_1.z.array(zod_1.z.string().min(30).max(40)).max(50) }), req.body);
+    const found = tagIds.length ? await (0, db_1.q)(`SELECT tag_id FROM Tags WHERE tag_id IN ${(0, db_1.idList)('@ids')}`, { ids: (0, db_1.jsonParam)(tagIds) }) : [];
+    if (found.length !== new Set(tagIds.map((t) => t.toLowerCase())).size)
+        throw (0, http_1.badRequest)('มี Tag ที่ไม่พบในระบบ');
+    await (0, news_1.setNewsTagIds)(tagIds, req.user);
+    (0, http_1.ok)(res, { tagIds });
+}));
 router.get('/inkcode/trace', (0, service_1.requirePage)('search'), (0, http_1.ah)(async (req, res) => (0, http_1.ok)(res, await (0, trace_1.traceCode)(req.user, String(req.query.q ?? '')))));
 const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
 router.post('/inkcode/plan/preview', upload.single('file'), (0, http_1.ah)(async (req, res) => {

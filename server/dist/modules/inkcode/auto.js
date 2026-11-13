@@ -17,6 +17,7 @@ const db_2 = require("../../config/db");
 const permissions_2 = require("../../shared/permissions");
 const plan_1 = require("./plan");
 const record_1 = require("./record");
+const news_1 = require("./news");
 const folderChild = async (parentId, name) => (await (0, db_1.q1)(`SELECT folder_id FROM Folders WHERE is_deleted = 0 AND folder_name = @n AND ((@p IS NULL AND parent_id IS NULL) OR parent_id = @p)`, { n: name, p: db_1.T.uuid(parentId) }))?.folder_id ?? null;
 const fileIn = async (folderId, name) => (await (0, db_1.q1)(`SELECT file_id FROM Files WHERE is_deleted = 0 AND folder_id = @f AND file_name = @n`, { f: db_1.T.uuid(folderId), n: name }))?.file_id ?? null;
 async function ensureFolder(user, parentId, name) {
@@ -171,7 +172,14 @@ async function ensureSheet(user, fileId, name, sheets) {
     return id.toLowerCase();
 }
 async function importAuto(user, buf, o, req) {
-    return importPrepared(user, await prepare(user, buf, o), o, req);
+    const p = await prepare(user, buf, o);
+    const r = await importPrepared(user, p, o, req);
+    // the page "นำเข้าแผนผลิต" and the disk folder make no record file, but QC is still told about New Code products
+    const items = p.items.map((i, k) => ({ ...i, status: r.items?.[k]?.status ?? '' }));
+    const alerts = (0, record_1.findAlerts)(items, await (0, record_1.masterRemarks)(p.ctx.docLookup?.sheetId ?? null, items.map((i) => i.doc)), new Map(), []);
+    const first = r.targets.find((t) => t.fileId);
+    const newsPostId = await (0, news_1.postNewCodeNews)(user, p.date, alerts, first ? `/files/${first.fileId}` : null).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
+    return { ...r, newsPostId };
 }
 async function importPrepared(user, p, o, req) {
     const out = {
@@ -243,6 +251,7 @@ async function dropPlan(user, buf, originalName, folderId, req) {
     const docs = items.map((i) => i.doc);
     const alerts = (0, record_1.findAlerts)(items, await (0, record_1.masterRemarks)(p.ctx.docLookup?.sheetId ?? null, docs), await (0, record_1.lastRevs)(p.date, docs), p.plan.warnings);
     const recordFileId = await (0, record_1.writeRecord)(user, folderId, originalName, p.date, p.plan, items, alerts, req);
-    return { ...r, recordFileId, alerts };
+    const newsPostId = await (0, news_1.postNewCodeNews)(user, p.date, alerts, `/files/${recordFileId}`).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
+    return { ...r, recordFileId, alerts, newsPostId };
 }
 //# sourceMappingURL=auto.js.map

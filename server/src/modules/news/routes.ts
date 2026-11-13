@@ -221,3 +221,22 @@ router.delete('/news/:id', ah(async (req, res) => {
 }));
 
 export default router;
+
+/**
+ * A post written by the system on behalf of a user (e.g. the InkCode plan import: "New Code ตรวจ 100%"), to the given tags.
+ * Same visibility, unread badge and bell notification as a post from the page. Returns the post id.
+ */
+export async function createSystemPost(author: AuthUser, p: { title: string; body: string; tagIds: string[]; linkUrl?: string | null }): Promise<string | null> {
+  if (!p.tagIds.length) return null;
+  const tags = await q(`SELECT tag_id, tag_name, is_system FROM Tags WHERE tag_id IN ${idList('@ids')}`, { ids: jsonParam(p.tagIds) });
+  if (!tags.length) return null;
+  const id = await withTx(async (tx) => {
+    const row = await q1(`INSERT INTO NewsPosts (title, body, link_url, is_pinned, created_by) OUTPUT inserted.post_id VALUES (@t, @b, @l, 0, @u)`,
+      { t: p.title.slice(0, 200), b: T.text(p.body.slice(0, 20000)), l: T.text(p.linkUrl ?? null), u: T.uuid(author.id) }, tx);
+    await writeTags(tx, row!.post_id, tags.map((t: any) => t.tag_id));
+    return row!.post_id as string;
+  });
+  await notifyTagged(id, p.title, author, tags);
+  emitToAll('news:changed', { id });
+  return id;
+}
