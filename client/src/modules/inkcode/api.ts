@@ -1,4 +1,4 @@
-import { post } from '@/api/client';
+import { get, post } from '@/api/client';
 
 export interface PlanItem {
   time: string | null; product: string; lineRaw: string; line: string; size: string | null; customer: string | null; country: string; doc: string; rev: string | null; qty: number | null; shift: 'DS' | 'NS'; sourceRow: number;
@@ -24,7 +24,15 @@ export const inkcodeApi = {
 export interface AutoItem extends PlanItem { plant: string | null; area: string; sheet: string }
 export interface AutoPreview { date: string; sheetName: string; warnings: string[]; knownLines: string[]; plants: string[]; areas: string[]; items: AutoItem[]; files: { plant: string; folderPath: string; fileName: string; exists: boolean; fileId: string | null }[] }
 export interface AutoTarget { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: { created: number; duplicate: number; skippedNotInDb: number; skippedOtherPlant: number; failed: { doc: string; line: string; reason: string }[] } }
-export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string }
+export interface PlanAlert { kind: string; time: string | null; line: string; doc: string; country: string; detail: string }
+export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string; alerts?: PlanAlert[] }
+
+type Vals = Record<string, string | number | null>;
+export interface TraceResult {
+  q: string; total: number; truncated: boolean;
+  results: { fileId: string; fileName: string; sheetId: string; sheetName: string; rowId: string; row: Vals; plan: { fileId: string; fileName: string; item: Vals | null; materials: Vals[] } | null }[];
+}
+export const inkTraceApi = { trace: (q: string) => get<TraceResult>('/inkcode/trace', { q }) };
 
 export type DropResult = AutoResult | { needsMicrosoft: { connectorId: string; configured: boolean; message: string } };
 export const inkcodeAutoApi = {

@@ -13,7 +13,11 @@ const core_1 = require("./core");
 const plan_1 = require("./plan");
 const auto_1 = require("./auto");
 const planLink_1 = require("./planLink");
+const trace_1 = require("./trace");
+const service_1 = require("../pageAccess/service");
 const router = (0, express_1.Router)();
+/** Search › ย้อนรอยโค้ด Ink: printed code → day-sheet rows + what the plan said + raw materials */
+router.get('/inkcode/trace', (0, service_1.requirePage)('search'), (0, http_1.ah)(async (req, res) => (0, http_1.ok)(res, await (0, trace_1.traceCode)(req.user, String(req.query.q ?? '')))));
 const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
 router.post('/inkcode/plan/preview', upload.single('file'), (0, http_1.ah)(async (req, res) => {
     const { sheetId } = (0, http_1.parse)(zod_1.z.object({ sheetId: zod_1.z.string().min(30).max(40) }), req.body);

@@ -8,8 +8,13 @@ import { annotate, context, dbPairs, insertItems, NAMES, norm } from './core';
 import { parsePlan } from './plan';
 import { dropPlan, importAuto, previewAuto } from './auto';
 import { ensureMsConnector, fetchPlanFromLink } from './planLink';
+import { traceCode } from './trace';
+import { requirePage } from '../pageAccess/service';
 
 const router = Router();
+
+/** Search › ย้อนรอยโค้ด Ink: printed code → day-sheet rows + what the plan said + raw materials */
+router.get('/inkcode/trace', requirePage('search'), ah(async (req, res) => ok(res, await traceCode(req.user!, String(req.query.q ?? '')))));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
 
 router.post('/inkcode/plan/preview', upload.single('file'), ah(async (req, res) => {

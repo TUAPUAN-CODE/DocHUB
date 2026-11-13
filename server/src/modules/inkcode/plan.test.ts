@@ -23,7 +23,7 @@ test('plan: one item per product block, line/shift/date resolved', () => {
   const r = parsePlan(buf, ['Cup 1', 'Spout', 'Auto A']);
   assert.equal(r.date, '2026-10-03');
   assert.equal(r.items.length, 3);
-  assert.deepEqual(r.items.map((i) => [i.line, i.doc, i.country, i.shift, i.qty, i.time]), [['Cup 1', 'M252', 'USA', 'DS', 47334, '07:00'], ['Cup 2', 'P342', 'USA', 'DS', null, '07:00'], ['Spout', 'J111', 'Italy', 'NS', 500, '19:30']]);
+  assert.deepEqual(r.items.map((i) => [i.line, i.doc, i.country, i.shift, i.qty, i.time]), [['Cup 1', 'M252', 'USA', 'DS', 47334, '07:00'], ['Cup 2', 'P342', 'USA', 'DS', 139, '07:00'], ['Spout', 'J111', 'Italy', 'NS', 500, '19:30']]);
 });
 test('plan: helpers', () => {
   assert.equal(shiftOf('06:00'), 'DS'); assert.equal(shiftOf('18:59'), 'DS'); assert.equal(shiftOf('19:00'), 'NS'); assert.equal(shiftOf('02:00'), 'NS');
@@ -38,4 +38,28 @@ test('Date cells built a few seconds early by SheetJS keep their day (server in 
   assert.equal(isoDate(new Date(2026, 9, 2, 23, 59, 56)), '2026-10-03');   // local 23:59:56 of the 2nd = 00:00 of the 3rd
   assert.equal(isoDate(new Date(2026, 9, 3, 0, 0, 0)), '2026-10-03');
   assert.equal(timeText(new Date(1899, 11, 30, 6, 59, 56)), '07:00');
+});
+
+test('plan: everything else about a run is kept as written (raw-material rows, notes, block title, other documents)', () => {
+  const buf = sheet([
+    [null, 'มี OT', null, null, null, null, null, null, null, null, 'แผนผลิต Petfood ประจำวันที่', new Date(2026, 10, 12)],
+    ['Time', 'Product', 'Line', 'Size', 'Customer', 'Country', 'Complementary', 'Code', 'Doc.No', 'Rev.', 'ยอดผลิต', 'Rawmat', 'Material', 'น.น/ชุดผสม (kg.)', 'Yield (Manager)', 'หมายเหตุ'],
+    [null, 'Cup 2 (วาง cap 6480 ถ้วย/ชม.)'],
+    ['07:00', 'Cup', 2, '103x27.5', 'Mars', 'EU', 'NO', 'QAGEMB X', 'P570', 11, 'ครบยอดอย่างน้อย', '- สันในไก่โม่', '2XP10BCK0002', 3.63, 65, 'DS 38x9 ชุด'],
+    ['07:00', 'Cup', 2, '103x27.5', 'Mars', 'EU', 'NO', 'QAGEMB X', 'MRDPF184/26', 1, 189130, '- ชั้งยัด D011', '2XP10CCK0142', 2.1, '-', null],
+    ['07:00', 'Cup', 2, '103x27.5', 'Mars', 'EU', 'NO', 'QAGEMB X', 'P570', 11, 'ถ้วย', null, null, '#DIV/0!', null, 'ชุดผสมละ 15 กก.'],
+  ]);
+  const r = parsePlan(buf, ['Cup 2']);
+  assert.equal(r.items.length, 1);
+  const it = r.items[0];
+  assert.equal(it.doc, 'P570'); assert.equal(it.qty, 189130);
+  assert.deepEqual(it.extra!.otherDocs, [{ doc: 'MRDPF184/26', rev: '1' }]);
+  assert.deepEqual(it.extra!.qtyNotes, ['ครบยอดอย่างน้อย', 'ถ้วย']);
+  assert.equal(it.extra!.block, 'Cup 2 (วาง cap 6480 ถ้วย/ชม.)');
+  assert.deepEqual(it.extra!.rows, [4, 5, 6]);
+  assert.deepEqual(r.detailHeaders, ['Rawmat', 'Material', 'น.น/ชุดผสม (kg.)', 'Yield (Manager)', 'หมายเหตุ']);
+  assert.deepEqual(it.extra!.details.map((d) => d.values['น.น/ชุดผสม (kg.)']), [3.63, 2.1, null]);   // #DIV/0! is not data
+  assert.deepEqual(it.extra!.details.map((d) => d.values['Yield (Manager)']), [65, '-', null]);     // text stays text
+  assert.ok(r.headerNotes!.includes('มี OT'));
+  assert.equal(r.warnings.filter((w) => w.includes('Doc.No')).length, 0);   // a raw-material document is not a warning
 });

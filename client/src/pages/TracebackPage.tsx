@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Download, ExternalLink, GitFork, Search } from 'lucide-react';
+import { Download, ExternalLink, GitFork, ScanLine, Search } from 'lucide-react';
 import { filesApi, sheetsApi } from '@/api/endpoints';
 import { loadCols } from '@/lib/dashCols';
 import { toast } from '@/store/ui';
@@ -12,20 +12,21 @@ import { FilePicker, PickedFile } from '@/components/files/FilePicker';
 import { levelsOf, traceApi, TimeGroup, TraceData, TraceNode } from '@/modules/trace/api';
 import { TraceGraph } from '@/modules/trace/TraceGraph';
 import { DataSearch } from '@/modules/dataSearch/DataSearch';
+import { InkTrace } from '@/modules/inkcode/InkTrace';
 
 const msg = (e: unknown) => (e as { response?: { data?: { error?: { message?: string } } }; message?: string }).response?.data?.error?.message ?? (e as Error).message;
 
 /** Menu "Search": search every sheet for a word (default) or trace a lot (Traceback) */
 export default function SearchHubPage() {
   const [sp, setSp] = useSearchParams();
-  const mode: 'data' | 'trace' = sp.get('mode') === 'trace' || sp.get('row') ? 'trace' : 'data';
+  const mode: 'data' | 'trace' | 'ink' = sp.get('mode') === 'ink' ? 'ink' : sp.get('mode') === 'trace' || sp.get('row') ? 'trace' : 'data';
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-4 p-4">
       <PageHeader icon={<Search className="h-5 w-5" />} title="Search"
-        subtitle={mode === 'data' ? 'ค้นหาคำในข้อมูลทุกไฟล์ ทุกชีต ที่คุณมีสิทธิ์' : 'ค้นหาล็อต/รหัสแล้วดูว่าทำมาจากอะไร และถูกนำไปใช้ที่ไหน (การผสม และรายการบนรถเข็น)'} />
-      <Segmented value={mode} onChange={(m) => setSp(m === 'trace' ? { mode: 'trace' } : {}, { replace: true })}
-        options={[{ value: 'data', label: 'ค้นหาทุกข้อมูล', icon: <Search /> }, { value: 'trace', label: 'ย้อนรอย (Traceback)', icon: <GitFork /> }]} />
-      {mode === 'data' ? <DataSearch /> : <TracebackView />}
+        subtitle={mode === 'ink' ? 'พิมพ์โค้ดที่ Ink บนสินค้า → วันที่ ไลน์ กะ เอกสาร และวัตถุดิบตามแผนผลิต' : mode === 'data' ? 'ค้นหาคำในข้อมูลทุกไฟล์ ทุกชีต ที่คุณมีสิทธิ์' : 'ค้นหาล็อต/รหัสแล้วดูว่าทำมาจากอะไร และถูกนำไปใช้ที่ไหน (การผสม และรายการบนรถเข็น)'} />
+      <Segmented value={mode} onChange={(m) => setSp(m === 'data' ? {} : { mode: m }, { replace: true })}
+        options={[{ value: 'data', label: 'ค้นหาทุกข้อมูล', icon: <Search /> }, { value: 'trace', label: 'ย้อนรอย (Traceback)', icon: <GitFork /> }, { value: 'ink', label: 'โค้ด Ink', icon: <ScanLine /> }]} />
+      {mode === 'data' ? <DataSearch /> : mode === 'ink' ? <InkTrace /> : <TracebackView />}
     </div>
   );
 }

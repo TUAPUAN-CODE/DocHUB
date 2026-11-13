@@ -14,10 +14,9 @@ const core_1 = require("./core");
 const model_1 = require("./model");
 const files_2 = require("../../routes/files");
 const db_2 = require("../../config/db");
-const structure_1 = require("../../services/structure");
-const rowCreate_1 = require("../../services/rowCreate");
 const permissions_2 = require("../../shared/permissions");
 const plan_1 = require("./plan");
+const record_1 = require("./record");
 const folderChild = async (parentId, name) => (await (0, db_1.q1)(`SELECT folder_id FROM Folders WHERE is_deleted = 0 AND folder_name = @n AND ((@p IS NULL AND parent_id IS NULL) OR parent_id = @p)`, { n: name, p: db_1.T.uuid(parentId) }))?.folder_id ?? null;
 const fileIn = async (folderId, name) => (await (0, db_1.q1)(`SELECT file_id FROM Files WHERE is_deleted = 0 AND folder_id = @f AND file_name = @n`, { f: db_1.T.uuid(folderId), n: name }))?.file_id ?? null;
 async function ensureFolder(user, parentId, name) {
@@ -172,7 +171,9 @@ async function ensureSheet(user, fileId, name, sheets) {
     return id.toLowerCase();
 }
 async function importAuto(user, buf, o, req) {
-    const p = await prepare(user, buf, o);
+    return importPrepared(user, await prepare(user, buf, o), o, req);
+}
+async function importPrepared(user, p, o, req) {
     const out = {
         date: p.date, total: p.items.length, skippedNoPlant: 0, targets: [],
         items: p.items.map((i) => ({ time: i.time, line: i.line, plant: i.plant, area: i.area, sheet: i.sheet, doc: i.doc, country: i.country, qty: i.qty,
@@ -229,28 +230,19 @@ async function inPlanFolder(folderId) {
 }
 /**
  * A plan file dropped into a plan folder of DocHUB: imported like the "นำเข้าแผนผลิต" page does (nothing to confirm — lines without a
- * plant or not in the database are skipped and listed), and a record file is left in that folder with every row of the plan and what was done to it.
+ * plant or not in the database are skipped and listed), and a record file is left in that folder with everything the plan says
+ * (runs, raw-material rows, the text above the table) and the alerts found (record.ts).
  */
 async function dropPlan(user, buf, originalName, folderId, req) {
     await (0, permissions_2.requireFolder)(user, folderId, permissions_2.LV.write);
     if (!(await inPlanFolder(folderId)))
         throw (0, http_1.badRequest)(`วางแผนผลิตได้เฉพาะในโฟลเดอร์ ${model_1.TREE.plans} / ปี / เดือน ภายใต้ ${model_1.TREE.root}`);
-    const r = await importAuto(user, buf, { onlyMatched: true }, req);
-    const base = originalName.replace(/\.xlsx?$/i, '').slice(0, 150);
-    const name = `แผน ${r.date} · ${base}`;
-    const cols = ['ไฟล์แผน', 'วันที่ผลิต', 'เวลา', 'ไลน์', 'โรงงาน', 'พื้นที่', 'Doc.No', 'ประเทศ', 'ยอด', 'ผลการนำเข้า'];
-    const recordFileId = await (0, db_2.withTx)(async (tx) => {
-        const f = await (0, db_1.q1)(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id VALUES (@n, @fo, @d, N'#16A34A', N'sheet', @u)`, { n: name, fo: db_1.T.uuid(folderId), d: db_1.T.text(`บันทึกการนำเข้าแผนผลิตวันที่ ${r.date} (ไฟล์ ${originalName}) — ข้อมูลอยู่ในไฟล์รายวันของ PF1/PF2`), u: db_1.T.uuid(user.id) }, tx);
-        const sh = await (0, db_1.q1)(`INSERT INTO Sheets (file_id, sheet_name, sort_order, created_by) OUTPUT inserted.sheet_id VALUES (@f, N'ผลนำเข้า', 0, @u)`, { f: db_1.T.uuid(f.file_id), u: db_1.T.uuid(user.id) }, tx);
-        const ids = [];
-        for (const [i, c] of cols.entries())
-            ids.push((await (0, structure_1.insertColumn)(tx, sh.sheet_id, { name: c, dataType: 'varchar', isRequired: false, width: c === 'ผลการนำเข้า' ? 240 : 130 }, i, user.id)).column_id);
-        for (const it of (r.items ?? []).slice(0, 500)) {
-            const vals = [originalName, r.date, it.time ?? '', it.line, it.plant ?? '', it.area, it.doc, it.country, it.qty === null ? '' : String(it.qty), it.status];
-            await (0, rowCreate_1.createRowTx)(tx, user, { file_id: f.file_id }, sh.sheet_id, Object.fromEntries(ids.map((id, k) => [id.toLowerCase(), vals[k]])), 'plan-drop', req);
-        }
-        return f.file_id;
-    });
-    return { ...r, recordFileId };
+    const p = await prepare(user, buf, { onlyMatched: true });
+    const r = await importPrepared(user, p, { onlyMatched: true }, req);
+    const items = p.items.map((i, k) => ({ ...i, status: r.items?.[k]?.status ?? '' }));
+    const docs = items.map((i) => i.doc);
+    const alerts = (0, record_1.findAlerts)(items, await (0, record_1.masterRemarks)(p.ctx.docLookup?.sheetId ?? null, docs), await (0, record_1.lastRevs)(p.date, docs), p.plan.warnings);
+    const recordFileId = await (0, record_1.writeRecord)(user, folderId, originalName, p.date, p.plan, items, alerts, req);
+    return { ...r, recordFileId, alerts };
 }
 //# sourceMappingURL=auto.js.map

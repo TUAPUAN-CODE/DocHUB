@@ -7,7 +7,7 @@ import { TextInput } from '@/components/ui/Inputs';
 import { connectorsApi } from '@/modules/connectors/api';
 import { cn } from '@/lib/cn';
 import { toast } from '@/store/ui';
-import { AutoResult, inkcodeAutoApi } from './api';
+import { AutoResult, inkcodeAutoApi, PlanAlert } from './api';
 
 const urlOf = (dt: DataTransfer | null): string | null => {
   if (!dt) return null;
@@ -104,8 +104,32 @@ export function PlanDropZone({ folderId, onDone }: { folderId: string; onDone: (
             {done.r.targets.map((t) => <li key={`${t.plant}${t.area}`}>{t.plant} › {t.area}: เพิ่ม {t.result.created} · มีอยู่แล้ว {t.result.duplicate}{t.fileId && <> · <Link className="text-primary hover:underline" to={`/files/${t.fileId}`}>เปิดไฟล์ {t.fileName}</Link></>}</li>)}
           </ul>
           {done.r.recordFileId && <p className="mt-1 text-muted">บันทึกผลทุกแถว: <Link className="text-primary hover:underline" to={`/files/${done.r.recordFileId}`}>เปิดไฟล์บันทึก</Link> (ในโฟลเดอร์นี้) · ถ้ามีแถวที่ถูกข้ามเพราะไม่ทราบโรงงาน ใช้เมนู <Link className="text-primary hover:underline" to="/inkcode/plan">นำเข้าแผนผลิต</Link> เพื่อเลือกเอง</p>}
+          {!!done.r.alerts?.length && <AlertList alerts={done.r.alerts} />}
         </div>
       )}
+    </div>
+  );
+}
+
+/** What the import found that someone should look at: New Code (QC checks 100 %), Rev. changed since the last plan, not in the master … */
+const ORDER = ['New Code', 'Rev. เปลี่ยน', 'ไม่พบในฐานข้อมูล', 'ไม่ทราบโรงงาน', 'Remark', 'ตรวจสอบ'];
+function AlertList({ alerts }: { alerts: PlanAlert[] }) {
+  const kinds = [...new Set(alerts.map((a) => a.kind))].sort((a, b) => (ORDER.indexOf(a) + 99 * +(ORDER.indexOf(a) < 0)) - (ORDER.indexOf(b) + 99 * +(ORDER.indexOf(b) < 0)));
+  return (
+    <div className="mt-2 space-y-2 rounded-lg bg-amber-50 p-2 dark:bg-amber-500/10">
+      <p className="font-medium text-amber-700 dark:text-amber-300">แจ้งเตือน {alerts.length} รายการ (อยู่ในชีต แจ้งเตือน ของไฟล์บันทึกด้วย)</p>
+      {kinds.map((k) => {
+        const list = alerts.filter((a) => a.kind === k);
+        return (
+          <details key={k} open={k === 'New Code' || k === 'Rev. เปลี่ยน'}>
+            <summary className="cursor-pointer text-xs font-semibold">{k} · {list.length}</summary>
+            <ul className="mt-1 space-y-0.5 text-xs text-ink/80">
+              {list.slice(0, 40).map((a, i) => <li key={i}>{a.doc ? <b>{[a.time, a.line, a.doc, a.country].filter(Boolean).join(' · ')}</b> : null}{a.doc ? ' — ' : ''}{a.detail}</li>)}
+              {list.length > 40 && <li className="text-muted">… อีก {list.length - 40} รายการในไฟล์บันทึก</li>}
+            </ul>
+          </details>
+        );
+      })}
     </div>
   );
 }
