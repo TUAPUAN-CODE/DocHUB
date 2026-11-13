@@ -41,7 +41,20 @@ export interface CodeSheetBlock extends BlockBase {
   qrSizeMm?: number | null;
   /** white space kept around the QR inside its cell (mm, default 0.8) */
   qrPadMm?: number;
+  /** a code line that is a note (starts with "New Code", or has Thai letters) is not inked: it leaves the grid and the QR and is
+   *  printed in a small "หมายเหตุ (ไม่ Ink)" box under the grid. Default on. */
+  remarkRule?: boolean;
+  /** text of the remark box besides those lines (default {{Remark (ไม่ Ink)}} — the column of the InkCode master database) */
+  remarkText?: string;
 }
+
+/**
+ * A code line that is a note, not something to ink: it starts with "New Code" (any case) or has a Thai letter. Real ink codes
+ * have no Thai letters (checked on all 5,144 code lines of the master database: English, digits, symbols, Chinese). The whole line
+ * is moved, never part of it. Same rule as isInkRemark in server/src/modules/inkcode/model.ts.
+ */
+export const isInkRemark = (line: string) => /^\s*new\s+code\b/i.test(line) || /[\u0E00-\u0E7F]/.test(line);
+export const REMARK_TEXT = '{{Remark (ไม่ Ink)}}';
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Math.random().toString(36).slice(2));
 export const newSideItem = (text = '', label = ''): SheetSideItem => ({ id: uid(), label, text });
@@ -93,7 +106,14 @@ export function qrPayload(lines: string[], charsPerRow: number): string {
 export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
   const nMax = Math.max(5, Math.min(80, Math.floor(b.cells || 40)));
   const rows = Math.max(1, b.lines.length);
-  const texts = b.lines.map((l) => fillTokens(l.text, c.vars, c.rowVars));
+  const raw = b.lines.map((l) => fillTokens(l.text, c.vars, c.rowVars));
+  const ruleOn = b.remarkRule !== false;
+  // a note line leaves its place empty (the other lines keep their row numbers) and goes to the remark box
+  const texts = raw.map((t) => (ruleOn && isInkRemark(t) ? '' : t));
+  const remarks = [...new Set([
+    ...fillTokens(b.remarkText ?? REMARK_TEXT, c.vars, c.rowVars).split(/\r?\n/),
+    ...(ruleOn ? raw.filter(isInkRemark) : []),
+  ].map((x) => x.trim()).filter(Boolean))];
   const used = Math.max(1, ...texts.map((t) => [...t.replace(/\s+$/, '')].length));
   const n = b.autoCells === false ? nMax : Math.max(Math.min(nMax, b.minCells ?? 12), Math.min(nMax, used));
   const qrPad = Math.max(0, b.qrPadMm ?? 0.8);
@@ -163,6 +183,15 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
     unbreakable: true,
   };
   const out: any[] = [node];
+  if (remarks.length) {
+    // under the position grid, as wide as the grid: the staff still see "New Code … ตรวจ 100%" but nobody inks it
+    const leftW = b.left.reduce((s2, x) => s2 + w(x), 0);
+    out.push({
+      margin: [leftW, 1, 0, 0],
+      table: { widths: [Math.min(room - leftW, Math.max(cw * n, pt(90)))], body: [[{ text: [{ text: 'หมายเหตุ (ไม่ Ink): ', bold: true }, remarks.join(' · ')], fontSize: Math.min(8, b.fontSize), color: '#374151', fillColor: '#FFFBEB', margin: [2, 1, 2, 1] }]] },
+      layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => '#D97706', vLineColor: () => '#D97706' },
+    });
+  }
   if (overflow.length) out.push({ text: `⚠ ${overflow.join(' · ')}`, color: '#DC2626', fontSize: 8, margin: [0, 2, 0, 0] });
-  return { stack: out, margin: [pt(b.marginLeft ?? 0), pt(b.marginTop ?? 0), pt(b.marginRight ?? 0), pt(b.marginBottom ?? 0)] };
+  return { stack: out, unbreakable: remarks.length > 0, margin: [pt(b.marginLeft ?? 0), pt(b.marginTop ?? 0), pt(b.marginRight ?? 0), pt(b.marginBottom ?? 0)] };
 }

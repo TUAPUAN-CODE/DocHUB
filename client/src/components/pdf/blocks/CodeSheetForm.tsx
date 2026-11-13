@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import { CodeSheetBlock, newSideCol, newSideItem, SheetSideCol } from '@/lib/pdf/blocks/codeSheet';
+import { CodeSheetBlock, newSideCol, newSideItem, REMARK_TEXT, SheetSideCol } from '@/lib/pdf/blocks/codeSheet';
 import { listTokens } from '@/lib/pdf/variables';
 import { Button } from '../../ui/Button';
 import { Field, TextInput, Toggle } from '../../ui/Inputs';
@@ -59,6 +59,8 @@ export function CodeSheetForm({ block: b, template, onChange }: BlockFormProps<C
         <Toggle checked={b.autoCells !== false} onChange={(v) => onChange({ autoCells: v })} label="ซ่อนช่องตำแหน่งที่ไม่มีตัวอักษร (ตามบรรทัดที่ยาวที่สุด)" />
         {b.autoCells !== false && <Num label="จำนวนช่องขั้นต่ำ" value={b.minCells ?? 12} onChange={(v) => onChange({ minCells: v ?? 12 })} min={1} max={80} />}
         <Toggle checked={b.showIndex} onChange={(v) => onChange({ showIndex: v })} label="แสดงเลขตำแหน่ง 1…N" />
+        <Toggle checked={b.remarkRule !== false} onChange={(v) => onChange({ remarkRule: v })} label="บรรทัดที่เป็นหมายเหตุ (ขึ้นต้น New Code หรือมีภาษาไทย) ไม่ลงช่อง Ink — ย้ายไปกล่องหมายเหตุใต้ตาราง" />
+        <Field label="ข้อความในกล่องหมายเหตุ (ไม่ Ink)"><TextInput value={b.remarkText ?? REMARK_TEXT} onChange={(e) => onChange({ remarkText: e.target.value })} className="font-mono text-xs" /></Field>
         <Field label="สีหัวตาราง"><ColorInput value={b.headerBg} swatches={PDF_SWATCHES} onChange={(v) => onChange({ headerBg: v ?? '#DCEAF7' })} /></Field>
       </Group>
       <Group title="QR Code">

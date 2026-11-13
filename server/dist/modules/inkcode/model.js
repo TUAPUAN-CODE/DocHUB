@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DAY_SHEETS = exports.sheetFor = exports.SHIFTS = exports.lineSetupRows = exports.LINE_SPEC = exports.plantInText = exports.monthFolderName = exports.THAI_MONTHS = exports.AREAS = exports.TREE = exports.HELP_ROWS = exports.HELP_COLUMNS = exports.WS_INPUTS = exports.SAMPLE_ROW = exports.DB_FORMULAS = exports.DB_KEY_MAP = exports.DB_PLAIN = exports.REF_SHEETS = exports.SHEETS = void 0;
+exports.DAY_SHEETS = exports.sheetFor = exports.SHIFTS = exports.lineSetupRows = exports.LINE_SPEC = exports.plantInText = exports.monthFolderName = exports.THAI_MONTHS = exports.AREAS = exports.TREE = exports.HELP_ROWS = exports.HELP_COLUMNS = exports.WS_INPUTS = exports.SAMPLE_ROW = exports.remarkFormula = exports.DB_FORMULAS = exports.DB_KEY_MAP = exports.DB_PLAIN = exports.isInkRemark = exports.REMARK_COL = exports.REF_SHEETS = exports.SHEETS = void 0;
+exports.splitRemarks = splitRemarks;
 exports.dateTokens = dateTokens;
 exports.codeTokens = codeTokens;
 exports.productToken = productToken;
@@ -25,9 +26,36 @@ exports.REF_SHEETS = [
     { name: exports.SHEETS.sample, columns: [v('ชื่อ', 100), { name: 'วันที่ผลิต', type: 'date', width: 130 }, v('ไลน์'), v('กะ', 70)] },
     { name: exports.SHEETS.calendar, columns: [{ name: 'วันที่ผลิต', type: 'date', width: 130 }, ...[2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => v(`K${i}`, 120))] },
 ];
+/** Notes written in a code line ("New Code 1/9/25 ตรวจ 100%", "Check ราคาจาก Mail PN") are not inked: they live in this column */
+exports.REMARK_COL = 'Remark (ไม่ Ink)';
+/**
+ * A code line that is a note, not something to ink: starts with "New Code" (any case) or has a Thai letter. Real ink codes have
+ * no Thai letters (all 5,144 code lines of the master data: English, digits, symbols, Chinese). Whole lines only — never a part.
+ * Same rule as isInkRemark in client/src/lib/pdf/blocks/codeSheet.ts (the PDF also leaves such lines out of the grid / QR).
+ */
+const isInkRemark = (line) => typeof line === 'string' && (/^\s*new\s+code\b/i.test(line) || /[\u0E00-\u0E7F]/.test(line));
+exports.isInkRemark = isInkRemark;
+/** Moves the note lines of a master row (แบบโค้ดแถว 1-4) into REMARK_COL (appended, one per line); the row itself is not changed */
+function splitRemarks(row) {
+    const next = { ...row };
+    const moved = [];
+    for (const n of [1, 2, 3, 4]) {
+        const k = `แบบโค้ดแถว ${n}`;
+        if ((0, exports.isInkRemark)(next[k])) {
+            moved.push(String(next[k]).trim());
+            next[k] = null;
+        }
+    }
+    if (moved.length) {
+        const had = String(next[exports.REMARK_COL] ?? '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+        next[exports.REMARK_COL] = [...new Set([...had, ...moved])].join('\n');
+    }
+    return { moved, next };
+}
 exports.DB_PLAIN = [
     v('รหัสเอกสาร'), v('PKG', 80), v('Market'), v('ลูกค้า'),
     ...[1, 2, 3, 4].map((n) => ({ ...t(`แบบโค้ดแถว ${n}`), description: 'แบบข้อความที่มี {ตัวแปร} เช่น {P} S{YC}{MC}{DC}S{LC} — ความหมายและที่มาของแต่ละตัวแปรดูในชีต "คู่มือตัวแปร" ผลลัพธ์จริงดูที่คอลัมน์ "ตัวอย่างโค้ดแถว" ทางขวา' })),
+    { ...t(exports.REMARK_COL, 260), description: 'หมายเหตุของโค้ด เช่น New Code 1/9/25 ตรวจ 100% — ไม่ถูก Ink (ไม่ลงช่องตำแหน่ง/QR) แสดงในกล่องหมายเหตุใต้ตารางใน PDF' },
     v('รหัสเอกสารระบบ Code'), v('Rev.', 70), v('Short Product Code'), v('Product Code SAP', 200),
     v('Material Packaging 1', 200), v('Material Packaging 2', 200), v('Material Packaging 3', 200),
     v('ชนิด'), t('Note', 200), v('SVT', 70), t('บันทึกประวัติ', 240), v('สถานะ'), v('สถานะติดตาม'), v('special'),
@@ -123,8 +151,12 @@ function worksheetFormulas(usedTokens) {
         ...['Material Packaging 1', 'Material Packaging 2', 'Material Packaging 3', 'รหัสเอกสารระบบ Code', 'Rev.'].map((n) => ({ name: n, type: 'varchar', width: 170, formula: { expr: db(n), sources: d } })),
         ...renderColumns(WS_CTX, usedTokens, '', [1, 2, 3, 4].map((n) => `Code Format แถว ${n}`), [exports.SHEETS.db]),
         { name: 'Code ฝน', type: 'varchar', width: 200, formula: { expr: db('Code ฝน'), sources: d } },
+        (0, exports.remarkFormula)(),
     ];
 }
+/** Worksheet / day sheets: the note of the product (not inked) — shown in the PDF's "หมายเหตุ (ไม่ Ink)" box */
+const remarkFormula = () => ({ name: exports.REMARK_COL, type: 'text', width: 220, formula: { expr: db(exports.REMARK_COL), sources: ALIASES([exports.SHEETS.db]) } });
+exports.remarkFormula = remarkFormula;
 /** Master database: preview of the 4 code lines for a sample date / line (edit the sheet "ตัวอย่าง" in the reference file) */
 function dbPreviewFormulas(usedTokens) {
     const smp = ALIASES([exports.SHEETS.sample]);
