@@ -7,9 +7,11 @@ import { useAppInfo } from '@/store/appInfo';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { useUi } from '@/store/ui';
+import { useT } from '@/i18n';
 
 /** compact: icons only (labels as tooltips, badges as dots) */
 function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; scope: string; compact?: boolean }) {
+  const t = useT();
   const user = useAuth((s) => s.user)!;
   const logout = useAuth((s) => s.logout);
   const appName = useAppInfo((s) => s.name);
@@ -33,7 +35,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-4 pt-6">
         <nav className="space-y-1.5">
           {items.map((it) => (
-            <NavLink key={it.to} to={it.to} end={it.to === '/'} onClick={onNavigate} title={compact ? it.label : undefined} aria-label={compact ? it.label : undefined}
+            <NavLink key={it.to} to={it.to} end={it.to === '/'} onClick={onNavigate} title={compact ? t(it.label) : undefined} aria-label={compact ? t(it.label) : undefined}
               className={({ isActive }) => cn('nav-link', compact && '!gap-0 !px-0 justify-center', (it.active ?? isActive) && 'active')}>
               {({ isActive }) => (
                 <>
@@ -44,7 +46,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
                     : <span className="nav-pill" />)}
                   {compact
                     ? <span className="relative">{it.icon}{!!it.badge && <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-warning px-1 text-[10px] font-semibold text-white">{it.badge}</span>}</span>
-                    : <>{it.icon}<span className="flex-1">{it.label}</span>
+                    : <>{it.icon}<span className="flex-1">{t(it.label)}</span>
                       {!!it.badge && <span className="mr-2 grid h-5 min-w-5 place-items-center rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">{it.badge}</span>}</>}
                 </>
               )}
@@ -78,6 +80,7 @@ function MobileDrawer({ onClose }: { onClose: () => void }) {
 }
 
 export function Sidebar() {
+  const t = useT();
   const mobile = useUi((s) => s.mobileNav);
   const setMobile = useUi((s) => s.setMobileNav);
   const mode = useUi((s) => s.navMode);

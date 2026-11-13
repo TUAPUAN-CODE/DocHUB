@@ -14,6 +14,7 @@ exports.PAGES = [
     { key: 'trash', label: 'ถังขยะ', kind: 'page', defaults: ALL },
     { key: 'devices', label: 'อุปกรณ์ (RFID/IoT)', kind: 'page', defaults: BUILDERS, floor: 'master' },
     { key: 'connectors', label: 'ดึงข้อมูลจากลิงก์/API', kind: 'page', defaults: BUILDERS, floor: 'master' },
+    { key: 'inkcodePlan', label: 'นำเข้าแผนผลิต (InkCode)', kind: 'page', defaults: BUILDERS, floor: 'master' },
     { key: 'search', label: 'Search', kind: 'page', defaults: ALL },
     { key: 'dashboards', label: 'แดชบอร์ด', kind: 'page', defaults: ALL },
     { key: 'guide', label: 'คู่มือ', kind: 'page', defaults: ALL },

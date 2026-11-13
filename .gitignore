@@ -11,3 +11,6 @@ server/archive/
 
 # guide capture: screenshot of a step that failed (client/scripts/guide/capture.cjs)
 client/public/guide/_failed-*
+
+__pycache__/
+*.pyc

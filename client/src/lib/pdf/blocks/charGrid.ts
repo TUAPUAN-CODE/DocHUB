@@ -1,3 +1,4 @@
+import { charCell } from './charCell';
 import { fillTokens } from '../variables';
 import type { BuildCtx } from '../build';
 import { MM } from '../types';
@@ -46,9 +47,7 @@ export function buildCharGrid(b: CharGridBlock, c: BuildCtx) {
     const text = fillTokens(l.text, c.vars, c.rowVars);
     const cs = chars(text);
     if (cs.length > n) overflow.push(`${l.label}: ${cs.length} ตัวอักษร (เกิน ${n} ช่อง)`);
-    body.push([...lead(l.label), ...Array.from({ length: n }, (_v, i) => ({
-      text: cs[i] ?? ' ', fontSize: Math.min(b.fontSize, cw * 0.9), alignment: 'center', bold: true, margin: [0, Math.max(0, (pt(b.cellHeightMm) - b.fontSize * 1.2) / 2 - 1), 0, 0],
-    }))]);
+    body.push([...lead(l.label), ...Array.from({ length: n }, (_v, i) => charCell(cs[i] ?? ' ', Math.min(b.fontSize, cw * 0.9), cw, pt(b.cellHeightMm), Math.max(0, (pt(b.cellHeightMm) - b.fontSize * 1.2) / 2 - 1)))]);
   }
   const node: any = {
     table: { widths: [...(b.showLabels ? [labelW] : []), ...Array.from({ length: n }, () => cw)], body, heights: (row: number) => (b.showIndex && row === 0 ? undefined : pt(b.cellHeightMm)) },

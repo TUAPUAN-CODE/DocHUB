@@ -108,8 +108,8 @@ export const rowsApi = {
   remove: (rowId: string) => del(`/rows/${rowId}`),
   columnStats: (sheetId: string, b: { columnIds: string[]; filters: ColumnFilter[]; search?: string }) =>
     post<{ totalRows: number; columns: ColumnStat[] }>(`/sheets/${sheetId}/column-stats`, b),
-  lookupOptions: (sheetId: string, b: { columnId: string; parentValue?: string | null; search?: string }) =>
-    post<{ options: string[]; needsParent: boolean }>(`/sheets/${sheetId}/lookup-options`, b),
+  lookupOptions: (sheetId: string, b: { columnId: string; parentValue?: string | null; search?: string; limit?: number }) =>
+    post<{ options: string[]; more?: boolean; needsParent: boolean }>(`/sheets/${sheetId}/lookup-options`, b),
   docPreview: (sheetId: string, b: { columnId: string; prefix?: string | null; date?: string | null }) =>
     post<{ number: string | null }>(`/sheets/${sheetId}/doc-number/preview`, b),
   importRows: (sheetId: string, b: { rows: { rowNo: number; values: Record<string, unknown> }[]; skipInvalid?: boolean; dryRun?: boolean }) =>
@@ -257,7 +257,9 @@ export const publicShareApi = {
 };
 
 export const pdfApi = {
-  get: (fileId: string) => get<{ templates: any[]; canEdit: boolean }>(`/files/${fileId}/pdf-templates`),
+  get: (fileId: string) => get<{ templates: any[]; canEdit: boolean; master: { id: string; name: string } | null }>(`/files/${fileId}/pdf-templates`),
+  setMaster: (fileId: string, masterFileId: string | null) => post(`/files/${fileId}/pdf-templates/master`, { masterFileId }),
+  setFolderMaster: (folderId: string, masterFileId: string) => post<{ files: number }>(`/folders/${folderId}/pdf-master`, { masterFileId }),
   save: (fileId: string, templates: any[]) => put(`/files/${fileId}/pdf-templates`, { templates }),
   copyFrom: (fileId: string, sourceFileId: string, templateIds?: string[]) => post<{ templates: any[] }>(`/files/${fileId}/pdf-templates/copy-from`, { sourceFileId, templateIds }),
 };

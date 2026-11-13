@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, ChevronsUp, Columns3, Copy, SlidersHorizontal, Download, Expand, History, Lock, MoreHorizontal, Pencil, Pin, PinOff, Plus, Redo2, RotateCcw, Search, Share2, Shrink, Trash2, Undo2, Upload, ZoomIn, ZoomOut,
-  ScanLine, Merge, Boxes, Cpu, Tag, ListChecks, CornerLeftUp,
+  ScanLine, Merge, Boxes, Cpu, Tag, ListChecks, CornerLeftUp, FileSpreadsheet,
 } from 'lucide-react';
 import { apiError } from '@/api/client';
 import { linesApi } from '@/modules/scan/api';
@@ -13,6 +13,7 @@ import type { ExportValues } from '@/lib/pdf/build';
 import { needsExportDialog, signersList } from '@/lib/pdf/exportValues';
 import { ExportDialog } from '@/components/pdf/ExportDialog';
 import { archiveApi } from '@/modules/exportArchive/api';
+import { PlanImportDialog } from '@/modules/inkcode/PlanImportDialog';
 import { FlowsDialog } from '@/modules/approvals/FlowsDialog';
 import { SignatureDialog } from '@/modules/approvals/SignatureDialog';
 import { ArchiveDialog } from '@/modules/exportArchive/ArchiveDialog';
@@ -76,7 +77,9 @@ export default function FilePage() {
   const view = useSheetView(sheetId);
   const level = file.data?.level ?? 0;
   const union = view.detail?.union ?? null;
-  const canWrite = level >= LV.write && !union; // a union sheet mirrors other sheets: edit them at the source
+  const canWrite = level >= LV.write && !union;
+  // the InkCode worksheet (daily production plan import is offered on it)
+  const isInkWorksheet = ['วันที่ผลิต', 'ไลน์', 'รหัสเอกสาร', 'Market'].every((n) => view.columns.some((c) => c.name === n)); // a union sheet mirrors other sheets: edit them at the source
   const canManage = level >= LV.manage;
 
   const [search, setSearch] = useState('');
@@ -258,6 +261,7 @@ export default function FilePage() {
   const [archiveOpt, setArchiveOpt] = useState<ArchiveOptionValue>({ enabled: false, note: '' });
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [flowsOpen, setFlowsOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [sigOpen, setSigOpen] = useState(false);
   /** a layout that asks questions / needs signer names opens the dialog first; the others export straight away */
   const startPdf = (t: PdfTemplate | null) => {
@@ -273,7 +277,7 @@ export default function FilePage() {
       const tpl = t ?? defaultTemplate(file.data?.file.name ?? 'export', { id: sheetId, name: view.detail.sheet.name, columns: view.columns });
       const { blob, truncated } = await generatePdf(tpl, {
         fileName: file.data?.file.name ?? '', user: useAuth.getState().user?.displayName ?? '', values,
-        current: { sheetId, filters: view.query.filters, sorts: view.query.sorts, search: view.query.search || undefined, selectedRowIds: selRows },
+        current: { sheetId, sheetName: view.detail.sheet.name, filters: view.query.filters, sorts: view.query.sorts, search: view.query.search || undefined, selectedRowIds: selRows },
       });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${file.data?.file.name ?? 'export'} - ${view.detail.sheet.name}${t ? ` - ${t.name}` : ''}.pdf`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);
@@ -378,6 +382,7 @@ export default function FilePage() {
             <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line px-2 py-1.5 sm:flex-wrap sm:gap-2 sm:overflow-visible sm:px-3 sm:py-2 [&>*]:shrink-0">
               <TextInput icon={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาในชีต…" className="!h-9 w-40 sm:w-64" />
               {canWrite && <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setRowForm({ row: null })}>เพิ่มแถว</Button>}
+              {canWrite && isInkWorksheet && <Button size="sm" variant="secondary" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => setPlanOpen(true)}>นำเข้าแผนผลิต (Excel)</Button>}
               {canWrite && selRows.length > 0 && <Button size="sm" variant="secondary" className="!text-danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => void deleteRows(selRows)}>{selRows.length > 1 ? `ลบ ${selRows.length} แถวที่เลือก` : 'ลบแถวที่เลือก'}</Button>}
               {canWrite && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} aria-label="นำเข้า" title="นำเข้า" onClick={() => setModal('import')}><Lbl>นำเข้า</Lbl></Button>}
               {canWrite && !!view.detail?.settings?.scanProfiles?.length && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} onClick={() => setModal('scan')}>สแกน</Button>}
@@ -510,6 +515,7 @@ export default function FilePage() {
               extra={<ArchiveOption value={archiveOpt} onChange={setArchiveOpt} />}
               onConfirm={async (values) => { const t = exportDlg; await exportPdf(t, values, archiveOpt); setExportDlg(null); }} />
           )}
+          {sheetId && <PlanImportDialog open={planOpen} onClose={() => setPlanOpen(false)} sheetId={sheetId} onDone={() => { void view.loadRows(true); }} />}
           <FlowsDialog open={flowsOpen} onClose={() => setFlowsOpen(false)} fileId={id} />
           <SignatureDialog open={sigOpen} onClose={() => setSigOpen(false)} />
           <ArchiveDialog open={archiveOpen} onClose={() => setArchiveOpen(false)} fileId={id} />

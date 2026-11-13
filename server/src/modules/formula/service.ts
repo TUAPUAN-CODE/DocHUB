@@ -236,12 +236,15 @@ export async function remapAfterCopy(tx: Tx, newSheetId: string, columnMap: { ol
   const map = new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]));
   const rows = await q(`SELECT column_id, validation_rule FROM Columns WHERE sheet_id = @s AND validation_rule LIKE N'%formula%'`, { s: T.uuid(newSheetId) }, tx);
   for (const r of rows) {
-    let v: { formula?: { expr?: string } } | null = null;
+    let v: { formula?: { expr?: string; sources?: { sheetId: string }[] } } | null = null;
     try { v = JSON.parse(r.validation_rule); } catch { continue; }
     const expr = v?.formula?.expr;
     if (!expr) continue;
     v!.formula!.expr = expr.replace(/\[#([0-9a-fA-F-]{36})\]/g, (_m, id: string) => `[#${map.get(id.toLowerCase()) ?? id.toLowerCase()}]`);
     await q(`UPDATE Columns SET validation_rule = @v WHERE column_id = @c`, { v: T.text(JSON.stringify(v)), c: T.uuid(r.column_id) }, tx);
+    // the copy reads the same source sheets: record it (inside this transaction — a second connection would wait for it forever)
+    for (const src of new Set((v!.formula!.sources ?? []).map((x) => x.sheetId.toLowerCase())))
+      await q(`INSERT INTO FormulaSources (column_id, sheet_id, source_sheet_id) VALUES (@c, @s, @src)`, { c: T.uuid(r.column_id), s: T.uuid(newSheetId), src: T.uuid(src) }, tx);
   }
 }
 

@@ -111,7 +111,7 @@ router.post('/sheets/:id/rows', (0, http_1.ah)(async (req, res) => {
 router.post('/sheets/:id/lookup-options', (0, http_1.ah)(async (req, res) => {
     const sheetId = (0, http_1.pid)(req);
     await (0, permissions_1.requireSheet)(req.user, sheetId, permissions_1.LV.read);
-    const body = (0, http_1.parse)(zod_1.z.object({ columnId: http_1.zId, parentValue: zod_1.z.string().max(500).nullish(), search: zod_1.z.string().max(200).optional() }), req.body);
+    const body = (0, http_1.parse)(zod_1.z.object({ columnId: http_1.zId, parentValue: zod_1.z.string().max(500).nullish(), search: zod_1.z.string().max(200).optional(), limit: zod_1.z.number().int().min(1).max(5000).optional() }), req.body);
     const cols = await (0, cellWriter_1.loadColumns)(sheetId);
     const col = cols.find((c) => c.column_id === body.columnId);
     const def = col ? (0, cellValue_1.toColumnDef)(col) : null;
@@ -122,7 +122,9 @@ router.post('/sheets/:id/lookup-options', (0, http_1.ah)(async (req, res) => {
     if (!l)
         throw (0, http_1.badRequest)('คอลัมน์นี้ไม่ได้ดึงตัวเลือกจากตารางอื่น');
     // The list is read with the server's rights on purpose: writers may pick a value without having read access to the source sheet
-    (0, http_1.ok)(res, { options: await (0, lookup_1.lookupValues)(l, body.parentValue ?? null, body.search), needsParent: !!l.parent });
+    // one extra value tells the browser that the list is cut (it then searches on the server while the user types)
+    const got = await (0, lookup_1.lookupValues)(l, body.parentValue ?? null, body.search, undefined, body.limit ? body.limit + 1 : undefined);
+    (0, http_1.ok)(res, { options: body.limit ? got.slice(0, body.limit) : got, more: !!body.limit && got.length > body.limit, needsParent: !!l.parent });
 }));
 /** Count / sum / average / min / max of whole columns for the current filter (shown when column headers are selected) */
 router.post('/sheets/:id/column-stats', (0, http_1.ah)(async (req, res) => {

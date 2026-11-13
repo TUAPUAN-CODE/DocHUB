@@ -26,6 +26,7 @@ const PublicSharePage = lazy(() => import('@/pages/PublicSharePage'));
 const PdfDesignerPage = lazy(() => import('@/pages/PdfDesignerPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const ConnectorsPage = lazy(() => import('@/modules/connectors/ConnectorsPage'));
+const AutoPlanPage = lazy(() => import('@/modules/inkcode/AutoPlanPage'));
 const TracebackPage = lazy(() => import('@/pages/TracebackPage'));
 const DevicesPage = lazy(() => import('@/pages/DevicesPage'));
 const GuidePage = lazy(() => import('@/modules/guide/GuidePage'));
@@ -104,6 +105,7 @@ export default function App() {
           <Route path="connectors" element={<RequirePage page="connectors"><ConnectorsPage /></RequirePage>} />
           <Route path="traceback" element={<RequirePage page="search"><TracebackPage /></RequirePage>} />
           <Route path="devices" element={<RequirePage page="devices"><DevicesPage /></RequirePage>} />
+          <Route path="inkcode/plan" element={<RequirePage page="inkcodePlan"><AutoPlanPage /></RequirePage>} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="monitor" element={<RequirePage page="monitor"><MonitorPage /></RequirePage>} />
           <Route path="guide" element={<RequirePage page="guide"><GuidePage /></RequirePage>} />

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Activity, BookOpen, ClipboardCheck, Cpu, Database, FolderOpen, History, Home, LayoutDashboard, Megaphone, Search, Settings, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Activity, BookOpen, ClipboardCheck, Cpu, Database, FolderOpen, History, Home, LayoutDashboard, Megaphone, Search, Settings, ShieldCheck, Trash2, Users, FileSpreadsheet } from 'lucide-react';
 import type { Role, User } from '@/types';
 
 /**
@@ -23,6 +23,7 @@ export const NAV: NavPage[] = [
   { key: 'trash', to: '/trash', label: 'ถังขยะ', icon: <Trash2 className={i} /> },
   { key: 'devices', to: '/devices', label: 'อุปกรณ์ (RFID/IoT)', icon: <Cpu className={i} /> },
   { key: 'connectors', to: '/connectors', label: 'ดึงข้อมูลจากลิงก์/API', icon: <Database className={i} /> },
+  { key: 'inkcodePlan', to: '/inkcode/plan', label: 'นำเข้าแผนผลิต', icon: <FileSpreadsheet className={i} /> },
   { key: 'search', to: '/traceback', label: 'Search', icon: <Search className={i} /> },
   { key: 'dashboards', to: '/dashboards', label: 'แดชบอร์ด', icon: <LayoutDashboard className={i} /> },
   { key: 'guide', to: '/guide', label: 'คู่มือ', icon: <BookOpen className={i} /> },
@@ -33,8 +34,8 @@ const ALL = ['home', 'news', 'browse', 'requests', 'trash', 'search', 'dashboard
 /** used only until the server says (same defaults as the server registry) */
 const DEFAULTS: Record<Role, string[]> = {
   viewer: ALL, user: ALL,
-  master: [...ALL, 'audit', 'devices', 'connectors'],
-  admin: [...ALL, 'audit', 'devices', 'connectors', 'users', 'monitor', 'ai'],
+  master: [...ALL, 'audit', 'devices', 'connectors', 'inkcodePlan'],
+  admin: [...ALL, 'audit', 'devices', 'connectors', 'inkcodePlan', 'users', 'monitor', 'ai'],
   root: [...NAV.map((n) => n.key), 'ai'],
 };
 const ALWAYS = ['home', 'settings'];

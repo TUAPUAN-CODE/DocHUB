@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -59,11 +92,11 @@ function computeRow(s, defs, values) {
     fill(model_1.SHEETS.line, ref.lines);
     fill(model_1.SHEETS.shift, ref.shifts);
     fill(model_1.SHEETS.calendar, ref.calendar);
+    fill(model_1.SHEETS.sample, [model_1.SAMPLE_ROW]);
     // database
-    const dbDefs = [...model_1.DB_PLAIN, ...model_1.DB_FORMULAS];
-    const db = mk(model_1.SHEETS.db, dbDefs);
-    db.cols = db.cols.filter((c) => !model_1.DB_FORMULAS.some((f) => f.name === c.name));
-    addFormulaCols(db, model_1.DB_FORMULAS);
+    const dbFormulas = [...model_1.DB_FORMULAS, ...(0, model_1.dbPreviewFormulas)(tokens)];
+    const db = mk(model_1.SHEETS.db, model_1.DB_PLAIN);
+    addFormulaCols(db, dbFormulas);
     const sample = products.filter((p) => p['แบบโค้ดแถว 1'] && p['Short Product Code'] && p['Product Code (SAP)']).slice(0, 400);
     for (const p of sample) {
         const values = {};
@@ -73,7 +106,7 @@ function computeRow(s, defs, values) {
             if (c)
                 values[c.id] = val ?? null;
         }
-        computeRow(db, model_1.DB_FORMULAS, values);
+        computeRow(db, dbFormulas, values);
         db.rows.push(Object.fromEntries(Object.entries(values)));
     }
     // MID formula = Excel's =MID(R,2,1)&MID(R,12,5)&" "&MID(R,3,9)
@@ -82,6 +115,13 @@ function computeRow(s, defs, values) {
     const s0 = String(r0[col(db, sap).id]);
     const chars = [...s0];
     strict_1.default.equal(r0[col(db, 'Code ฝน').id], chars.slice(1, 2).join('') + chars.slice(11, 16).join('') + ' ' + chars.slice(2, 11).join(''));
+    // the database previews the codes for the sample date (2026-03-17) and line (Can R) — same rule as the worksheet
+    const stdIdx = sample.findIndex((p) => /^\{P\} ?S\{YC\}\{MC\}\{DC\}S\{LC\}$/.test(p['แบบโค้ดแถว 1']));
+    strict_1.default.ok(stdIdx >= 0);
+    const pv = db.rows[stdIdx];
+    const short0 = String(sample[stdIdx]['Short Product Code']);
+    strict_1.default.match(String(pv[col(db, 'ตัวอย่างโค้ดแถว 1').id]), new RegExp('^' + short0.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' ?S\\w+S\\w+$'));
+    strict_1.default.equal(pv[col(db, 'วันที่ตัวอย่าง').id] !== null, true);
     // worksheet
     const wsFormulas = (0, model_1.worksheetFormulas)(tokens);
     const ws = mk(model_1.SHEETS.ws, model_1.WS_INPUTS);
@@ -121,5 +161,83 @@ function computeRow(s, defs, values) {
     strict_1.default.equal(miss[col(ws, 'Code Format แถว 1').id], '');
     for (const d of wsFormulas)
         strict_1.default.ok(d.formula.expr.length <= 2000, `${d.name} expression too long (${d.formula.expr.length})`);
+});
+(0, node_test_1.default)('worksheet drop-down columns are valid DocHUB column definitions', () => {
+    const { columnInput, checkColumnInput } = require('../../shared/schemas');
+    const fake = '00000000-0000-0000-0000-0000000000aa';
+    for (const c of model_1.WS_INPUTS) {
+        const body = { name: c.name, dataType: c.type, width: c.width ?? 160, isRequired: !!c.required, ...(c.description ? { description: c.description } : {}) };
+        if (c.lookup)
+            body.validation = { lookup: { sheetId: fake, columnId: fake } };
+        const parsed = columnInput.parse(body);
+        checkColumnInput(parsed);
+    }
+    strict_1.default.ok(model_1.WS_INPUTS.filter((c) => c.lookup).length >= 4);
+});
+(0, node_test_1.default)('auto routing: area of a line, plant in a line text, day path', async () => {
+    const m = await Promise.resolve().then(() => __importStar(require('./model')));
+    strict_1.default.equal(m.areaOf('Cup 1', 'Cup'), 'Cup');
+    strict_1.default.equal(m.areaOf('Can R'), 'Can');
+    strict_1.default.equal(m.areaOf('Auto B', 'Pouch'), 'Pouch');
+    strict_1.default.equal(m.areaOf('Spout'), 'Pouch');
+    strict_1.default.equal(m.areaOf('Pouch PF2 ชั้นบน'), 'Pouch');
+    strict_1.default.equal(m.areaOf('Cancel x'), 'อื่นๆ');
+    strict_1.default.equal(m.areaOf('ไลน์พิเศษ', 'Can'), 'Can');
+    strict_1.default.equal(m.plantInText('Pouch PF2 ชั้นบน'), 'PF2');
+    strict_1.default.equal(m.plantInText('Auto B'), null);
+    strict_1.default.deepEqual(m.dayPath('2026-10-03'), { year: '2026', month: '10 ตุลาคม', file: '2026-10-03' });
+    strict_1.default.throws(() => m.dayPath('3/10/2026'));
+});
+(0, node_test_1.default)('plan drop folder: only settled .xlsx in <year>/<month>, not lock files or handled folders', async () => {
+    const fs = await Promise.resolve().then(() => __importStar(require('fs'))), os = await Promise.resolve().then(() => __importStar(require('os'))), path = await Promise.resolve().then(() => __importStar(require('path')));
+    const { waitingFiles } = await Promise.resolve().then(() => __importStar(require('./watcher')));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'plans-'));
+    const mk = (rel) => { const f = path.join(dir, rel); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, 'x'); fs.utimesSync(f, new Date(Date.now() - 60_000), new Date(Date.now() - 60_000)); return f; };
+    const a = mk('2026/10 ตุลาคม/แผน 03-10.xlsx');
+    mk('2026/10 ตุลาคม/~$แผน.xlsx');
+    mk('2026/10 ตุลาคม/เสร็จแล้ว/old.xlsx');
+    mk('2026/10 ตุลาคม/note.txt');
+    mk('top.xlsx');
+    const fresh = path.join(dir, '2026/10 ตุลาคม/new.xlsx');
+    fs.writeFileSync(fresh, 'x');
+    strict_1.default.deepEqual(waitingFiles(dir), [a]);
+    fs.rmSync(dir, { recursive: true, force: true });
+});
+(0, node_test_1.default)('plant values of the line table map to the PF folders', async () => {
+    const { normalizePlant } = await Promise.resolve().then(() => __importStar(require('./model')));
+    for (const [a, b] of [['2', 'PF2'], [2, 'PF2'], ['PF1', 'PF1'], ['pf 2', 'PF2'], [' pf1 ', 'PF1'], ['', ''], ['X', 'X']])
+        strict_1.default.equal(normalizePlant(a), b);
+});
+(0, node_test_1.default)('line spec: every line has one plant + area, no duplicates, the factory rules hold', async () => {
+    const { LINE_SPEC, lineSetupRows, DAY_SHEETS, sheetFor } = await Promise.resolve().then(() => __importStar(require('./model')));
+    const m = new Map(LINE_SPEC.map((s) => [s.line, s]));
+    strict_1.default.equal(m.size, LINE_SPEC.length);
+    const p = (l) => m.get(l)?.plant;
+    for (const l of ['Cup 1', 'Cup 12', 'Cup 13', 'Can A', 'Can K', 'Auto B', 'Auto C', 'Auto D', 'Spout 1', 'Spout 3', 'Pouch VS', 'Sachet', 'Pouch TN', 'Can 1'])
+        strict_1.default.equal(p(l), 'PF1', l);
+    for (const l of ['Cup 6', 'Cup 7', 'Can R', 'Can Z', 'Auto A', 'Auto E', 'Auto F', 'Pouch PF3', 'Pouch PF2 ชั้นบน', 'Jerky', 'Extruder', 'Freeze dried'])
+        strict_1.default.equal(p(l), 'PF2', l);
+    strict_1.default.equal(m.get('Cup 3').area, 'Cup');
+    strict_1.default.equal(m.get('Can 2').area, 'Can');
+    strict_1.default.equal(m.get('Jerky').area, 'Pouch');
+    const rows = lineSetupRows();
+    strict_1.default.equal(rows.length, LINE_SPEC.length);
+    strict_1.default.deepEqual(rows.find((r) => r['ไลน์'] === 'Can A'), { ไลน์: 'Can A', โรงงาน: 'PF1', พื้นที่: 'Can' });
+    strict_1.default.deepEqual(DAY_SHEETS, ['Pouch DS', 'Pouch NS', 'Can DS', 'Can NS', 'Cup DS', 'Cup NS', 'อื่นๆ']);
+    strict_1.default.equal(sheetFor('Cup', 'NS'), 'Cup NS');
+    strict_1.default.equal(sheetFor('อื่นๆ', 'DS'), 'อื่นๆ');
+});
+(0, node_test_1.default)('plan link: share links become direct downloads', async () => {
+    const { downloadCandidates } = await Promise.resolve().then(() => __importStar(require('./planLink')));
+    strict_1.default.deepEqual(downloadCandidates('https://drive.google.com/file/d/AbC_123-x/view?usp=sharing'), ['https://drive.google.com/uc?export=download&id=AbC_123-x']);
+    strict_1.default.deepEqual(downloadCandidates('https://docs.google.com/spreadsheets/d/XyZ9/edit#gid=0'), ['https://docs.google.com/spreadsheets/d/XyZ9/export?format=xlsx']);
+    strict_1.default.match(downloadCandidates('https://www.dropbox.com/s/abc/plan.xlsx?dl=0')[0], /dl=1/);
+    const ms = downloadCandidates('https://contoso-my.sharepoint.com/:x:/g/personal/a_b/EXyz?e=abc');
+    strict_1.default.equal(ms.length, 2);
+    strict_1.default.match(ms[0], /download=1/);
+    strict_1.default.equal(new URL(ms[1]).search, '?e=abc');
+    strict_1.default.deepEqual(downloadCandidates('https://example.com/plan.xlsx'), ['https://example.com/plan.xlsx']);
+    strict_1.default.throws(() => downloadCandidates('http://example.com/plan.xlsx'));
+    strict_1.default.throws(() => downloadCandidates('not a url'));
 });
 //# sourceMappingURL=inkcode.test.js.map
