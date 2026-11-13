@@ -91,19 +91,22 @@ async function dayFile(user, plant, date, create, req) {
     if (!plantId)
         throw (0, http_1.badRequest)(`ไม่มีโฟลเดอร์โรงงาน "${plant}" ในโฟลเดอร์ ${model_1.TREE.root} (มีเฉพาะ ${model_1.TREE.plants.join(', ')}) — ตรวจคอลัมน์ Plant ของไลน์ในตาราง ไลน์ หรือเลือกโรงงานเองในเมนู นำเข้าแผนผลิต`);
     const p = (0, model_1.dayPath)(date);
-    const path = `${plant} / ${p.year} / ${p.month}`;
+    const path = `${plant} / ${p.year} / ${p.month} / ${p.day}`;
     let yearId = await folderChild(plantId, p.year);
     let monthId = yearId ? await folderChild(yearId, p.month) : null;
-    let id = monthId ? await fileIn(monthId, p.file) : null;
+    let dayId = monthId ? await folderChild(monthId, p.day) : null;
+    // the day folder; a day file made before day folders existed sits in the month folder itself — used where it is
+    let id = (dayId ? await fileIn(dayId, p.file) : null) ?? (monthId ? await fileIn(monthId, p.file) : null);
     if (id || !create)
         return { id, folderPath: path, created: false };
     yearId = yearId ?? await ensureFolder(user, plantId, p.year);
     monthId = monthId ?? await ensureFolder(user, yearId, p.month);
-    id = await fileIn(monthId, p.file); // another import may have just made it
+    dayId = dayId ?? await ensureFolder(user, monthId, p.day);
+    id = await fileIn(dayId, p.file); // another import may have just made it
     if (id)
         return { id, folderPath: path, created: false };
     const tpl = await (0, permissions_1.getFileRow)(templateFileId);
-    id = await (0, files_1.duplicateFile)(user, tpl, monthId, p.file, false, req);
+    id = await (0, files_1.duplicateFile)(user, tpl, dayId, p.file, false, req);
     return { id, folderPath: path, created: true };
 }
 /** The file whose PDF layouts every day file uses (the Worksheet file) — bound again here in case the template lost it */

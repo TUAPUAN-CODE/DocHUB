@@ -185,7 +185,7 @@ function computeRow(s, defs, values) {
     strict_1.default.equal(m.areaOf('ไลน์พิเศษ', 'Can'), 'Can');
     strict_1.default.equal(m.plantInText('Pouch PF2 ชั้นบน'), 'PF2');
     strict_1.default.equal(m.plantInText('Auto B'), null);
-    strict_1.default.deepEqual(m.dayPath('2026-10-03'), { year: '2026', month: '10 ตุลาคม', file: '2026-10-03' });
+    strict_1.default.deepEqual(m.dayPath('2026-10-03'), { year: '2026', month: '10 ตุลาคม', day: '03', file: '2026-10-03' });
     strict_1.default.throws(() => m.dayPath('3/10/2026'));
 });
 (0, node_test_1.default)('plan drop folder: only settled .xlsx in <year>/<month>, not lock files or handled folders', async () => {
