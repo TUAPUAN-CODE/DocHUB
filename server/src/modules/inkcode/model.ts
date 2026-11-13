@@ -291,7 +291,8 @@ export const monthFolderName = (m: number) => `${String(m).padStart(2, '0')} ${T
 export function dayPath(date: string) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m) throw new Error(`วันที่ไม่ถูกต้อง: ${date}`);
-  return { year: m[1], month: monthFolderName(Number(m[2])), file: date };
+  // PF1 / 2026 / 10 ตุลาคม / 03 / 2026-10-03 — one folder per day inside the month
+  return { year: m[1], month: monthFolderName(Number(m[2])), day: m[3], file: date };
 }
 /** Area (sheet of the day file) of a production line: Cup / Can by the line name, Pouch also for Spout / Auto lines */
 export function areaOf(line: string, product = ''): (typeof AREAS)[number] {

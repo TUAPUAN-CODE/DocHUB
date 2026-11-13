@@ -139,7 +139,7 @@ test('auto routing: area of a line, plant in a line text, day path', async () =>
   assert.equal(m.areaOf('ไลน์พิเศษ', 'Can'), 'Can');
   assert.equal(m.plantInText('Pouch PF2 ชั้นบน'), 'PF2');
   assert.equal(m.plantInText('Auto B'), null);
-  assert.deepEqual(m.dayPath('2026-10-03'), { year: '2026', month: '10 ตุลาคม', file: '2026-10-03' });
+  assert.deepEqual(m.dayPath('2026-10-03'), { year: '2026', month: '10 ตุลาคม', day: '03', file: '2026-10-03' });
   assert.throws(() => m.dayPath('3/10/2026'));
 });
 
