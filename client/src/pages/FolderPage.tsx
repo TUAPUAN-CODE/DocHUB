@@ -69,10 +69,10 @@ export default function FolderPage() {
   const level = data?.level ?? 0;
   const canCreate = !isBasicRole(role) && (id === 'root' ? true : level >= LV.write);
   const crumbs = [{ id: 'root', name: t('ไฟล์ทั้งหมด') }, ...(data?.breadcrumb ?? [])];
-  // plan folders: "InkCode - ใบออกโค้ด / แผนผลิต / ปี / เดือน" accept the production plan (.xlsx) by drop
+  // plan folders: "แผนผลิต / ปี / เดือน" anywhere under "InkCode" accept the production plan (.xlsx) by drop
   const names = (data?.breadcrumb ?? []).map((c) => c.name);
   const planAt = names.indexOf('แผนผลิต');
-  const isPlanMonth = !isBasicRole(role) && !!folder && level >= LV.write && planAt >= 1 && names[planAt - 1] === 'InkCode - ใบออกโค้ด' && names.length >= planAt + 3;
+  const isPlanMonth = !isBasicRole(role) && !!folder && level >= LV.write && planAt >= 1 && names[0]?.trim() === 'InkCode' && names.length >= planAt + 3;
 
   return (
     <Page>

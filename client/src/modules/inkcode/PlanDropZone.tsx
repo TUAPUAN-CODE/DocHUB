@@ -16,7 +16,7 @@ const urlOf = (dt: DataTransfer | null): string | null => {
 };
 
 /**
- * Shown in the plan folders (InkCode - ใบออกโค้ด / แผนผลิต / ปี / เดือน): the plan .xlsx is imported by itself when it is
+ * Shown in the plan folders (แผนผลิต / ปี / เดือน, anywhere under InkCode): the plan .xlsx is imported by itself when it is
  *  - dropped here or chosen from the computer,
  *  - pasted (Ctrl+V of a file or of a link),
  *  - given as a link (OneDrive / SharePoint / Google Drive / Dropbox) — for computers that only have Excel on the web.
