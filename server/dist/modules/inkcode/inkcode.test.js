@@ -240,4 +240,17 @@ function computeRow(s, defs, values) {
     strict_1.default.throws(() => downloadCandidates('http://example.com/plan.xlsx'));
     strict_1.default.throws(() => downloadCandidates('not a url'));
 });
+(0, node_test_1.default)('note lines (New Code … / Thai) move to Remark (ไม่ Ink), code lines stay', async () => {
+    const { isInkRemark, splitRemarks, REMARK_COL } = await Promise.resolve().then(() => __importStar(require('./model')));
+    for (const s of ['New Code 1/9/25 ตรวจ 100%', 'New code 20/8/25 ตรวจ100%', '  NEW CODE 02/10/26', 'Check ราคาจาก Mail PN'])
+        strict_1.default.equal(isInkRemark(s), true, s);
+    for (const s of ['{P} S{YC}{MC}{DC}S{LC} VCN.7', 'Best By {DD} {MON} {Y+3}', 'Not for EU VCN.7', 'i-Tail 愛泰肉泥-護眼抗氧化', 'NEWCODE', 'Renew Code 1', '', null])
+        strict_1.default.equal(isInkRemark(s), false, String(s));
+    const r = splitRemarks({ 'แบบโค้ดแถว 1': '{P} S{YC}', 'แบบโค้ดแถว 4': 'New Code 1/9/25 ตรวจ 100%', [REMARK_COL]: 'เดิม' });
+    strict_1.default.deepEqual(r.moved, ['New Code 1/9/25 ตรวจ 100%']);
+    strict_1.default.equal(r.next['แบบโค้ดแถว 1'], '{P} S{YC}');
+    strict_1.default.equal(r.next['แบบโค้ดแถว 4'], null);
+    strict_1.default.equal(r.next[REMARK_COL], 'เดิม\nNew Code 1/9/25 ตรวจ 100%');
+    strict_1.default.equal(splitRemarks(r.next).moved.length, 0); // running again changes nothing
+});
 //# sourceMappingURL=inkcode.test.js.map

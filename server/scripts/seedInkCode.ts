@@ -12,7 +12,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { ColDef, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLUMNS, HELP_ROWS, printTemplate, printTemplateByCustomer, lineSetupRows, REF_SHEETS, SAMPLE_ROW, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
+import { ColDef, splitRemarks, DB_FORMULAS, DB_KEY_MAP, DB_PLAIN, dbPreviewFormulas, HELP_COLUMNS, HELP_ROWS, printTemplate, printTemplateByCustomer, lineSetupRows, REF_SHEETS, SAMPLE_ROW, SHEETS, SheetDef, WS_INPUTS, worksheetFormulas } from '../src/modules/inkcode/model';
 
 const BASE = (process.env.DOCHUB_URL ?? 'http://localhost:4000/api').replace(/\/+$/, '');
 const DRY = process.argv.includes('--dry');
@@ -119,7 +119,8 @@ async function main() {
   const dbFile = await createFile(folder, 'InkCode - Master Database', [{ name: SHEETS.db, columns: DB_PLAIN }, { name: SHEETS.help, columns: HELP_COLUMNS }]);
   if (dbFile) {
     const dbId = idOf(dbFile.sheets, SHEETS.db); await remember(SHEETS.db, dbId);
-    const rows = products.map((p) => Object.fromEntries(Object.entries(p).map(([k, v]) => [DB_KEY_MAP[k] ?? k, v])));
+    // note lines ("New Code … ตรวจ 100%") go to the column Remark (ไม่ Ink), not to the code lines
+    const rows = products.map((p) => splitRemarks(Object.fromEntries(Object.entries(p).map(([k, v]) => [DB_KEY_MAP[k] ?? k, v]))).next);
     await importRows(dbId, rows, SHEETS.db);
     await importRows(idOf(dbFile.sheets, SHEETS.help), HELP_ROWS, SHEETS.help);
     await addFormulas(dbId, [...DB_FORMULAS, ...dbPreviewFormulas(tokens)], sheetIds);
