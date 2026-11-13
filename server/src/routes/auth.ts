@@ -9,10 +9,10 @@ import { authenticate, invalidateUserCache, loadAuthUser, ROLE_SQL, signAccessTo
 import { audit } from '../shared/audit';
 import { ah, AppError, badRequest, isGuid, ok, parse } from '../shared/http';
 import { mapUser } from '../shared/mappers';
-import { pagesFor } from '../modules/pageAccess/module';
+import { pageLabels, pagesFor } from '../modules/pageAccess/module';
 
 /** + the pages of the left bar (and features) the user's role sees */
-const withPages = async <U extends { role: string }>(u: U) => ({ ...u, pages: await pagesFor(u.role as any) });
+const withPages = async <U extends { role: string }>(u: U) => ({ ...u, pages: await pagesFor(u.role as any), pageLabels: await pageLabels() });
 
 const router = Router();
 const COOKIE = 'dsp_rt';

@@ -4,6 +4,7 @@ exports.requirePage = exports.configurable = void 0;
 exports.invalidatePageAccess = invalidatePageAccess;
 exports.savedAccess = savedAccess;
 exports.isAllowed = isAllowed;
+exports.pageLabels = pageLabels;
 exports.pagesFor = pagesFor;
 const db_1 = require("../../config/db");
 const auth_1 = require("../../middleware/auth");
@@ -15,6 +16,7 @@ let cache = null;
 const CACHE_MS = 30_000;
 function invalidatePageAccess() {
     cache = null;
+    labelCache = null;
     (0, cluster_1.broadcast)('pageAccess');
 }
 (0, cluster_1.onBroadcast)('pageAccess', () => { cache = null; });
@@ -28,19 +30,36 @@ async function savedAccess() {
     return rows;
 }
 /** Whether a role may be given the page at all */
-const configurable = (p, role) => !p.always && !p.rootOnly && (!p.floor || auth_1.ROLE_ID[role] >= auth_1.ROLE_ID[p.floor]);
+const configurable = (p, role) => !p.always && !p.rootOnly && !p.lockedFor?.includes(role) && (!p.floor || auth_1.ROLE_ID[role] >= auth_1.ROLE_ID[p.floor]);
 exports.configurable = configurable;
 function isAllowed(p, role, saved) {
     if (role === 'root')
         return true;
     if (p.rootOnly)
         return false;
-    if (p.always)
+    if (p.always || p.lockedFor?.includes(role))
         return true;
     if (p.floor && auth_1.ROLE_ID[role] < auth_1.ROLE_ID[p.floor])
         return false;
     return saved.get(`${role}|${p.key}`) ?? p.defaults.includes(role);
 }
+/** Names of the left-bar items as renamed by an admin / root (SystemSettings pageLabels = {key: label}); missing = the built-in name */
+let labelCache = null;
+async function pageLabels() {
+    if (labelCache && Date.now() - labelCache.at < CACHE_MS)
+        return labelCache.v;
+    const r = await (0, db_1.q)(`SELECT setting_value FROM SystemSettings WHERE setting_key = N'pageLabels'`);
+    let v = {};
+    try {
+        const j = JSON.parse(r[0]?.setting_value ?? '{}');
+        if (j && typeof j === 'object')
+            v = j;
+    }
+    catch { /* bad value → none */ }
+    labelCache = { at: Date.now(), v };
+    return v;
+}
+(0, cluster_1.onBroadcast)('pageAccess', () => { labelCache = null; });
 /** Keys of the pages / features a role sees */
 async function pagesFor(role) {
     const saved = await savedAccess();
@@ -52,7 +71,7 @@ const requirePage = (key) => (req, _res, next) => {
     if (!req.user || !p)
         return next((0, http_1.forbidden)());
     savedAccess()
-        .then((saved) => (isAllowed(p, req.user.role, saved) ? next() : next((0, http_1.forbidden)(`บทบาทของคุณยังไม่ได้รับสิทธิ์ใช้ "${p.label}" (ผู้ใช้ Root กำหนดได้ที่หน้า จัดการสิทธิ์)`))))
+        .then((saved) => (isAllowed(p, req.user.role, saved) ? next() : next((0, http_1.forbidden)(`บทบาทของคุณยังไม่ได้รับสิทธิ์ใช้ "${p.label}" (Admin / Root กำหนดได้ที่หน้า จัดการสิทธิ์)`))))
         .catch(next);
 };
 exports.requirePage = requirePage;

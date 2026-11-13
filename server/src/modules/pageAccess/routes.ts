@@ -6,14 +6,15 @@ import { emitToAll } from '../../socket';
 import { audit } from '../../shared/audit';
 import { ah, forbidden, ok, parse } from '../../shared/http';
 import { CONFIG_ROLES, PAGES } from './registry';
-import { configurable, invalidatePageAccess, isAllowed, pagesFor, savedAccess } from './service';
+import { configurable, invalidatePageAccess, isAllowed, pageLabels, pagesFor, savedAccess } from './service';
 
 const router = Router();
 
 /** Pages the signed-in user sees (the web app also gets them with /auth/me) */
-router.get('/page-access/mine', ah(async (req, res) => ok(res, { pages: await pagesFor(req.user!.role) })));
+router.get('/page-access/mine', ah(async (req, res) => ok(res, { pages: await pagesFor(req.user!.role), labels: await pageLabels() })));
 
-const rootOnly: ReturnType<typeof requireRole> = (req, _res, next) => (req.user?.role === 'root' ? next() : next(forbidden('หน้านี้สำหรับผู้ใช้ Root เท่านั้น')));
+/** admin and root set which role sees which page and rename the items of the left bar */
+const rootOnly: ReturnType<typeof requireRole> = (req, _res, next) => (req.user?.role === 'root' || req.user?.role === 'admin' ? next() : next(forbidden('หน้านี้สำหรับ Admin / Root เท่านั้น')));
 
 async function matrix() {
   const saved = await savedAccess();
@@ -22,7 +23,9 @@ async function matrix() {
     roles: CONFIG_ROLES,
     pages: PAGES.map((p) => ({
       key: p.key, label: p.label, kind: p.kind, hint: p.hint ?? null, floor: p.floor ?? null, always: !!p.always, rootOnly: !!p.rootOnly, defaults: p.defaults,
+      lockedFor: p.lockedFor ?? [], notInNav: !!p.notInNav,
     })),
+    labels: await pageLabels(),
     allowed: Object.fromEntries(CONFIG_ROLES.map((r) => [r, PAGES.filter((p) => isAllowed(p, r, saved)).map((p) => p.key)])),
     updatedAt: last[0]?.updated_at ?? null,
     updatedBy: last[0]?.display_name ?? null,
@@ -36,7 +39,10 @@ router.put(
   '/page-access',
   rootOnly,
   ah(async (req, res) => {
-    const { allowed } = parse(z.object({ allowed: z.object({ viewer: keys, user: keys, master: keys, admin: keys }) }), req.body);
+    const { allowed, labels } = parse(z.object({
+      allowed: z.object({ viewer: keys, user: keys, master: keys, admin: keys }),
+      labels: z.record(z.string().max(50), z.string().trim().max(60)).optional(),
+    }), req.body);
     const before = (await matrix()).allowed;
     await withTx(async (tx) => {
       for (const role of CONFIG_ROLES)
@@ -48,7 +54,14 @@ router.put(
             { r: role, k: p.key, a: allowed[role as Exclude<Role, 'root'>].includes(p.key), by: T.uuid(req.user!.id) },
             tx,
           );
-      await audit({ userId: req.user!.id, action: 'page_access_update', entityType: 'system', entityId: 'page-access', oldValue: before, newValue: allowed }, req, tx);
+      if (labels) {
+        // only known pages; an empty name or the built-in name = no rename
+        const clean = Object.fromEntries(Object.entries(labels).filter(([k, v]) => v && PAGES.some((p) => p.key === k && p.label !== v)));
+        await q(`MERGE SystemSettings AS t USING (SELECT N'pageLabels' AS setting_key) s ON t.setting_key = s.setting_key
+                 WHEN MATCHED THEN UPDATE SET setting_value = @v, updated_by = @by, updated_at = SYSUTCDATETIME()
+                 WHEN NOT MATCHED THEN INSERT (setting_key, setting_value, updated_by) VALUES (N'pageLabels', @v, @by);`, { v: JSON.stringify(clean), by: T.uuid(req.user!.id) }, tx);
+      }
+      await audit({ userId: req.user!.id, action: 'page_access_update', entityType: 'system', entityId: 'page-access', oldValue: before, newValue: { allowed, labels } }, req, tx);
     });
     invalidatePageAccess();
     emitToAll('pages:changed', {});

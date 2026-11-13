@@ -14,12 +14,13 @@ exports.PAGES = [
     { key: 'trash', label: 'ถังขยะ', kind: 'page', defaults: ALL },
     { key: 'devices', label: 'อุปกรณ์ (RFID/IoT)', kind: 'page', defaults: BUILDERS, floor: 'master' },
     { key: 'connectors', label: 'ดึงข้อมูลจากลิงก์/API', kind: 'page', defaults: BUILDERS, floor: 'master' },
-    { key: 'inkcodePlan', label: 'นำเข้าแผนผลิต (InkCode)', kind: 'page', defaults: BUILDERS, floor: 'master' },
+    { key: 'apps', label: 'Application', kind: 'page', defaults: ALL, hint: 'ไอคอนแอป: แดชบอร์ดทุกอัน · แผนผลิต · แอปที่ Admin เพิ่ม' },
+    { key: 'inkcodePlan', label: 'นำเข้าแผนผลิต (InkCode)', kind: 'page', defaults: BUILDERS, floor: 'master', notInNav: true, hint: 'เปิดจากแอป แผนผลิต ในหน้า Application' },
     { key: 'search', label: 'Search', kind: 'page', defaults: ALL },
-    { key: 'dashboards', label: 'แดชบอร์ด', kind: 'page', defaults: ALL },
+    { key: 'dashboards', label: 'แดชบอร์ด', kind: 'page', defaults: ALL, notInNav: true, hint: 'แดชบอร์ดแต่ละอันเป็นแอปในหน้า Application' },
     { key: 'guide', label: 'คู่มือ', kind: 'page', defaults: ALL },
     { key: 'settings', label: 'ตั้งค่า', kind: 'page', defaults: ALL, always: true },
-    { key: 'permissions', label: 'จัดการสิทธิ์', kind: 'page', defaults: [], rootOnly: true },
+    { key: 'permissions', label: 'จัดการสิทธิ์', kind: 'page', defaults: ['admin'], floor: 'admin', lockedFor: ['admin'] },
     { key: 'ai', label: 'ผู้ช่วย AI (ไอคอน AI บนแถบด้านบน)', kind: 'feature', defaults: ['admin'] },
 ];
 /** Roles whose pages a root sets (root itself always sees everything) */
