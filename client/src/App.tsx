@@ -34,6 +34,7 @@ const MonitorPage = lazy(() => import('@/modules/monitor/MonitorPage'));
 const RequestsHubPage = lazy(() => import('@/pages/RequestsHubPage'));
 const NewsPage = lazy(() => import('@/modules/news/NewsPage'));
 const PermissionsPage = lazy(() => import('@/modules/pageAccess/PermissionsPage'));
+const AppsPage = lazy(() => import('@/modules/apps/AppsPage'));
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const status = useAuth((s) => s.status);
@@ -86,7 +87,8 @@ export default function App() {
           <Route path="browse" element={<RequirePage page="browse"><FolderPage /></RequirePage>} />
           <Route path="news" element={<RequirePage page="news"><NewsPage /></RequirePage>} />
           <Route path="tags" element={<TagsMoved />} />
-          <Route path="permissions" element={<RequireRole roles={['root']}><PermissionsPage /></RequireRole>} />
+          <Route path="permissions" element={<RequireRole roles={['admin']}><PermissionsPage /></RequireRole>} />
+          <Route path="apps" element={<RequirePage page="apps"><AppsPage /></RequirePage>} />
           <Route path="folders/:id" element={<FolderPage />} />
           <Route path="files/new" element={<RequireRole roles={['master', 'admin']}><FileBuilderPage /></RequireRole>} />
           <Route path="files/:id" element={<FilePage />} />

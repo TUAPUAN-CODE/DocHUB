@@ -103,7 +103,7 @@ export function PlanDropZone({ folderId, onDone }: { folderId: string; onDone: (
           <ul className="mt-1 space-y-0.5 text-muted">
             {done.r.targets.map((t) => <li key={`${t.plant}${t.area}`}>{t.plant} › {t.area}: เพิ่ม {t.result.created} · มีอยู่แล้ว {t.result.duplicate}{t.fileId && <> · <Link className="text-primary hover:underline" to={`/files/${t.fileId}`}>เปิดไฟล์ {t.fileName}</Link></>}</li>)}
           </ul>
-          {done.r.recordFileId && <p className="mt-1 text-muted">บันทึกผลทุกแถว: <Link className="text-primary hover:underline" to={`/files/${done.r.recordFileId}`}>เปิดไฟล์บันทึก</Link> (ในโฟลเดอร์นี้) · ถ้ามีแถวที่ถูกข้ามเพราะไม่ทราบโรงงาน ใช้เมนู <Link className="text-primary hover:underline" to="/inkcode/plan">นำเข้าแผนผลิต</Link> เพื่อเลือกเอง</p>}
+          {done.r.recordFileId && <p className="mt-1 text-muted">บันทึกผลทุกแถว: <Link className="text-primary hover:underline" to={`/files/${done.r.recordFileId}`}>เปิดไฟล์บันทึก</Link> (ในโฟลเดอร์นี้) · ถ้ามีแถวที่ถูกข้ามเพราะไม่ทราบโรงงาน ใช้แอป <Link className="text-primary hover:underline" to="/inkcode/plan">แผนผลิต</Link> (หน้า Application) เพื่อเลือกเอง</p>}
           {done.r.newsPostId && <p className="mt-1 font-medium text-primary">โพสต์ข่าว New Code ตรวจ 100% แล้ว: <Link className="hover:underline" to={`/news?post=${done.r.newsPostId}`}>เปิดข่าว</Link></p>}
           {!!done.r.alerts?.length && <AlertList alerts={done.r.alerts} />}
         </div>

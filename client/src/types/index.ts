@@ -11,6 +11,8 @@ export interface User {
   isActive?: boolean; lastLoginAt?: string | null; createdAt?: string | null; tags?: TagRef[];
   /** pages of the left bar / features the role sees (signed-in user only, set by a root on จัดการสิทธิ์) */
   pages?: string[];
+  /** names of left-bar items renamed by an admin (key → name) */
+  pageLabels?: Record<string, string>;
 }
 export interface TagRef { id: string; name: string; color: string }
 export interface Tag extends TagRef { description: string | null; memberCount: number; grantCount?: number; createdAt: string; isSystem?: boolean }

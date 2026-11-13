@@ -10,7 +10,7 @@ let cache: { at: number; rows: Map<string, boolean> } | null = null;
 const CACHE_MS = 30_000;
 
 export function invalidatePageAccess() {
-  cache = null;
+  cache = null; labelCache = null;
   broadcast('pageAccess');
 }
 onBroadcast('pageAccess', () => { cache = null; });
@@ -24,15 +24,27 @@ export async function savedAccess() {
 }
 
 /** Whether a role may be given the page at all */
-export const configurable = (p: PageDef, role: Role) => !p.always && !p.rootOnly && (!p.floor || ROLE_ID[role] >= ROLE_ID[p.floor]);
+export const configurable = (p: PageDef, role: Role) => !p.always && !p.rootOnly && !p.lockedFor?.includes(role) && (!p.floor || ROLE_ID[role] >= ROLE_ID[p.floor]);
 
 export function isAllowed(p: PageDef, role: Role, saved: Map<string, boolean>) {
   if (role === 'root') return true;
   if (p.rootOnly) return false;
-  if (p.always) return true;
+  if (p.always || p.lockedFor?.includes(role)) return true;
   if (p.floor && ROLE_ID[role] < ROLE_ID[p.floor]) return false;
   return saved.get(`${role}|${p.key}`) ?? p.defaults.includes(role);
 }
+
+/** Names of the left-bar items as renamed by an admin / root (SystemSettings pageLabels = {key: label}); missing = the built-in name */
+let labelCache: { at: number; v: Record<string, string> } | null = null;
+export async function pageLabels(): Promise<Record<string, string>> {
+  if (labelCache && Date.now() - labelCache.at < CACHE_MS) return labelCache.v;
+  const r = await q(`SELECT setting_value FROM SystemSettings WHERE setting_key = N'pageLabels'`);
+  let v: Record<string, string> = {};
+  try { const j = JSON.parse(r[0]?.setting_value ?? '{}'); if (j && typeof j === 'object') v = j; } catch { /* bad value → none */ }
+  labelCache = { at: Date.now(), v };
+  return v;
+}
+onBroadcast('pageAccess', () => { labelCache = null; });
 
 /** Keys of the pages / features a role sees */
 export async function pagesFor(role: Role): Promise<string[]> {
@@ -47,6 +59,6 @@ export const requirePage =
     const p = PAGES.find((x) => x.key === key);
     if (!req.user || !p) return next(forbidden());
     savedAccess()
-      .then((saved) => (isAllowed(p, req.user!.role, saved) ? next() : next(forbidden(`บทบาทของคุณยังไม่ได้รับสิทธิ์ใช้ "${p.label}" (ผู้ใช้ Root กำหนดได้ที่หน้า จัดการสิทธิ์)`))))
+      .then((saved) => (isAllowed(p, req.user!.role, saved) ? next() : next(forbidden(`บทบาทของคุณยังไม่ได้รับสิทธิ์ใช้ "${p.label}" (Admin / Root กำหนดได้ที่หน้า จัดการสิทธิ์)`))))
       .catch(next);
   };

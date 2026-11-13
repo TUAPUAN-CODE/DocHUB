@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Info, Lock, RotateCcw, Save, ShieldCheck, Sparkles } from 'lucide-react';
 import { Page } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
-import { Segmented } from '@/components/ui/Inputs';
+import { Segmented, TextInput } from '@/components/ui/Inputs';
 import { EmptyState, PageHeader, RoleBadge, Skeleton } from '@/components/ui/misc';
 import { useLoad } from '@/hooks';
 import { cn } from '@/lib/cn';
@@ -20,6 +20,7 @@ const iconOf = (key: string) => NAV.find((n) => n.key === key)?.icon ?? <Sparkle
 function lockReason(p: PageInfo, role: Role) {
   if (role === 'root') return 'Root เห็นทุกหน้าเสมอ';
   if (p.rootOnly) return 'เฉพาะ Root';
+  if (p.lockedFor?.includes(role)) return `${ROLE_LABEL[role]} ต้องเห็นเสมอ (กันล็อกตัวเองออก)`;
   if (p.always) return 'ทุกบทบาทต้องเห็น';
   if (p.floor && ROLE_ORDER.indexOf(role) > ROLE_ORDER.indexOf(p.floor)) return `ต้องเป็น ${ROLE_LABEL[p.floor]} ขึ้นไป`;
   return null;
@@ -36,23 +37,29 @@ function Box({ on, locked, onToggle, label }: { on: boolean; locked: string | nu
   );
 }
 
-/** Root only: which pages of the left bar (and the AI button) each role sees */
+/** Admin / root: which pages of the left bar (and the AI button) each role sees, and the names of the left-bar items */
 export default function PermissionsPage() {
   const { data, loading, reload } = useLoad(() => pageAccessApi.get(), []);
   const [allowed, setAllowed] = useState<Record<string, string[]>>({});
   const [busy, setBusy] = useState(false);
   const [role, setRole] = useState<Role>('user');
-  useEffect(() => { if (data) setAllowed(data.allowed); }, [data]);
+  const [labels, setLabels] = useState<Record<string, string>>({});
+  useEffect(() => { if (data) { setAllowed(data.allowed); setLabels(data.labels ?? {}); } }, [data]);
+  const labelsDirty = !!data && JSON.stringify(Object.entries(labels).filter(([, v]) => v.trim()).sort()) !== JSON.stringify(Object.entries(data.labels ?? {}).sort());
+  const nameField = (p: PageInfo) => p.kind === 'page' && !p.notInNav
+    ? <TextInput value={labels[p.key] ?? ''} placeholder={`ชื่อในเมนู (เดิม: ${p.label})`} maxLength={60} aria-label={`ชื่อเมนู ${p.label}`}
+        onChange={(e) => setLabels((l) => ({ ...l, [p.key]: e.target.value }))} className="!h-8 mt-1 max-w-[260px] text-xs" />
+    : null;
 
   const has = (r: Role, key: string) => r === 'root' || (allowed[r] ?? []).includes(key);
   const toggle = (r: Role, key: string) =>
     setAllowed((a) => ({ ...a, [r]: (a[r] ?? []).includes(key) ? a[r].filter((k) => k !== key) : [...(a[r] ?? []), key] }));
-  const dirty = useMemo(() => !!data && data.roles.some((r) => [...(allowed[r] ?? [])].sort().join() !== [...data.allowed[r]].sort().join()), [allowed, data]);
+  const dirty = useMemo(() => !!data && data.roles.some((r) => [...(allowed[r] ?? [])].sort().join() !== [...data.allowed[r]].sort().join()), [allowed, data]) || labelsDirty;
 
   const save = async () => {
     setBusy(true);
     try {
-      const r = await pageAccessApi.save(allowed);
+      const r = await pageAccessApi.save(allowed, Object.fromEntries(Object.entries(labels).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)));
       setAllowed(r.allowed);
       toast.success('บันทึกสิทธิ์แล้ว', 'เมนูของผู้ใช้ที่เปิดอยู่จะเปลี่ยนตามทันที');
       void reload(true);
@@ -82,7 +89,7 @@ export default function PermissionsPage() {
       <div className="mb-4 flex items-start gap-2 rounded-theme bg-primary/[.06] px-4 py-3 text-sm text-ink/80">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <div>
-          ติ๊ก = บทบาทนั้นเห็นเมนู / เปิดหน้านั้นได้ · ช่องที่มีกุญแจเปลี่ยนไม่ได้ (เช่น จัดการผู้ใช้ต้องเป็น Admin ขึ้นไป) ·
+          ติ๊ก = บทบาทนั้นเห็นเมนู / เปิดหน้านั้นได้ · ช่องชื่อใต้แต่ละเมนู = เปลี่ยนชื่อที่แสดงในแถบซ้าย (ว่าง = ชื่อเดิม) · ช่องที่มีกุญแจเปลี่ยนไม่ได้ (เช่น จัดการผู้ใช้ต้องเป็น Admin ขึ้นไป) ·
           การซ่อนเมนูไม่ได้ลบสิทธิ์ไฟล์ — ไฟล์ที่ถูกแชร์ยังเปิดจากลิงก์ได้
           {data?.updatedAt && <span className="text-muted"> · แก้ล่าสุด {fmtDateTime(data.updatedAt)}{data.updatedBy ? ` โดย ${data.updatedBy}` : ''}</span>}
         </div>
@@ -109,6 +116,7 @@ export default function PermissionsPage() {
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2.5 font-medium"><span className="text-primary">{iconOf(p.key)}</span>{p.label}</div>
                           {p.hint && <p className="ml-7 mt-0.5 text-xs text-muted">{p.hint}</p>}
+                          {nameField(p) && <div className="ml-7">{nameField(p)}</div>}
                         </td>
                         {cols.map((r) => (
                           <td key={r} className="px-2 py-2.5 text-center">
@@ -138,6 +146,7 @@ export default function PermissionsPage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{p.label}</p>
                           {(locked || p.hint) && <p className="text-xs text-muted">{locked ?? p.hint}</p>}
+                          {nameField(p)}
                         </div>
                         <Box on={has(role, p.key)} locked={locked} onToggle={() => toggle(role, p.key)} label={`${p.label} — ${ROLE_LABEL[role]}`} />
                       </div>
@@ -150,7 +159,7 @@ export default function PermissionsPage() {
               <div className="sticky bottom-3 mt-4 flex items-center justify-between gap-3 rounded-theme border border-warning/40 bg-surface px-4 py-3 shadow-lg">
                 <span className="text-sm text-warning">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => data && setAllowed(data.allowed)}>ยกเลิก</Button>
+                  <Button size="sm" variant="secondary" onClick={() => { if (data) { setAllowed(data.allowed); setLabels(data.labels ?? {}); } }}>ยกเลิก</Button>
                   <Button size="sm" icon={<Save className="h-3.5 w-3.5" />} onClick={() => void save()} loading={busy}>บันทึก</Button>
                 </div>
               </div>

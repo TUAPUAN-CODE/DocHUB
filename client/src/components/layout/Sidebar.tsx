@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { LogOut, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { Badge, canSee, NAV } from '@/lib/pages';
+import { Badge, canSee, NAV, navLabel } from '@/lib/pages';
 import { useAppInfo } from '@/store/appInfo';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
@@ -21,7 +21,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
   };
   const { pathname } = useLocation();
   // pages the role sees: set by a root on จัดการสิทธิ์ (lib/pages.tsx)
-  const items = NAV.filter((n) => canSee(user, n.key)).map((n) => ({ ...n, active: n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
+  const items = NAV.filter((n) => !n.notInNav && canSee(user, n.key)).map((n) => ({ ...n, name: navLabel(user, n) ?? t(n.label), active: n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
 
   return (
     <div className="flex h-full flex-col">
@@ -35,7 +35,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-4 pt-6">
         <nav className="space-y-1.5">
           {items.map((it) => (
-            <NavLink key={it.to} to={it.to} end={it.to === '/'} onClick={onNavigate} title={compact ? t(it.label) : undefined} aria-label={compact ? t(it.label) : undefined}
+            <NavLink key={it.to} to={it.to} end={it.to === '/'} onClick={onNavigate} title={compact ? it.name : undefined} aria-label={compact ? it.name : undefined}
               className={({ isActive }) => cn('nav-link', compact && '!gap-0 !px-0 justify-center', (it.active ?? isActive) && 'active')}>
               {({ isActive }) => (
                 <>
@@ -46,7 +46,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
                     : <span className="nav-pill" />)}
                   {compact
                     ? <span className="relative">{it.icon}{!!it.badge && <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-warning px-1 text-[10px] font-semibold text-white">{it.badge}</span>}</span>
-                    : <>{it.icon}<span className="flex-1">{t(it.label)}</span>
+                    : <>{it.icon}<span className="flex-1">{it.name}</span>
                       {!!it.badge && <span className="mr-2 grid h-5 min-w-5 place-items-center rounded-full bg-warning px-1.5 text-[11px] font-semibold text-white">{it.badge}</span>}</>}
                 </>
               )}
