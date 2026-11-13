@@ -253,4 +253,15 @@ function computeRow(s, defs, values) {
     strict_1.default.equal(r.next[REMARK_COL], 'เดิม\nNew Code 1/9/25 ตรวจ 100%');
     strict_1.default.equal(splitRemarks(r.next).moved.length, 0); // running again changes nothing
 });
+(0, node_test_1.default)('plan alerts: New Code / Remark of the master, Rev. changed since the last plan, not in the database', async () => {
+    const { findAlerts } = await Promise.resolve().then(() => __importStar(require('./record')));
+    const base = { time: '07:00', product: 'Cup', lineRaw: '2', line: 'Cup 2', size: null, customer: null, rev: '10', qty: null, shift: 'DS', sourceRow: 5, plant: 'PF1', area: 'Cup', inDb: true };
+    const items = [
+        { ...base, doc: 'P571', country: 'EU', market: 'EU', status: 'นำเข้า' },
+        { ...base, doc: 'M250', country: 'USA', market: 'USA', rev: '5', status: 'นำเข้า' },
+        { ...base, doc: 'W144', country: 'USA/Korea', market: 'USA/Korea', status: 'ข้าม: ไม่พบในฐานข้อมูล' },
+    ];
+    const a = findAlerts(items, new Map([['m250|usa', 'New Code 13/2/26 ตรวจ100%']]), new Map([['p571', { rev: '7', date: '2026-10-07' }], ['m250', { rev: '5', date: '2026-10-07' }]]), ['แถว 9: ตรวจ']);
+    strict_1.default.deepEqual(a.map((x) => [x.kind, x.doc]), [['Rev. เปลี่ยน', 'P571'], ['New Code', 'M250'], ['ไม่พบในฐานข้อมูล', 'W144'], ['ตรวจสอบ', '']]);
+});
 //# sourceMappingURL=inkcode.test.js.map

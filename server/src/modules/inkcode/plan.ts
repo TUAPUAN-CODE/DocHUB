@@ -6,8 +6,41 @@ import * as XLSX from 'xlsx';
  */
 export interface PlanItem {
   time: string | null; product: string; lineRaw: string; line: string; size: string | null; customer: string | null; country: string; doc: string; rev: string | null; qty: number | null; shift: 'DS' | 'NS'; sourceRow: number;
+  /** everything else the plan says about this run, as written (nothing converted or guessed) */
+  extra?: PlanExtra;
 }
-export interface PlanResult { date: string | null; sheetName: string; items: PlanItem[]; warnings: string[] }
+export interface PlanExtra {
+  complementary: string | null; code: string | null;
+  /** text written in the ยอดผลิต column (ครบยอดอย่างน้อย, ถ้วย, ยังไม่หัก 11/11 …) */
+  qtyNotes: string[];
+  /** other Doc.No values on the rows of this run (raw-material formulas such as MRDPF184/26) with their Rev. */
+  otherDocs: { doc: string; rev: string | null }[];
+  /** title row of the line block above the run, e.g. "Cup 1 (วาง cap 10500)" */
+  block: string | null;
+  /** the หมายเหตุ column of its rows */
+  notes: string[];
+  /** plan rows (1-based) of the run */
+  rows: number[];
+  /** one entry per plan row of the run: the columns right of ยอดผลิต (Rawmat, Material, Spec, kg …) under their own header */
+  details: PlanDetail[];
+}
+export interface PlanDetail { row: number; doc: string; rev: string | null; values: Record<string, string | number | null> }
+export interface PlanResult {
+  date: string | null; sheetName: string; items: PlanItem[]; warnings: string[];
+  /** headers of the detail columns, in plan order */
+  detailHeaders?: string[];
+  /** text of the rows above the table (form number, "มี OT", notes of the planner) */
+  headerNotes?: string[];
+}
+/** Excel error values (#DIV/0!, #N/A, #VALUE! …) are formula errors of the plan, not data */
+const isErr = (v: unknown) => typeof v === 'string' && /^#(DIV\/0!|N\/A|VALUE!|REF!|NAME\?|NUM!|NULL!)$/.test(v.trim());
+const cellOut = (v: unknown): string | number | null => {
+  if (v === null || v === undefined || isErr(v)) return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (v instanceof Date) return isoDate(v);
+  const t = String(v).replace(/\s+/g, ' ').trim();
+  return t || null;
+};
 
 const txt = (v: unknown): string => (v === null || v === undefined ? '' : v instanceof Date ? v.toISOString() : String(v).trim());
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -61,7 +94,17 @@ export function parsePlan(body: Buffer, knownLines: string[] = []): PlanResult {
     if (hi < 0) continue;
     const head = rows[hi].map((c) => norm(txt(c)));
     const col = (...names: string[]) => head.findIndex((h) => names.includes(h));
-    const cDoc = col('doc.no'), cCountry = col('country'), cLine = col('line'), cProduct = col('product'), cTime = col('time'), cSize = col('size'), cCust = col('customer'), cRev = col('rev.'), cQty = col('ยอดผลิต'), cCode = col('code');
+    const cDoc = col('doc.no'), cCountry = col('country'), cLine = col('line'), cProduct = col('product'), cTime = col('time'), cSize = col('size'), cCust = col('customer'), cRev = col('rev.'), cQty = col('ยอดผลิต'), cCode = col('code'), cComp = col('complementary'), cNote = col('หมายเหตุ');
+    // detail columns: everything right of ยอดผลิต that has a header (Rawmat, Special, Material, Spec, kg …, Packaging, หมายเหตุ)
+    const rawHead = rows[hi].map((c) => txt(c).replace(/\s+/g, ' ').trim());
+    const detailCols: { i: number; name: string }[] = [];
+    const seenNames = new Set<string>();
+    for (let c = (cQty >= 0 ? cQty : cDoc) + 1; c < rawHead.length; c++) {
+      if (!rawHead[c]) continue;
+      let name = rawHead[c]; for (let k = 2; seenNames.has(name); k++) name = `${rawHead[c]} (${k})`;
+      seenNames.add(name); detailCols.push({ i: c, name });
+    }
+    const headerNotes = rows.slice(0, hi).flatMap((r) => r.map((c) => (c instanceof Date ? '' : txt(c)))).filter((x) => x && !x.includes('ประจำวันที่'));
     if (cCountry < 0 || cLine < 0 || cTime < 0) continue;   // the daily plan has a Time column; other sheets with Doc.No (weekly plans) are not it
     // date: "…ประจำวันที่" followed by a date in the first rows
     let date: string | null = null;
@@ -74,20 +117,30 @@ export function parsePlan(body: Buffer, knownLines: string[] = []): PlanResult {
     // A product is written on several rows (raw materials, notes). Those rows may carry other Doc.No values
     // (e.g. a raw-material formula "MRDPF184/26" next to the product's own "P342"): the product's document is the
     // Doc.No that appears most on its rows — never the first odd one — and quantities are read from those rows only.
-    interface Group { time: string | null; product: string; lineRaw: string; country: string; code: string; size: string | null; customer: string | null; docs: Map<string, { n: number; rev: string | null; qty: number | null }>; first: number }
+    interface Group { time: string | null; product: string; lineRaw: string; country: string; code: string; size: string | null; customer: string | null; docs: Map<string, { n: number; rev: string | null; qty: number | null }>; block: string | null; qtyNotes: string[]; notes: string[]; rows: number[]; details: PlanDetail[]; comp: string | null; nums: number[]; first: number }
     const groups = new Map<string, Group>();
+    let block: string | null = null;
     for (let i = hi + 1; i < rows.length; i++) {
       const r = rows[i];
       const doc = txt(r[cDoc]);
       const country = txt(r[cCountry]);
-      if (!doc || !country || !/^[A-Za-z0-9][A-Za-z0-9/.\-]{0,24}$/.test(doc)) continue;   // block titles, notes and the signature lines have no Doc.No
+      // a block title ("Cup 1 (วาง cap 10500)", "ปรับ size ถ้วยส้ม"): a row with text in Product but no time / document
+      if (!doc && !timeText(r[cTime]) && cProduct >= 0 && txt(r[cProduct])) { block = txt(r[cProduct]).replace(/\s+/g, ' '); continue; }
+      if (!doc || !country || !/^[A-Za-z0-9][A-Za-z0-9/.\-]{0,24}$/.test(doc)) continue;   // notes and the signature lines have no Doc.No
       const time = timeText(r[cTime]);
       const product = txt(r[cProduct]);
       const lineRaw = txt(r[cLine]);
       const code = cCode >= 0 ? txt(r[cCode]) : '';
       const key = [time, product, lineRaw, country, code].join('|');
       let g = groups.get(key);
-      if (!g) { g = { time, product, lineRaw, country, code, size: cSize >= 0 ? txt(r[cSize]) || null : null, customer: cCust >= 0 ? txt(r[cCust]) || null : null, docs: new Map(), first: i + 1 }; groups.set(key, g); }
+      if (!g) { g = { time, product, lineRaw, country, code, size: cSize >= 0 ? txt(r[cSize]) || null : null, customer: cCust >= 0 ? txt(r[cCust]) || null : null, docs: new Map(), first: i + 1, block, qtyNotes: [], notes: [], rows: [], details: [], nums: [], comp: cComp >= 0 ? txt(r[cComp]) || null : null }; groups.set(key, g); }
+      g.rows.push(i + 1);
+      if (cQty >= 0 && typeof r[cQty] === 'number') g.nums.push(r[cQty] as number);
+      if (cQty >= 0 && typeof r[cQty] === 'string' && txt(r[cQty]) && !isErr(r[cQty])) g.qtyNotes.push(txt(r[cQty]).replace(/\s+/g, ' '));
+      if (cNote >= 0 && txt(r[cNote])) g.notes.push(txt(r[cNote]).replace(/\s+/g, ' '));
+      const values: Record<string, string | number | null> = {};
+      for (const dc of detailCols) values[dc.name] = cellOut(r[dc.i]);
+      g.details.push({ row: i + 1, doc, rev: cRev >= 0 ? txt(r[cRev]) || null : null, values });
       const d = g.docs.get(doc) ?? { n: 0, rev: cRev >= 0 ? txt(r[cRev]) || null : null, qty: null };
       d.n++;
       if (d.qty === null && cQty >= 0 && typeof r[cQty] === 'number') d.qty = r[cQty] as number;
@@ -99,10 +152,15 @@ export function parsePlan(body: Buffer, knownLines: string[] = []): PlanResult {
       const rl = resolveLine(g.product, g.lineRaw, knownLines);
       if (!rl.known && knownLines.length) warnings.push(`แถว ${g.first}: ไม่พบไลน์ "${rl.line}" ในตารางรหัสอ้างอิง (${g.product} / ${g.lineRaw})`);
       else if (rl.guessed) warnings.push(`แถว ${g.first}: "${g.lineRaw}" มีหลายไลน์ — เลือก "${rl.line}" (ตรวจ/แก้ภายหลังได้)`);
-      if (g.docs.size > 1) warnings.push(`แถว ${g.first}: ${g.product} ${g.lineRaw} มีหลาย Doc.No (${[...g.docs.keys()].join(', ')}) — ใช้ "${best[0]}"`);
-      items.push({ time: g.time, product: g.product, lineRaw: g.lineRaw, line: rl.line, size: g.size, customer: g.customer, country: g.country, doc: best[0], rev: best[1].rev, qty: best[1].qty, shift: shiftOf(g.time), sourceRow: g.first });
+      // other Doc.No on fewer rows are raw-material formulas (MRDPF…/26) — kept in extra.otherDocs; only a tie is worth a look
+      const tie = [...g.docs.entries()].filter(([d, v]) => d !== best[0] && v.n === best[1].n).map(([d]) => d);
+      if (tie.length) warnings.push(`แถว ${g.first}: ${g.product} ${g.lineRaw} มี Doc.No จำนวนแถวเท่ากัน (${[best[0], ...tie].join(', ')}) — ใช้ "${best[0]}" ตรวจว่าถูกไหม`);
+      items.push({ time: g.time, product: g.product, lineRaw: g.lineRaw, line: rl.line, size: g.size, customer: g.customer, country: g.country, doc: best[0], rev: best[1].rev, qty: best[1].qty ?? g.nums[0] ?? null, shift: shiftOf(g.time), extra: {
+        complementary: g.comp, code: g.code || null, qtyNotes: [...new Set(g.qtyNotes)], block: g.block, notes: [...new Set(g.notes)], rows: g.rows, details: g.details,
+        otherDocs: [...g.docs.entries()].filter(([d]) => d !== best[0]).map(([d, v]) => ({ doc: d, rev: v.rev })),
+      }, sourceRow: g.first });
     }
-    return { date, sheetName: name, items, warnings: [...new Set(warnings)] };
+    return { date, sheetName: name, items, warnings: [...new Set(warnings)], detailHeaders: detailCols.map((d) => d.name), headerNotes: [...new Set(headerNotes)] };
   }
   throw new Error('ไม่พบตารางแผนผลิตในไฟล์ (ต้องมีหัวคอลัมน์ Doc.No, Line, Country)');
 }

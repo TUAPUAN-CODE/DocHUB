@@ -59,7 +59,7 @@ const sheet = (rows) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_appe
     const r = (0, plan_1.parsePlan)(buf, ['Cup 1', 'Spout', 'Auto A']);
     strict_1.default.equal(r.date, '2026-10-03');
     strict_1.default.equal(r.items.length, 3);
-    strict_1.default.deepEqual(r.items.map((i) => [i.line, i.doc, i.country, i.shift, i.qty, i.time]), [['Cup 1', 'M252', 'USA', 'DS', 47334, '07:00'], ['Cup 2', 'P342', 'USA', 'DS', null, '07:00'], ['Spout', 'J111', 'Italy', 'NS', 500, '19:30']]);
+    strict_1.default.deepEqual(r.items.map((i) => [i.line, i.doc, i.country, i.shift, i.qty, i.time]), [['Cup 1', 'M252', 'USA', 'DS', 47334, '07:00'], ['Cup 2', 'P342', 'USA', 'DS', 139, '07:00'], ['Spout', 'J111', 'Italy', 'NS', 500, '19:30']]);
 });
 (0, node_test_1.default)('plan: helpers', () => {
     strict_1.default.equal((0, plan_1.shiftOf)('06:00'), 'DS');
@@ -77,5 +77,29 @@ const sheet = (rows) => { const wb = XLSX.utils.book_new(); XLSX.utils.book_appe
     strict_1.default.equal((0, plan_1.isoDate)(new Date(2026, 9, 2, 23, 59, 56)), '2026-10-03'); // local 23:59:56 of the 2nd = 00:00 of the 3rd
     strict_1.default.equal((0, plan_1.isoDate)(new Date(2026, 9, 3, 0, 0, 0)), '2026-10-03');
     strict_1.default.equal((0, plan_1.timeText)(new Date(1899, 11, 30, 6, 59, 56)), '07:00');
+});
+(0, node_test_1.default)('plan: everything else about a run is kept as written (raw-material rows, notes, block title, other documents)', () => {
+    const buf = sheet([
+        [null, 'มี OT', null, null, null, null, null, null, null, null, 'แผนผลิต Petfood ประจำวันที่', new Date(2026, 10, 12)],
+        ['Time', 'Product', 'Line', 'Size', 'Customer', 'Country', 'Complementary', 'Code', 'Doc.No', 'Rev.', 'ยอดผลิต', 'Rawmat', 'Material', 'น.น/ชุดผสม (kg.)', 'Yield (Manager)', 'หมายเหตุ'],
+        [null, 'Cup 2 (วาง cap 6480 ถ้วย/ชม.)'],
+        ['07:00', 'Cup', 2, '103x27.5', 'Mars', 'EU', 'NO', 'QAGEMB X', 'P570', 11, 'ครบยอดอย่างน้อย', '- สันในไก่โม่', '2XP10BCK0002', 3.63, 65, 'DS 38x9 ชุด'],
+        ['07:00', 'Cup', 2, '103x27.5', 'Mars', 'EU', 'NO', 'QAGEMB X', 'MRDPF184/26', 1, 189130, '- ชั้งยัด D011', '2XP10CCK0142', 2.1, '-', null],
+        ['07:00', 'Cup', 2, '103x27.5', 'Mars', 'EU', 'NO', 'QAGEMB X', 'P570', 11, 'ถ้วย', null, null, '#DIV/0!', null, 'ชุดผสมละ 15 กก.'],
+    ]);
+    const r = (0, plan_1.parsePlan)(buf, ['Cup 2']);
+    strict_1.default.equal(r.items.length, 1);
+    const it = r.items[0];
+    strict_1.default.equal(it.doc, 'P570');
+    strict_1.default.equal(it.qty, 189130);
+    strict_1.default.deepEqual(it.extra.otherDocs, [{ doc: 'MRDPF184/26', rev: '1' }]);
+    strict_1.default.deepEqual(it.extra.qtyNotes, ['ครบยอดอย่างน้อย', 'ถ้วย']);
+    strict_1.default.equal(it.extra.block, 'Cup 2 (วาง cap 6480 ถ้วย/ชม.)');
+    strict_1.default.deepEqual(it.extra.rows, [4, 5, 6]);
+    strict_1.default.deepEqual(r.detailHeaders, ['Rawmat', 'Material', 'น.น/ชุดผสม (kg.)', 'Yield (Manager)', 'หมายเหตุ']);
+    strict_1.default.deepEqual(it.extra.details.map((d) => d.values['น.น/ชุดผสม (kg.)']), [3.63, 2.1, null]); // #DIV/0! is not data
+    strict_1.default.deepEqual(it.extra.details.map((d) => d.values['Yield (Manager)']), [65, '-', null]); // text stays text
+    strict_1.default.ok(r.headerNotes.includes('มี OT'));
+    strict_1.default.equal(r.warnings.filter((w) => w.includes('Doc.No')).length, 0); // a raw-material document is not a warning
 });
 //# sourceMappingURL=plan.test.js.map

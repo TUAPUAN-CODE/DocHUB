@@ -8,10 +8,9 @@ import { annotate, context, dbPairs, insertItems, InsertResult, lineInfo, norm }
 import { areaOf, AREAS, dayPath, normalizePlant, plantInText, sheetFor, TREE } from './model';
 import { copySheet } from '../../routes/files';
 import { withTx } from '../../config/db';
-import { insertColumn } from '../../services/structure';
-import { createRowTx } from '../../services/rowCreate';
 import { LV, requireFolder } from '../../shared/permissions';
 import { parsePlan } from './plan';
+import { Alert, findAlerts, lastRevs, masterRemarks, writeRecord } from './record';
 
 /**
  * A plan file → the right place by itself: the production date picks the day file (created from the template when it is the first plan
@@ -154,7 +153,9 @@ async function ensureSheet(user: AuthUser, fileId: string, name: string, sheets:
 export interface AutoResult { date: string; total: number; skippedNoPlant: number; items?: { time: string | null; line: string; plant: string | null; area: string; doc: string; country: string; qty: number | null; status: string }[]; targets: { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: InsertResult }[] }
 
 export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, req?: Request): Promise<AutoResult> {
-  const p = await prepare(user, buf, o);
+  return importPrepared(user, await prepare(user, buf, o), o, req);
+}
+async function importPrepared(user: AuthUser, p: Awaited<ReturnType<typeof prepare>>, o: AutoOptions, req?: Request): Promise<AutoResult> {
   const out: AutoResult = {
     date: p.date, total: p.items.length, skippedNoPlant: 0, targets: [],
     items: p.items.map((i) => ({ time: i.time, line: i.line, plant: i.plant, area: i.area, sheet: i.sheet, doc: i.doc, country: i.country, qty: i.qty,
@@ -201,26 +202,17 @@ async function inPlanFolder(folderId: string): Promise<boolean> {
 
 /**
  * A plan file dropped into a plan folder of DocHUB: imported like the "นำเข้าแผนผลิต" page does (nothing to confirm — lines without a
- * plant or not in the database are skipped and listed), and a record file is left in that folder with every row of the plan and what was done to it.
+ * plant or not in the database are skipped and listed), and a record file is left in that folder with everything the plan says
+ * (runs, raw-material rows, the text above the table) and the alerts found (record.ts).
  */
-export async function dropPlan(user: AuthUser, buf: Buffer, originalName: string, folderId: string, req?: Request): Promise<AutoResult & { recordFileId: string }> {
+export async function dropPlan(user: AuthUser, buf: Buffer, originalName: string, folderId: string, req?: Request): Promise<AutoResult & { recordFileId: string; alerts: Alert[] }> {
   await requireFolder(user, folderId, LV.write);
   if (!(await inPlanFolder(folderId))) throw badRequest(`วางแผนผลิตได้เฉพาะในโฟลเดอร์ ${TREE.plans} / ปี / เดือน ภายใต้ ${TREE.root}`);
-  const r = await importAuto(user, buf, { onlyMatched: true }, req);
-  const base = originalName.replace(/\.xlsx?$/i, '').slice(0, 150);
-  const name = `แผน ${r.date} · ${base}`;
-  const cols = ['ไฟล์แผน', 'วันที่ผลิต', 'เวลา', 'ไลน์', 'โรงงาน', 'พื้นที่', 'Doc.No', 'ประเทศ', 'ยอด', 'ผลการนำเข้า'];
-  const recordFileId = await withTx(async (tx) => {
-    const f = await q1(`INSERT INTO Files (file_name, folder_id, description, color, icon, created_by) OUTPUT inserted.file_id VALUES (@n, @fo, @d, N'#16A34A', N'sheet', @u)`,
-      { n: name, fo: T.uuid(folderId), d: T.text(`บันทึกการนำเข้าแผนผลิตวันที่ ${r.date} (ไฟล์ ${originalName}) — ข้อมูลอยู่ในไฟล์รายวันของ PF1/PF2`), u: T.uuid(user.id) }, tx);
-    const sh = await q1(`INSERT INTO Sheets (file_id, sheet_name, sort_order, created_by) OUTPUT inserted.sheet_id VALUES (@f, N'ผลนำเข้า', 0, @u)`, { f: T.uuid(f!.file_id), u: T.uuid(user.id) }, tx);
-    const ids: string[] = [];
-    for (const [i, c] of cols.entries()) ids.push((await insertColumn(tx, sh!.sheet_id, { name: c, dataType: 'varchar', isRequired: false, width: c === 'ผลการนำเข้า' ? 240 : 130 } as any, i, user.id))!.column_id as string);
-    for (const it of (r.items ?? []).slice(0, 500)) {
-      const vals = [originalName, r.date, it.time ?? '', it.line, it.plant ?? '', it.area, it.doc, it.country, it.qty === null ? '' : String(it.qty), it.status];
-      await createRowTx(tx, user, { file_id: f!.file_id }, sh!.sheet_id, Object.fromEntries(ids.map((id, k) => [id.toLowerCase(), vals[k]])), 'plan-drop', req);
-    }
-    return f!.file_id as string;
-  });
-  return { ...r, recordFileId };
+  const p = await prepare(user, buf, { onlyMatched: true });
+  const r = await importPrepared(user, p, { onlyMatched: true }, req);
+  const items = p.items.map((i, k) => ({ ...i, status: r.items?.[k]?.status ?? '' }));
+  const docs = items.map((i) => i.doc);
+  const alerts = findAlerts(items, await masterRemarks(p.ctx.docLookup?.sheetId ?? null, docs), await lastRevs(p.date, docs), p.plan.warnings);
+  const recordFileId = await writeRecord(user, folderId, originalName, p.date, p.plan, items, alerts, req);
+  return { ...r, recordFileId, alerts };
 }
