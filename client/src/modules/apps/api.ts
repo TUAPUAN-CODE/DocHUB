@@ -3,7 +3,7 @@ import { del, get, post, put } from '@/api/client';
 export interface AppItem {
   key: string; kind: 'dashboard' | 'page' | 'file' | 'folder' | 'url'; name: string; defaultName: string; iconUrl: string | null; color: string;
   description: string | null; to: string | null; external: string | null; hidden: boolean; roles: string[]; tagIds: string[]; source: string;
-  sortOrder: number | null; custom: boolean;
+  sortOrder: number | null; custom: boolean; type: string | null;
 }
 export interface AppDetails {
   app: AppItem;
@@ -15,12 +15,14 @@ export interface AppDetails {
     limitRoles: string[]; limitTags: { name: string; color: string }[];
   };
 }
-export interface AppEdit { name?: string | null; iconUrl?: string | null; color?: string | null; description?: string | null; roles: string[]; tagIds: string[]; hidden: boolean; sortOrder?: number | null }
+export interface AppEdit { name?: string | null; iconUrl?: string | null; color?: string | null; description?: string | null; roles: string[]; tagIds: string[]; hidden: boolean; sortOrder?: number | null; type?: string | null }
 
 export const appsApi = {
   list: () => get<AppItem[]>('/apps'),
   details: (key: string) => get<AppDetails>('/apps/details', { key }),
   update: (key: string, b: AppEdit) => put<AppItem>(`/apps/item?key=${encodeURIComponent(key)}`, b),
   add: (b: AppEdit & { kind: 'file' | 'folder' | 'dashboard' | 'url'; refId?: string | null; url?: string | null }) => post<{ key: string }>('/apps', b),
+  settings: () => get<{ defaultType: string }>('/apps/settings'),
+  setDefaultType: (defaultType: string) => put<{ defaultType: string }>('/apps/settings', { defaultType }),
   remove: (key: string) => del(`/apps/item?key=${encodeURIComponent(key)}`),
 };

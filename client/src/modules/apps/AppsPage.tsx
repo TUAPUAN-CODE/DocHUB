@@ -45,6 +45,10 @@ export default function AppsPage() {
   const [apps, setApps] = useState<AppItem[] | null>(null);
   const [q, setQ] = useState('');
   const [showHidden, setShowHidden] = useState(false);
+  // type filter (e.g. QC): starts on the type an admin set as the default; '' = all
+  const [type, setType] = useState<string | null>(null);
+  const [defaultType, setDefaultTypeState] = useState('');
+  useEffect(() => { appsApi.settings().then((s) => { setDefaultTypeState(s.defaultType); setType((t) => t ?? s.defaultType); }).catch(() => setType((t) => t ?? '')); }, []);
   // icon size: each viewer's own choice, kept in this browser
   const [size, setSizeState] = useState<number>(() => { try { return Number(localStorage.getItem('apps.iconSize')) || 64; } catch { return 64; } });
   const setSize = (v: string) => { const n = Number(v); setSizeState(n); try { localStorage.setItem('apps.iconSize', String(n)); } catch { /* private mode */ } };
@@ -53,10 +57,14 @@ export default function AppsPage() {
   const load = () => appsApi.list().then(setApps).catch((e) => { toast.error(e, 'โหลดแอปไม่สำเร็จ'); setApps([]); });
   useEffect(() => { void load(); }, []);
 
+  const types = useMemo(() => [...new Set((apps ?? []).filter((a) => showHidden || !a.hidden).map((a) => a.type).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'th')), [apps, showHidden]);
+  const untyped = (apps ?? []).some((a) => (showHidden || !a.hidden) && !a.type);
+  // a default type no app has (yet) shows everything
+  const activeType = type && (types.includes(type) || type === '-') ? type : '';
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return (apps ?? []).filter((a) => (showHidden || !a.hidden) && (!s || a.name.toLowerCase().includes(s) || a.source.toLowerCase().includes(s) || a.defaultName.toLowerCase().includes(s)));
-  }, [apps, q, showHidden]);
+    return (apps ?? []).filter((a) => (s || !activeType || (activeType === '-' ? !a.type : a.type === activeType)) && (showHidden || !a.hidden) && (!s || a.name.toLowerCase().includes(s) || a.source.toLowerCase().includes(s) || a.defaultName.toLowerCase().includes(s)));
+  }, [apps, q, showHidden, activeType]);
   const open = (a: AppItem) => { if (a.external) window.open(a.external, '_blank', 'noopener'); else if (a.to) nav(a.to, { state: { from: '/apps' } }); };
   const hiddenCount = (apps ?? []).filter((a) => a.hidden).length;
 
@@ -69,6 +77,20 @@ export default function AppsPage() {
         <Segmented size="sm" value={String(size)} onChange={setSize} options={[{ value: '48', label: 'เล็ก' }, { value: '64', label: 'กลาง' }, { value: '88', label: 'ใหญ่' }, { value: '120', label: 'ใหญ่มาก' }]} />
         {admin && hiddenCount > 0 && <Toggle checked={showHidden} onChange={setShowHidden} label={`แสดงแอปที่ซ่อน (${hiddenCount})`} />}
       </div>
+      {(types.length > 0) && (
+        <div className="-mt-3 mb-5 flex flex-wrap items-center gap-1.5">
+          {[{ v: '', l: 'ทั้งหมด' }, ...types.map((t) => ({ v: t, l: t })), ...(untyped ? [{ v: '-', l: 'ไม่มีประเภท' }] : [])].map((o) => (
+            <button key={o.v || 'all'} type="button" aria-pressed={activeType === o.v} onClick={() => setType(o.v)}
+              className={cn('rounded-full border px-3 py-1 text-sm font-medium transition-colors', activeType === o.v ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-ink/70 hover:bg-ink/5')}>
+              {o.l}{o.v && o.v === defaultType ? ' ★' : ''}
+            </button>
+          ))}
+          {admin && activeType !== defaultType && activeType !== '-' && (
+            <button type="button" onClick={() => void appsApi.setDefaultType(activeType).then((r) => { setDefaultTypeState(r.defaultType); toast.success(r.defaultType ? `เปิดหน้า Application ที่ประเภท ${r.defaultType} ก่อน` : 'เปิดหน้า Application ที่ ทั้งหมด'); }).catch((e) => toast.error(e))}
+              className="ml-1 text-xs font-medium text-primary hover:underline">★ ตั้ง “{activeType || 'ทั้งหมด'}” เป็นค่าเริ่มต้น</button>
+          )}
+        </div>
+      )}
       {!apps ? <div className="grid grid-cols-3 gap-6 sm:grid-cols-5 lg:grid-cols-7">{Array.from({ length: 10 }, (_, i) => <Skeleton key={i} className="mx-auto h-24 w-20 rounded-2xl" />)}</div>
         : !list.length ? <div className="ds-card"><EmptyState icon={<AppWindow />} title={q ? 'ไม่พบแอปที่ค้นหา' : 'ยังไม่มีแอป'} description={admin && !q ? 'กด เพิ่ม App เพื่อสร้างไอคอนไปยังไฟล์ โฟลเดอร์ แดชบอร์ด หรือลิงก์เว็บ' : undefined} /></div>
         : (
@@ -89,14 +111,14 @@ export default function AppsPage() {
             ))}
           </div>
         )}
-      <AppInfoDialog app={info} admin={admin} onClose={() => setInfo(null)} onChanged={() => { setInfo(null); void load(); }} onOpen={open} />
-      {admin && <AddAppDialog open={adding} onClose={() => setAdding(false)} onDone={() => { setAdding(false); void load(); }} />}
+      <AppInfoDialog app={info} admin={admin} types={types} onClose={() => setInfo(null)} onChanged={() => { setInfo(null); void load(); }} onOpen={open} />
+      {admin && <AddAppDialog types={types} open={adding} onClose={() => setAdding(false)} onDone={() => { setAdding(false); void load(); }} />}
     </Page>
   );
 }
 
 /** Settings an admin gives an app (also used when adding one) */
-function AppSettings({ value, onChange, tags, defaultName }: { value: AppEdit; onChange: (v: AppEdit) => void; tags: TagRef[]; defaultName: string }) {
+function AppSettings({ value, onChange, tags, defaultName, types = [] }: { value: AppEdit; onChange: (v: AppEdit) => void; tags: TagRef[]; defaultName: string; types?: string[] }) {
   const [uploading, setUploading] = useState(false);
   const upload = async (f?: File) => {
     if (!f) return;
@@ -130,6 +152,10 @@ function AppSettings({ value, onChange, tags, defaultName }: { value: AppEdit; o
       </Field>
       <Field group label="ให้เห็นเฉพาะคนใน Tag (ไม่เลือก = ไม่จำกัด)"><TagPicker tags={tags} value={value.tagIds} onChange={(ids) => onChange({ ...value, tagIds: ids })} /></Field>
       <div className="grid grid-cols-2 gap-3">
+        <Field label="ประเภท (Type)" hint="ใช้กรอง/เรียงแอป เช่น QC · พิมพ์ใหม่ได้">
+          <TextInput list="app-types" value={value.type ?? ''} maxLength={50} onChange={(e) => onChange({ ...value, type: e.target.value })} placeholder="เช่น QC" />
+          <datalist id="app-types">{[...new Set(['QC', ...types])].map((t) => <option key={t} value={t} />)}</datalist>
+        </Field>
         <Field label="ลำดับ (น้อย = ก่อน)"><TextInput type="number" min={0} value={value.sortOrder ?? ''} onChange={(e) => onChange({ ...value, sortOrder: e.target.value === '' ? null : Number(e.target.value) })} placeholder="ตามชื่อ" /></Field>
         <div className="flex items-end pb-2"><Toggle checked={value.hidden} onChange={(h) => onChange({ ...value, hidden: h })} label="ซ่อนแอปนี้" /></div>
       </div>
@@ -138,7 +164,7 @@ function AppSettings({ value, onChange, tags, defaultName }: { value: AppEdit; o
   );
 }
 
-const editOf = (a: AppItem): AppEdit => ({ name: a.name === a.defaultName ? '' : a.name, iconUrl: a.iconUrl, color: a.color, description: a.description, roles: a.roles, tagIds: a.tagIds, hidden: a.hidden, sortOrder: a.sortOrder });
+const editOf = (a: AppItem): AppEdit => ({ name: a.name === a.defaultName ? '' : a.name, iconUrl: a.iconUrl, color: a.color, description: a.description, roles: a.roles, tagIds: a.tagIds, hidden: a.hidden, sortOrder: a.sortOrder, type: a.type });
 
 function useTags(on: boolean) {
   const [tags, setTags] = useState<TagRef[]>([]);
@@ -146,7 +172,7 @@ function useTags(on: boolean) {
   return tags;
 }
 
-function AppInfoDialog({ app, admin, onClose, onChanged, onOpen }: { app: AppItem | null; admin: boolean; onClose: () => void; onChanged: () => void; onOpen: (a: AppItem) => void }) {
+function AppInfoDialog({ app, admin, onClose, onChanged, onOpen, types }: { app: AppItem | null; admin: boolean; types: string[]; onClose: () => void; onChanged: () => void; onOpen: (a: AppItem) => void }) {
   const [d, setD] = useState<AppDetails | null>(null);
   const [tab, setTab] = useState<'info' | 'edit'>('info');
   const [edit, setEdit] = useState<AppEdit | null>(null);
@@ -162,7 +188,7 @@ function AppInfoDialog({ app, admin, onClose, onChanged, onOpen }: { app: AppIte
   const save = async () => {
     if (!edit) return;
     setBusy(true);
-    try { await appsApi.update(app.key, { ...edit, name: edit.name?.trim() || null, description: edit.description?.trim() || null }); toast.success('บันทึกแอปแล้ว'); onChanged(); }
+    try { await appsApi.update(app.key, { ...edit, name: edit.name?.trim() || null, description: edit.description?.trim() || null, type: edit.type?.trim() || null }); toast.success('บันทึกแอปแล้ว'); onChanged(); }
     catch (e) { toast.error(e, 'บันทึกไม่สำเร็จ'); } finally { setBusy(false); }
   };
   const remove = async () => {
@@ -178,7 +204,7 @@ function AppInfoDialog({ app, admin, onClose, onChanged, onOpen }: { app: AppIte
         {tab === 'edit' ? <Button onClick={() => void save()} loading={busy}>บันทึก</Button> : <Button icon={app.external ? <ExternalLink className="h-4 w-4" /> : undefined} onClick={() => { onClose(); onOpen(app); }}>เปิดแอป</Button>}
       </>}>
       {admin && <div className="mb-4"><Segmented value={tab} onChange={setTab} options={[{ value: 'info', label: 'รายละเอียด' }, { value: 'edit', label: 'ตั้งค่าแอป' }]} /></div>}
-      {tab === 'edit' && edit ? <AppSettings value={edit} onChange={setEdit} tags={tags} defaultName={app.defaultName} /> : !d ? <Skeleton className="h-40 rounded-xl" /> : (
+      {tab === 'edit' && edit ? <AppSettings value={edit} onChange={setEdit} tags={tags} defaultName={app.defaultName} types={types} /> : !d ? <Skeleton className="h-40 rounded-xl" /> : (
         <div className="space-y-4 text-sm">
           <section>
             <p className="mb-1 text-xs font-semibold text-muted">ดึงข้อมูลจาก</p>
@@ -208,7 +234,7 @@ function AppInfoDialog({ app, admin, onClose, onChanged, onOpen }: { app: AppIte
   );
 }
 
-function AddAppDialog({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
+function AddAppDialog({ open, onClose, onDone, types }: { types: string[]; open: boolean; onClose: () => void; onDone: () => void }) {
   const [kind, setKind] = useState<'file' | 'folder' | 'dashboard' | 'url'>('file');
   const [file, setFile] = useState<PickedFile | null>(null);
   const [folder, setFolder] = useState<string | null>(null);
@@ -244,7 +270,7 @@ function AddAppDialog({ open, onClose, onDone }: { open: boolean; onClose: () =>
           </Field>
         )}
         {kind === 'url' && <Field label="ลิงก์" hint="https://… หรือหน้าในระบบ เช่น /traceback?mode=ink"><TextInput value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" /></Field>}
-        <AppSettings value={edit} onChange={setEdit} tags={tags} defaultName={kind === 'file' ? file?.name ?? '' : kind === 'dashboard' ? dashes.find((x) => x.id === dash)?.name ?? '' : ''} />
+        <AppSettings types={types} value={edit} onChange={setEdit} tags={tags} defaultName={kind === 'file' ? file?.name ?? '' : kind === 'dashboard' ? dashes.find((x) => x.id === dash)?.name ?? '' : ''} />
       </div>
     </Modal>
   );
