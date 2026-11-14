@@ -25,14 +25,14 @@ const PAGE_APPS: { key: string; name: string; to: string; color: string; descrip
 
 interface AppRow {
   app_key: string; kind: string; ref_id: string | null; url: string | null; app_name: string | null; icon_url: string | null; color: string | null;
-  description: string | null; roles_json: string | null; tags_json: string | null; is_hidden: boolean; sort_order: number | null;
+  description: string | null; roles_json: string | null; tags_json: string | null; is_hidden: boolean; sort_order: number | null; app_type?: string | null;
 }
 const arr = (s: string | null): string[] => { try { const v = JSON.parse(s ?? 'null'); return Array.isArray(v) ? v.map(String) : []; } catch { return []; } };
 const lower = (s: unknown) => String(s ?? '').toLowerCase();
 
 export interface AppOut {
   key: string; kind: string; name: string; defaultName: string; iconUrl: string | null; color: string; description: string | null;
-  to: string | null; external: string | null; hidden: boolean; roles: string[]; tagIds: string[]; source: string; sortOrder: number | null; custom: boolean;
+  to: string | null; external: string | null; hidden: boolean; roles: string[]; tagIds: string[]; source: string; sortOrder: number | null; custom: boolean; type: string | null;
 }
 
 async function myTags(u: AuthUser): Promise<Set<string>> {
@@ -47,7 +47,7 @@ export async function listApps(u: AuthUser): Promise<AppOut[]> {
   const byKey = new Map(rows.map((r) => [lower(r.app_key), r]));
   const tags = admin ? new Set<string>() : await myTags(u);
   const pages = await pagesFor(u.role);
-  const base: (Omit<AppOut, 'name' | 'iconUrl' | 'color' | 'description' | 'hidden' | 'roles' | 'tagIds' | 'sortOrder'> & { color: string; description: string | null })[] = [];
+  const base: (Omit<AppOut, 'name' | 'iconUrl' | 'color' | 'description' | 'hidden' | 'roles' | 'tagIds' | 'sortOrder' | 'type'> & { color: string; description: string | null })[] = [];
 
   // dashboards
   for (const d of await q(`SELECT d.dashboard_id, d.dashboard_name, d.file_id, f.file_name, f.folder_id, f.created_by, f.color
@@ -83,12 +83,27 @@ export async function listApps(u: AuthUser): Promise<AppOut[]> {
       if (tagIds.length && !tagIds.some((t) => tags.has(t))) continue;
     }
     out.push({ ...b, name: o?.app_name || b.defaultName, iconUrl: o?.icon_url ?? null, color: o?.color || b.color, description: o?.description ?? b.description,
-      hidden, roles, tagIds, sortOrder: o?.sort_order ?? null });
+      hidden, roles, tagIds, sortOrder: o?.sort_order ?? null, type: o?.app_type?.trim() || null });
   }
   return out.sort((a, b) => (a.sortOrder ?? 1e9) - (b.sortOrder ?? 1e9) || a.name.localeCompare(b.name, 'th'));
 }
 
 router.get('/apps', ah(async (req, res) => ok(res, await listApps(req.user!))));
+
+/** The type the page opens with (e.g. QC); '' = all apps */
+router.get('/apps/settings', ah(async (_req, res) => {
+  const r = await q1(`SELECT setting_value FROM SystemSettings WHERE setting_key = N'apps.defaultType'`);
+  ok(res, { defaultType: r?.setting_value ?? '' });
+}));
+router.put('/apps/settings', ah(async (req, res) => {
+  const u = req.user!; adminOnly(u);
+  const { defaultType } = parse(z.object({ defaultType: z.string().trim().max(50) }), req.body);
+  await q(`MERGE SystemSettings AS t USING (SELECT N'apps.defaultType' AS setting_key) s ON t.setting_key = s.setting_key
+           WHEN MATCHED THEN UPDATE SET setting_value = @v, updated_by = @u, updated_at = SYSUTCDATETIME()
+           WHEN NOT MATCHED THEN INSERT (setting_key, setting_value, updated_by) VALUES (N'apps.defaultType', @v, @u);`, { v: defaultType, u: T.uuid(u.id) });
+  emitToAll('apps:changed', {});
+  ok(res, { defaultType });
+}));
 
 /** Where an app takes its data from and who can open it */
 router.get('/apps/details', ah(async (req, res) => {
@@ -148,16 +163,17 @@ const editBody = z.object({
   tagIds: z.array(zId).max(50).default([]),
   hidden: z.boolean().default(false),
   sortOrder: z.number().int().min(0).max(100000).nullish(),
+  type: z.string().trim().max(50).nullish(),
 });
 const keyOk = (k: string) => /^(dash:[0-9a-f-]{36}|page:[A-Za-z]{1,40}|custom:[0-9a-f-]{36})$/i.test(k);
 
 async function saveOverride(u: AuthUser, key: string, kind: string, refId: string | null, url: string | null, b: z.infer<typeof editBody>) {
   await q(`MERGE Apps AS t USING (SELECT @k AS app_key) s ON t.app_key = s.app_key
-    WHEN MATCHED THEN UPDATE SET app_name = @n, icon_url = @i, color = @c, description = @d, roles_json = @r, tags_json = @t, is_hidden = @h, sort_order = @o, updated_by = @u, updated_at = SYSUTCDATETIME()
-    WHEN NOT MATCHED THEN INSERT (app_key, kind, ref_id, url, app_name, icon_url, color, description, roles_json, tags_json, is_hidden, sort_order, created_by, updated_by)
-      VALUES (@k, @kind, @ref, @url, @n, @i, @c, @d, @r, @t, @h, @o, @u, @u);`, {
+    WHEN MATCHED THEN UPDATE SET app_name = @n, icon_url = @i, color = @c, description = @d, roles_json = @r, tags_json = @t, is_hidden = @h, sort_order = @o, app_type = @ty, updated_by = @u, updated_at = SYSUTCDATETIME()
+    WHEN NOT MATCHED THEN INSERT (app_key, kind, ref_id, url, app_name, icon_url, color, description, roles_json, tags_json, is_hidden, sort_order, app_type, created_by, updated_by)
+      VALUES (@k, @kind, @ref, @url, @n, @i, @c, @d, @r, @t, @h, @o, @ty, @u, @u);`, {
     k: key, kind, ref: T.text(refId), url: T.text(url), n: T.text(b.name || null), i: T.text(b.iconUrl ?? null), c: T.text(b.color ?? null), d: T.text(b.description || null),
-    r: T.text(b.roles.length ? JSON.stringify(b.roles) : null), t: T.text(b.tagIds.length ? JSON.stringify(b.tagIds.map(lower)) : null), h: T.bit(b.hidden), o: b.sortOrder ?? null, u: T.uuid(u.id),
+    r: T.text(b.roles.length ? JSON.stringify(b.roles) : null), t: T.text(b.tagIds.length ? JSON.stringify(b.tagIds.map(lower)) : null), h: T.bit(b.hidden), o: b.sortOrder ?? null, ty: T.text(b.type || null), u: T.uuid(u.id),
   });
 }
 
