@@ -11,7 +11,7 @@ export interface Theme {
   version: 1; mode: 'light' | 'dark'; colors: ThemeColors; radius: number; gap: number; fontFamily: string; fontSize: number;
   sidebarWidth: number; components: Partial<Record<ComponentKey, ComponentStyle>>;
   /** aurora = white floating menu, glass top bar, soft blue / orange background (default in light mode) · classic = the coloured left bar */
-  shell?: 'aurora' | 'classic';
+  shell?: 'aurora' | 'classic' | 'square';
 }
 
 export const LIGHT: ThemeColors = {
@@ -107,8 +107,10 @@ export function applyTheme(t: Theme) {
     s.setProperty(`--${k}-shadow`, SHADOWS[c.shadow] ?? 'none');
   });
   // aurora shell (light mode): white floating left bar with dark text, glass top bar over a soft blue / orange background
-  const aurora = t.mode === 'light' && (t.shell ?? 'aurora') === 'aurora';
-  root.dataset.shell = aurora ? 'aurora' : 'classic';
+  const shell = t.shell ?? 'square';
+  const aurora = t.mode === 'light' && shell === 'aurora';
+  // square = the classic coloured bar whose active tab joins the main panel, with every corner sharp (any mode)
+  root.dataset.shell = aurora ? 'aurora' : shell === 'square' ? 'square' : 'classic';
   if (aurora) {
     s.setProperty('--sidebar-bg', 'transparent');
     s.setProperty('--sidebar-text', '#D8EBFF');

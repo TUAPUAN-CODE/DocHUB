@@ -88,4 +88,4 @@ export const resetThemeToDefault = () => {
 };
 
 /** aurora shell (white floating menu, glass top bar) or classic (coloured left bar); dark mode is always classic */
-export const useShell = () => useTheme((s) => (s.draft.mode === 'light' && (s.draft.shell ?? 'aurora') === 'aurora' ? 'aurora' : 'classic'));
+export const useShell = () => useTheme((s) => (s.draft.mode === 'light' && (s.draft.shell ?? 'square') === 'aurora' ? 'aurora' : 'classic'));

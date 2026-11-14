@@ -251,3 +251,11 @@ html[data-shell='aurora'] .main-panel::after { content: ''; pointer-events: none
 html[data-shell='aurora'] *:not(.animate-spin),
 html[data-shell='aurora'] *:not(.animate-spin)::before,
 html[data-shell='aurora'] *:not(.animate-spin)::after { border-radius: 0 !important; }
+
+/* square shell: the classic bar (active tab joined to the main panel) with sharp corners — no pill curve, no inverted corners */
+html[data-shell='square'] .nav-link, html[data-shell='square'] .nav-pill { border-radius: 0; }
+html[data-shell='square'] .nav-pill::before, html[data-shell='square'] .nav-pill::after { display: none; }
+html[data-shell='square'] .main-panel { border-radius: 0; }
+html[data-shell='square'] *:not(.animate-spin),
+html[data-shell='square'] *:not(.animate-spin)::before,
+html[data-shell='square'] *:not(.animate-spin)::after { border-radius: 0 !important; }
