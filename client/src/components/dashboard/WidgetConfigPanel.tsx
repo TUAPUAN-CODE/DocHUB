@@ -128,6 +128,9 @@ function RecordsDataTab({ w, set, ds, setDs, cols, fileId, fileName, fileSheets,
           <Field label="ข้อความในช่องค้นหา"><TextInput value={c.placeholder ?? ''} onChange={(e) => setC({ placeholder: e.target.value })} placeholder="ค้นหา Sub Doc No. / Short Code" /></Field>
           <Num label="แสดงทีละ (รายการ)" value={c.pageSize ?? 20} onChange={(v) => setC({ pageSize: v })} min={5} max={200} />
           <Toggle checked={c.showRev !== false} onChange={(v) => setC({ showRev: v })} label="บอกว่าแถวไหนแก้ไข / เพิ่มใน Rev ล่าสุด" />
+          <Toggle checked={!!c.searchAll} onChange={(v) => setC({ searchAll: v })} label="ค้นหาจากทุกคอลัมน์ (คอลัมน์ที่เพิ่มภายหลังค้นได้เอง)" />
+          <Toggle checked={c.cardStyle === 'boxes'} onChange={(v) => setC({ cardStyle: v ? 'boxes' : undefined })} label="การ์ดแบบกล่องสี (หัวข้อ · วันที่ · ผู้แก้ไข · รายละเอียด) + ปุ่มดูรายละเอียด" />
+          {c.cardStyle === 'boxes' && <Toggle checked={!!c.ack} onChange={(v) => setC({ ack: v })} label="ปุ่ม รับทราบ (เลือกชื่อพนักงาน) + สรุปการรับทราบรายวัน" />}
           <FilterEditor ds={ds} setDs={setDs} cols={cols} />
         </>
       )}

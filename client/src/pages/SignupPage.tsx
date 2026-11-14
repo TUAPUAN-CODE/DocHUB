@@ -24,7 +24,7 @@ export default function SignupPage() {
   const [show, setShow] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<false | 'created' | 'requested'>(false);
 
   useEffect(() => {
     authApi.providers().then(setProviders).catch(() => undefined);
@@ -45,10 +45,10 @@ export default function SignupPage() {
     if (!oauthToken && f.password !== f.confirm) return setErr('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
     setBusy(true);
     try {
-      await accountRequestsApi.signup(oauthToken
+      const r = await accountRequestsApi.signup(oauthToken
         ? { displayName: f.displayName.trim(), requestedRole: f.requestedRole, note: f.note.trim() || undefined, oauthToken }
         : { displayName: f.displayName.trim(), email: f.email.trim(), username: f.username.trim(), password: f.password, requestedRole: f.requestedRole, note: f.note.trim() || undefined });
-      setDone(true);
+      setDone(r.created ? 'created' : 'requested');
     } catch (e2) {
       setErr(apiError(e2).message);
     } finally {
@@ -62,9 +62,9 @@ export default function SignupPage() {
         {done ? (
           <div className="text-center">
             <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-success/15 text-success"><CheckCircle2 className="h-8 w-8" /></span>
-            <h1 className="mt-4 text-xl font-semibold">ส่งคำขอสร้างบัญชีแล้ว</h1>
+            <h1 className="mt-4 text-xl font-semibold">{done === 'created' ? 'สร้างบัญชีแล้ว' : 'ส่งคำขอสร้างบัญชีแล้ว'}</h1>
             <p className="mt-2 text-sm text-muted">
-              ผู้ดูแลระบบได้รับการแจ้งเตือนแล้ว เมื่ออนุมัติแล้วเข้าสู่ระบบ{oauth ? `ด้วย ${PROVIDER[oauth.provider]} (${oauth.email})` : `ด้วยชื่อผู้ใช้ “${f.username.trim()}” และรหัสผ่านที่ตั้งไว้`}ได้เลย
+              {done === 'created' ? 'เข้าสู่ระบบ' : 'ผู้ดูแลระบบได้รับการแจ้งเตือนแล้ว เมื่ออนุมัติแล้วเข้าสู่ระบบ'}{oauth ? `ด้วย ${PROVIDER[oauth.provider]} (${oauth.email})` : `ด้วยชื่อผู้ใช้ “${f.username.trim()}” และรหัสผ่านที่ตั้งไว้`}ได้เลย
             </p>
             <Link to={loginLink} className="mt-6 inline-block"><Button>กลับไปหน้าเข้าสู่ระบบ</Button></Link>
           </div>
@@ -72,7 +72,7 @@ export default function SignupPage() {
           <form onSubmit={submit}>
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary"><UserPlus className="h-5 w-5" /></span>
-              <div><h1 className="text-xl font-semibold">ขอสร้างบัญชี</h1><p className="text-sm text-muted">ผู้ดูแลระบบจะตรวจสอบและอนุมัติ</p></div>
+              <div><h1 className="text-xl font-semibold">ขอสร้างบัญชี</h1><p className="text-sm text-muted">User / Viewer ได้บัญชีทันที · Master / Admin รอผู้ดูแลอนุมัติ</p></div>
             </div>
             {oauth && (
               <div className="mt-5 rounded-xl bg-primary/[.06] px-3 py-2.5 text-sm">
@@ -100,7 +100,7 @@ export default function SignupPage() {
                   <Field label="ยืนยันรหัสผ่าน" required><TextInput icon={<Lock />} type={show ? 'text' : 'password'} value={f.confirm} onChange={set('confirm')} required autoComplete="new-password" /></Field>
                 </>
               )}
-              <Field label="ระดับที่ต้องการ" hint={`${ROLE_HINT[f.requestedRole]} — Admin เป็นคนกำหนดระดับจริงตอนอนุมัติ`}>
+              <Field label="ระดับที่ต้องการ" hint={`${ROLE_HINT[f.requestedRole]} — User / Viewer ได้บัญชีทันที, Master / Admin รอผู้ดูแลอนุมัติ`}>
                 <Select value={f.requestedRole} onChange={set('requestedRole')}>{ROLE_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}</Select>
               </Field>
               <Field label="แผนก / เหตุผล"><TextArea rows={2} value={f.note} onChange={set('note')} maxLength={1000} placeholder="เช่น QC ไลน์ PF1 ต้องบันทึกผลตรวจ" /></Field>

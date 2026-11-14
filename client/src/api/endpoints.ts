@@ -31,6 +31,7 @@ export const foldersApi = {
   create: (b: { name: string; parentId?: string | null; description?: string | null; color?: string }) => post<FolderItem>('/folders', b),
   update: (id: string, b: { name?: string; description?: string | null; color?: string }) => put(`/folders/${id}`, b),
   move: (id: string, parentId: string | null) => post(`/folders/${id}/move`, { parentId }),
+  dateTree: (id: string, b: { year: number; days: boolean; months?: number[] }) => post<{ made: number }>(`/folders/${id}/date-tree`, b),
   remove: (id: string) => del(`/folders/${id}`),
 };
 
@@ -160,7 +161,7 @@ export interface SignupBody {
   displayName: string; requestedRole: Role; note?: string; email?: string; username?: string; password?: string; oauthToken?: string;
 }
 export const accountRequestsApi = {
-  signup: (b: SignupBody) => post<{ requested: boolean; via: string | null }>('/auth/signup', b),
+  signup: (b: SignupBody) => post<{ requested: boolean; created?: boolean; via: string | null }>('/auth/signup', b),
   oauthInfo: (token: string) => get<{ provider: 'microsoft' | 'google'; email: string; name: string }>('/auth/signup/oauth', { token }),
   list: (status: 'pending' | 'approved' | 'rejected' | 'all') => get<AccountRequest[]>('/account-requests', { status }),
   pendingCount: () => get<{ count: number }>('/account-requests/pending-count'),

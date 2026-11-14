@@ -87,11 +87,26 @@ async function listApps(u) {
                 continue;
         }
         out.push({ ...b, name: o?.app_name || b.defaultName, iconUrl: o?.icon_url ?? null, color: o?.color || b.color, description: o?.description ?? b.description,
-            hidden, roles, tagIds, sortOrder: o?.sort_order ?? null });
+            hidden, roles, tagIds, sortOrder: o?.sort_order ?? null, type: o?.app_type?.trim() || null });
     }
     return out.sort((a, b) => (a.sortOrder ?? 1e9) - (b.sortOrder ?? 1e9) || a.name.localeCompare(b.name, 'th'));
 }
 router.get('/apps', (0, http_1.ah)(async (req, res) => (0, http_1.ok)(res, await listApps(req.user))));
+/** The type the page opens with (e.g. QC); '' = all apps */
+router.get('/apps/settings', (0, http_1.ah)(async (_req, res) => {
+    const r = await (0, db_1.q1)(`SELECT setting_value FROM SystemSettings WHERE setting_key = N'apps.defaultType'`);
+    (0, http_1.ok)(res, { defaultType: r?.setting_value ?? '' });
+}));
+router.put('/apps/settings', (0, http_1.ah)(async (req, res) => {
+    const u = req.user;
+    adminOnly(u);
+    const { defaultType } = (0, http_1.parse)(zod_1.z.object({ defaultType: zod_1.z.string().trim().max(50) }), req.body);
+    await (0, db_1.q)(`MERGE SystemSettings AS t USING (SELECT N'apps.defaultType' AS setting_key) s ON t.setting_key = s.setting_key
+           WHEN MATCHED THEN UPDATE SET setting_value = @v, updated_by = @u, updated_at = SYSUTCDATETIME()
+           WHEN NOT MATCHED THEN INSERT (setting_key, setting_value, updated_by) VALUES (N'apps.defaultType', @v, @u);`, { v: defaultType, u: db_1.T.uuid(u.id) });
+    (0, socket_1.emitToAll)('apps:changed', {});
+    (0, http_1.ok)(res, { defaultType });
+}));
 /** Where an app takes its data from and who can open it */
 router.get('/apps/details', (0, http_1.ah)(async (req, res) => {
     const key = String(req.query.key ?? '');
@@ -163,15 +178,16 @@ const editBody = zod_1.z.object({
     tagIds: zod_1.z.array(http_1.zId).max(50).default([]),
     hidden: zod_1.z.boolean().default(false),
     sortOrder: zod_1.z.number().int().min(0).max(100000).nullish(),
+    type: zod_1.z.string().trim().max(50).nullish(),
 });
 const keyOk = (k) => /^(dash:[0-9a-f-]{36}|page:[A-Za-z]{1,40}|custom:[0-9a-f-]{36})$/i.test(k);
 async function saveOverride(u, key, kind, refId, url, b) {
     await (0, db_1.q)(`MERGE Apps AS t USING (SELECT @k AS app_key) s ON t.app_key = s.app_key
-    WHEN MATCHED THEN UPDATE SET app_name = @n, icon_url = @i, color = @c, description = @d, roles_json = @r, tags_json = @t, is_hidden = @h, sort_order = @o, updated_by = @u, updated_at = SYSUTCDATETIME()
-    WHEN NOT MATCHED THEN INSERT (app_key, kind, ref_id, url, app_name, icon_url, color, description, roles_json, tags_json, is_hidden, sort_order, created_by, updated_by)
-      VALUES (@k, @kind, @ref, @url, @n, @i, @c, @d, @r, @t, @h, @o, @u, @u);`, {
+    WHEN MATCHED THEN UPDATE SET app_name = @n, icon_url = @i, color = @c, description = @d, roles_json = @r, tags_json = @t, is_hidden = @h, sort_order = @o, app_type = @ty, updated_by = @u, updated_at = SYSUTCDATETIME()
+    WHEN NOT MATCHED THEN INSERT (app_key, kind, ref_id, url, app_name, icon_url, color, description, roles_json, tags_json, is_hidden, sort_order, app_type, created_by, updated_by)
+      VALUES (@k, @kind, @ref, @url, @n, @i, @c, @d, @r, @t, @h, @o, @ty, @u, @u);`, {
         k: key, kind, ref: db_1.T.text(refId), url: db_1.T.text(url), n: db_1.T.text(b.name || null), i: db_1.T.text(b.iconUrl ?? null), c: db_1.T.text(b.color ?? null), d: db_1.T.text(b.description || null),
-        r: db_1.T.text(b.roles.length ? JSON.stringify(b.roles) : null), t: db_1.T.text(b.tagIds.length ? JSON.stringify(b.tagIds.map(lower)) : null), h: db_1.T.bit(b.hidden), o: b.sortOrder ?? null, u: db_1.T.uuid(u.id),
+        r: db_1.T.text(b.roles.length ? JSON.stringify(b.roles) : null), t: db_1.T.text(b.tagIds.length ? JSON.stringify(b.tagIds.map(lower)) : null), h: db_1.T.bit(b.hidden), o: b.sortOrder ?? null, ty: db_1.T.text(b.type || null), u: db_1.T.uuid(u.id),
     });
 }
 router.put('/apps/item', (0, http_1.ah)(async (req, res) => {

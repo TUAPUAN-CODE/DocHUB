@@ -4,6 +4,7 @@ import { LogOut, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Badge, canSee, navLabel, orderedNav } from '@/lib/pages';
 import { useAppInfo } from '@/store/appInfo';
+import { AppLogo } from './AppLogo';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { useUi } from '@/store/ui';
@@ -19,16 +20,16 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
     requests: useData((s) => s.pendingReviews + s.pendingAccounts + s.pendingTagRequests),
     news: useData((s) => s.newsUnread),
   };
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+  // a file / folder / dashboard opened from Application keeps "Application" lit (the address is /files/… or /folders/…)
+  const fromApps = (state as { from?: string } | null)?.from === '/apps';
   // pages the role sees: set by a root on จัดการสิทธิ์ (lib/pages.tsx)
-  const items = orderedNav(user.pageOrder).filter((n) => !n.notInNav && canSee(user, n.key)).map((n) => ({ ...n, name: navLabel(user, n) ?? t(n.label), active: n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
+  const items = orderedNav(user.pageOrder).filter((n) => !n.notInNav && canSee(user, n.key)).map((n) => ({ ...n, name: navLabel(user, n) ?? t(n.label), active: fromApps ? n.key === 'apps' : n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
 
   return (
     <div className="flex h-full flex-col">
       <Link to="/" onClick={onNavigate} className={cn('flex items-center gap-3 pb-4 pt-6', compact ? 'justify-center px-0' : 'px-6')} title={appName}>
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/95 text-primary shadow-sm">
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M5 7h14M5 12h14M5 17h9M10 4v16" /></svg>
-        </span>
+        <AppLogo />
         {!compact && <span className="truncate text-[17px] font-semibold tracking-tight">{appName}</span>}
       </Link>
 

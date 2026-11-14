@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Maximize2 } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
 import {
   AreaChart as AreaIcon, BarChart3, BellRing, Circle, Donut, Filter, Gauge, Grid3x3, History, ImageIcon, LayoutList, LineChart as LineIcon, PieChart as PieIcon, ScanSearch,
   ScatterChart as ScatterIcon, Sigma, StretchHorizontal, Table2, TrendingUp, Type, Activity, BarChartHorizontal,
@@ -164,6 +166,7 @@ export function WidgetView({ w: given, refreshKey, editing, phone }: { w: Widget
   const s = w.style ?? {};
   const cfg = w.config ?? {};
   useEffect(() => { if (w.type === 'text' && cfg.fontFamily) ensureFont(cfg.fontFamily); }, [w.type, cfg.fontFamily]);
+  const [expanded, setExpanded] = useState(false);
   if (s.hidden && !editing) return null;
 
   const frame: React.CSSProperties = {
@@ -205,6 +208,8 @@ export function WidgetView({ w: given, refreshKey, editing, phone }: { w: Widget
   }
 
   const showTitle = s.showTitle !== false && !!w.title && !['text', 'shape', 'image', 'slicer', 'card'].includes(w.type);
+  // a chart opens full screen when tapped (view mode): every label of the x axis, scroll sideways when there are many
+  const canExpand = !editing && isData && !!data && CHART_TYPES.includes(w.type);
   return (
     <div className="flex h-full w-full flex-col overflow-hidden" style={w.type === 'shape' ? { opacity: s.opacity ?? 1 } : frame}>
       {showTitle && (
@@ -216,7 +221,33 @@ export function WidgetView({ w: given, refreshKey, editing, phone }: { w: Widget
           {s.subtitle && <p className="truncate text-xs opacity-60">{s.subtitle}</p>}
         </div>
       )}
-      <div className="relative min-h-0 flex-1">{body}</div>
+      <div className={canExpand ? 'group/exp relative min-h-0 flex-1 cursor-zoom-in' : 'relative min-h-0 flex-1'} onClick={canExpand ? () => setExpanded(true) : undefined}>
+        {body}
+        {canExpand && (
+          <span className="pointer-events-none absolute right-1 top-0 grid h-7 w-7 place-items-center rounded-lg bg-surface/90 text-muted opacity-60 shadow-sm ring-1 ring-line group-hover/exp:opacity-100" aria-hidden>
+            <Maximize2 className="h-3.5 w-3.5" />
+          </span>
+        )}
+      </div>
+      {canExpand && expanded && data && <ExpandedChart w={given} data={data} onClose={() => setExpanded(false)} />}
     </div>
+  );
+}
+
+/** A chart full screen: every category under the x axis (labels turned when many), wide enough to read, scrolls sideways */
+function ExpandedChart({ w, data, onClose }: { w: Widget; data: WidgetData; onClose: () => void }) {
+  const n = data.categories?.length ?? 0;
+  const cfg = w.config ?? {};
+  const turn = n > 10 || data.categories.some((c) => String(c).length > 8);
+  const big: Widget = { ...w, config: { ...cfg, xInterval: 0, xAngle: turn ? (cfg.xAngle || -45) : cfg.xAngle, xFontSize: Math.max(12, Number(cfg.xFontSize) || 12), yFontSize: Math.max(12, Number(cfg.yFontSize) || 12), legend: cfg.legend, labelSize: Math.max(11, Number(cfg.labelSize) || 11) } };
+  const per = ['bar', 'pareto', 'pct', 'histogram'].includes(w.type) ? Math.max(28, 18 * Math.max(1, data.series.length)) : 28;
+  return (
+    <Modal open onClose={onClose} size="full" title={w.title || 'กราฟ'} description={n ? `${n.toLocaleString()} รายการบนแกน X` : undefined}>
+      <div className="overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+        <div style={{ minWidth: Math.max(600, n * per), height: '70vh' }}>
+          <ChartBody w={big} data={data} />
+        </div>
+      </div>
+    </Modal>
   );
 }
