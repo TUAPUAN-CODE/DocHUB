@@ -111,7 +111,7 @@ export function applyTheme(t: Theme) {
   root.dataset.shell = aurora ? 'aurora' : 'classic';
   if (aurora) {
     s.setProperty('--sidebar-bg', 'transparent');
-    s.setProperty('--sidebar-text', '#FFFFFF');
+    s.setProperty('--sidebar-text', '#D8EBFF');
   }
   root.classList.toggle('dark', t.mode === 'dark');
   root.style.colorScheme = t.mode;

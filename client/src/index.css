@@ -183,3 +183,66 @@ body {
   html[data-shell='aurora'] .app-tile { border-radius: 28px; background: linear-gradient(180deg, rgb(21 82 240 / .07), #fff 42%); border-color: #E3EAF8; }
   html[data-shell='aurora'] .app-tile:hover { transform: translateY(-5px) scale(1.015); border-color: rgb(255 138 0 / .45); box-shadow: 0 30px 44px -26px rgb(21 82 240 / .7), 0 0 0 4px rgb(255 138 0 / .08); }
 }
+
+/* ================= aurora · cyberpunk: neon grid, HUD brackets, scanlines, glitch title ================= */
+@layer components {
+  html[data-shell='aurora'] .shell-root {
+    background:
+      linear-gradient(rgb(21 82 240 / .06) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(90deg, rgb(21 82 240 / .06) 1px, transparent 1px) 0 0 / 40px 40px,
+      radial-gradient(1000px 560px at 10% -15%, rgb(0 214 255 / .20), transparent 60%),
+      radial-gradient(760px 460px at 100% -8%, rgb(255 138 0 / .24), transparent 60%),
+      radial-gradient(900px 600px at 95% 112%, rgb(124 58 237 / .14), transparent 60%),
+      #EEF3FC !important;
+  }
+  /* sidebar: near-black navy, neon grid, cyan + orange glow, chamfered corners */
+  html[data-shell='aurora'] .ds-sidebar-desktop > div,
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) {
+    background:
+      linear-gradient(rgb(0 214 255 / .07) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, rgb(0 214 255 / .07) 1px, transparent 1px) 0 0 / 24px 24px,
+      radial-gradient(260px 220px at 100% 100%, rgb(255 122 0 / .55), transparent 70%),
+      radial-gradient(260px 220px at 0% 0%, rgb(0 214 255 / .35), transparent 70%),
+      linear-gradient(170deg, #050B2E 0%, #08144F 60%, #0B1C6B 100%);
+    border: 1px solid rgb(0 214 255 / .45); border-radius: 6px;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / .4), 0 0 26px -4px rgb(0 214 255 / .55), 0 30px 60px -26px rgb(5 11 46 / .9), inset 0 0 40px rgb(0 214 255 / .08); }
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 6px 6px 0; }
+  html[data-shell='aurora'] .nav-link { border-radius: 4px; text-transform: none; letter-spacing: .01em; color: rgb(190 220 255 / .85); }
+  html[data-shell='aurora'] .nav-link:hover { background: rgb(0 214 255 / .12); color: #fff; box-shadow: inset 2px 0 0 #00D6FF; }
+  html[data-shell='aurora'] .nav-link.active { color: #fff; text-shadow: 0 0 10px rgb(0 214 255 / .9); }
+  html[data-shell='aurora'] .nav-pill { border-radius: 4px; background: linear-gradient(90deg, rgb(0 214 255 / .30), rgb(21 82 240 / .18));
+    border: 1px solid #00D6FF; box-shadow: 0 0 18px rgb(0 214 255 / .55), inset 0 0 14px rgb(0 214 255 / .25);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+  html[data-shell='aurora'] .nav-pill::before { background: #FF8A00; box-shadow: 0 0 0 3px rgb(255 138 0 / .25), 0 0 14px #FF8A00; border-radius: 1px; width: 8px; height: 8px; margin-top: -4px; right: 18px; rotate: 45deg; }
+  html[data-shell='aurora'] .side-item { color: rgb(190 220 255 / .85); }
+  html[data-shell='aurora'] .ds-sidebar-desktop .border-t, html[data-shell='aurora'] .ds-sidebar .border-t { border-color: rgb(0 214 255 / .3); }
+  /* top bar: thin neon underline */
+  html[data-shell='aurora'] .ds-topbar { border-radius: 6px; border: 1px solid rgb(21 82 240 / .25);
+    box-shadow: 0 1px 0 rgb(0 214 255 / .6), 0 12px 30px -18px rgb(21 82 240 / .6); }
+  /* title: neon gradient with a cyan / orange glitch shadow */
+  html[data-shell='aurora'] .page-title { font-weight: 800; letter-spacing: .005em; color: #0A1F8F;
+    background: linear-gradient(100deg, #0A1F8F 0%, #1552F0 50%, #00B8E6 85%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(2px 0 0 rgb(255 122 0 / .55)) drop-shadow(-1px 0 0 rgb(0 214 255 / .5)); }
+  html[data-shell='aurora'] .page-icon { border-radius: 4px; rotate: 0deg; transform: none; background: linear-gradient(135deg, #0A1F8F, #1552F0);
+    border: 1px solid #00D6FF; box-shadow: 0 0 18px rgb(0 214 255 / .65);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+  html[data-shell='aurora'] .page-icon::after { display: none; }
+  /* buttons: sharp, neon */
+  html[data-shell='aurora'] .btn-primary { border-radius: 4px; background-image: linear-gradient(120deg, #0A2FC4, #1552F0 60%, #00B8E6);
+    box-shadow: 0 0 16px -2px rgb(0 184 230 / .7); border: 1px solid rgb(0 214 255 / .7); text-transform: none; }
+  html[data-shell='aurora'] .accent-orange { border-radius: 4px !important; background-image: linear-gradient(120deg, #FF6A00, #FF9A1F) !important;
+    box-shadow: 0 0 18px -2px rgb(255 122 0 / .85) !important; border: 1px solid #FFB040 !important; }
+  html[data-shell='aurora'] .ds-card { border-radius: 6px; border-color: rgb(21 82 240 / .22); box-shadow: 0 0 0 1px rgb(255 255 255 / .6) inset, 0 0 22px -12px rgb(0 184 230 / .8); }
+  html[data-shell='aurora'] .ds-th { background: #E4EEFF; color: #0A1F8F; border-bottom: 1px solid #00B8E6; }
+  /* app tiles: HUD corner brackets (cyan top-left, orange bottom-right) that light up on hover */
+  html[data-shell='aurora'] .app-tile { border-radius: 8px; background: linear-gradient(180deg, rgb(0 184 230 / .09), #fff 45%); border-color: rgb(21 82 240 / .22); overflow: visible; }
+  html[data-shell='aurora'] .app-tile::before { content: ''; position: absolute; left: -1px; top: -1px; width: 18px; height: 18px; border-top: 2px solid #00B8E6; border-left: 2px solid #00B8E6; border-radius: 8px 0 0 0; transition: all .2s ease; }
+  html[data-shell='aurora'] .app-tile::after { left: auto; right: -1px; bottom: -1px; translate: 0 0; width: 18px; height: 18px; border-radius: 0 0 8px 0; background: none;
+    border-right: 2px solid #FF8A00; border-bottom: 2px solid #FF8A00; transition: all .2s ease; }
+  html[data-shell='aurora'] .app-tile:hover { transform: translateY(-3px); border-color: #00B8E6; box-shadow: 0 0 24px -4px rgb(0 184 230 / .7), 0 0 0 1px rgb(0 184 230 / .35); }
+  html[data-shell='aurora'] .app-tile:hover::before { width: 34px; height: 34px; filter: drop-shadow(0 0 4px #00D6FF); }
+  html[data-shell='aurora'] .app-tile:hover::after { width: 34px; height: 34px; filter: drop-shadow(0 0 4px #FF8A00); }
+}
+/* faint scanlines over the whole page (does not catch clicks) */
+html[data-shell='aurora'] .main-panel::after { content: ''; pointer-events: none; position: fixed; inset: 0; z-index: 1;
+  background: repeating-linear-gradient(0deg, rgb(10 31 143 / .025) 0 1px, transparent 1px 3px); }

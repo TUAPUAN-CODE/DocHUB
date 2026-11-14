@@ -35,7 +35,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
         {!compact && (
           <span className="min-w-0">
             <span className="block truncate text-[17px] font-semibold tracking-tight">{appName}</span>
-            {aurora && <span className="mt-1 block h-1 w-12 rounded-full bg-gradient-to-r from-white to-[#FF9A1F]" aria-hidden />}
+            {aurora && <span className="mt-1 block h-1 w-12 rounded-full bg-gradient-to-r from-[#00D6FF] to-[#FF8A00]" aria-hidden />}
           </span>
         )}
       </Link>
