@@ -259,3 +259,14 @@ html[data-shell='square'] .main-panel { border-radius: 0; }
 html[data-shell='square'] *:not(.animate-spin),
 html[data-shell='square'] *:not(.animate-spin)::before,
 html[data-shell='square'] *:not(.animate-spin)::after { border-radius: 0 !important; }
+
+/* square shell · cut corners: buttons, page icon, tiles and the active tab lose their corners at 45° instead of curving.
+   (clip-path also clips what hangs outside the box, so it is used only on elements that hold no pop-up menus) */
+html[data-shell='square'] .page-icon,
+html[data-shell='square'] .btn-primary, html[data-shell='square'] .accent-orange, html[data-shell='square'] .ds-btn {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+html[data-shell='square'] .page-icon { clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+html[data-shell='square'] .app-tile { clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+/* the active tab joins the main panel on its right, so only its left corners are cut */
+html[data-shell='square'] .nav-pill, html[data-shell='square'] .nav-link:hover {
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px), 0 12px); }
