@@ -1,5 +1,5 @@
 import { DragEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Rnd } from 'react-rnd';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Eye, Expand, Grid3x3, Layers, Maximize, Pencil, RefreshCw, Save, Settings2, Shrink, SlidersHorizontal, Trash2, Upload, ZoomIn, ZoomOut } from 'lucide-react';
@@ -48,6 +48,8 @@ const WMIME = 'application/x-dsp-widget';
 export default function DashboardPage() {
   const { fileId = '', dashId = '' } = useParams();
   const nav = useNavigate();
+  // opened from Application: the back arrow goes back there (not to the file)
+  const fromApps = (useLocation().state as { from?: string } | null)?.from === '/apps';
   const [sp] = useSearchParams();
   const { data, loading, error, reload } = useLoad(() => dashboardsApi.get(dashId), [dashId]);
   const [meta, setMeta] = useState<DashboardMeta | null>(null);
@@ -209,7 +211,7 @@ export default function DashboardPage() {
     <div ref={page} className={cn('flex flex-col bg-app', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
       {full && <button onClick={() => void toggleFull()} className="absolute right-3 top-3 z-[60] inline-flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity hover:opacity-100 focus:opacity-100"><Shrink className="h-3.5 w-3.5" />ออกจากเต็มจอ (Esc)</button>}
       <div className={cn('shrink-0 flex-wrap items-center gap-2 px-4 pb-3 sm:px-6', full ? 'hidden' : 'flex')}>
-        <Link to={`/files/${fileId}`} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-ink/5" aria-label="กลับไปที่ไฟล์"><ArrowLeft className="h-5 w-5" /></Link>
+        <Link to={fromApps ? '/apps' : `/files/${fileId}`} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-ink/5" aria-label={fromApps ? 'กลับไปที่ Application' : 'กลับไปที่ไฟล์'}><ArrowLeft className="h-5 w-5" /></Link>
         <div className="min-w-0">
           <p className="truncate text-xs text-muted">{data.file.name}</p>
           {edit ? <input value={meta.name} onChange={(e) => { setMeta({ ...meta, name: e.target.value }); setDirty(true); }} className="w-full min-w-[200px] rounded-lg bg-transparent px-1 text-lg font-semibold outline-none hover:bg-ink/5 focus:bg-surface" />

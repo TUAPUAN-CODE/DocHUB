@@ -45,6 +45,9 @@ export default function AppsPage() {
   const [apps, setApps] = useState<AppItem[] | null>(null);
   const [q, setQ] = useState('');
   const [showHidden, setShowHidden] = useState(false);
+  // icon size: each viewer's own choice, kept in this browser
+  const [size, setSizeState] = useState<number>(() => { try { return Number(localStorage.getItem('apps.iconSize')) || 64; } catch { return 64; } });
+  const setSize = (v: string) => { const n = Number(v); setSizeState(n); try { localStorage.setItem('apps.iconSize', String(n)); } catch { /* private mode */ } };
   const [info, setInfo] = useState<AppItem | null>(null);
   const [adding, setAdding] = useState(false);
   const load = () => appsApi.list().then(setApps).catch((e) => { toast.error(e, 'โหลดแอปไม่สำเร็จ'); setApps([]); });
@@ -54,7 +57,7 @@ export default function AppsPage() {
     const s = q.trim().toLowerCase();
     return (apps ?? []).filter((a) => (showHidden || !a.hidden) && (!s || a.name.toLowerCase().includes(s) || a.source.toLowerCase().includes(s) || a.defaultName.toLowerCase().includes(s)));
   }, [apps, q, showHidden]);
-  const open = (a: AppItem) => { if (a.external) window.open(a.external, '_blank', 'noopener'); else if (a.to) nav(a.to); };
+  const open = (a: AppItem) => { if (a.external) window.open(a.external, '_blank', 'noopener'); else if (a.to) nav(a.to, { state: { from: '/apps' } }); };
   const hiddenCount = (apps ?? []).filter((a) => a.hidden).length;
 
   return (
@@ -63,17 +66,18 @@ export default function AppsPage() {
         actions={admin ? <Button icon={<Plus className="h-4 w-4" />} onClick={() => setAdding(true)}>เพิ่ม App</Button> : undefined} />
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <TextInput icon={<Search />} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาแอป…" className="!h-11 min-w-[220px] flex-1" />
+        <Segmented size="sm" value={String(size)} onChange={setSize} options={[{ value: '48', label: 'เล็ก' }, { value: '64', label: 'กลาง' }, { value: '88', label: 'ใหญ่' }, { value: '120', label: 'ใหญ่มาก' }]} />
         {admin && hiddenCount > 0 && <Toggle checked={showHidden} onChange={setShowHidden} label={`แสดงแอปที่ซ่อน (${hiddenCount})`} />}
       </div>
       {!apps ? <div className="grid grid-cols-3 gap-6 sm:grid-cols-5 lg:grid-cols-7">{Array.from({ length: 10 }, (_, i) => <Skeleton key={i} className="mx-auto h-24 w-20 rounded-2xl" />)}</div>
         : !list.length ? <div className="ds-card"><EmptyState icon={<AppWindow />} title={q ? 'ไม่พบแอปที่ค้นหา' : 'ยังไม่มีแอป'} description={admin && !q ? 'กด เพิ่ม App เพื่อสร้างไอคอนไปยังไฟล์ โฟลเดอร์ แดชบอร์ด หรือลิงก์เว็บ' : undefined} /></div>
         : (
-          <div className="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8">
+          <div className="grid gap-x-3 gap-y-6" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size + 44}px, 1fr))` }}>
             {list.map((a) => (
               <div key={a.key} className={cn('group relative flex flex-col items-center', a.hidden && 'opacity-50')}>
                 <button type="button" onClick={() => open(a)} className="flex w-full flex-col items-center gap-2 rounded-2xl p-2 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={a.description ?? a.source}>
-                  <AppIcon app={a} />
-                  <span className="line-clamp-2 w-full break-words text-center text-[13px] font-medium leading-tight">{a.name}</span>
+                  <AppIcon app={a} size={size} />
+                  <span className="line-clamp-2 w-full break-words text-center font-medium leading-tight" style={{ fontSize: size >= 88 ? 15 : size <= 48 ? 12 : 13 }}>{a.name}</span>
                 </button>
                 <button type="button" onClick={() => setInfo(a)} aria-label={`รายละเอียด ${a.name}`} title="รายละเอียด"
                   className="absolute right-1 top-0 grid h-7 w-7 place-items-center rounded-full bg-surface text-muted shadow ring-1 ring-line hover:text-primary sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100">

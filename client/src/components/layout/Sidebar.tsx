@@ -19,9 +19,11 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
     requests: useData((s) => s.pendingReviews + s.pendingAccounts + s.pendingTagRequests),
     news: useData((s) => s.newsUnread),
   };
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+  // a file / folder / dashboard opened from Application keeps "Application" lit (the address is /files/… or /folders/…)
+  const fromApps = (state as { from?: string } | null)?.from === '/apps';
   // pages the role sees: set by a root on จัดการสิทธิ์ (lib/pages.tsx)
-  const items = orderedNav(user.pageOrder).filter((n) => !n.notInNav && canSee(user, n.key)).map((n) => ({ ...n, name: navLabel(user, n) ?? t(n.label), active: n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
+  const items = orderedNav(user.pageOrder).filter((n) => !n.notInNav && canSee(user, n.key)).map((n) => ({ ...n, name: navLabel(user, n) ?? t(n.label), active: fromApps ? n.key === 'apps' : n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
 
   return (
     <div className="flex h-full flex-col">
