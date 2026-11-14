@@ -63,14 +63,56 @@ exports.publicRouter.post('/signup', signupLimiter, (0, http_1.ah)(async (req, r
     if (pending)
         throw (0, http_1.conflict)('มีคำขอสร้างบัญชีนี้รอการอนุมัติอยู่แล้ว');
     const hash = oauth ? null : await bcryptjs_1.default.hash(b.password, 12);
-    await (0, db_1.q)(`INSERT INTO AccountRequests (username, email, display_name, password_hash, provider, provider_subject, requested_role, note)
-       VALUES (@u, @e, @n, @h, @p, @s, @r, @note)`, {
-        u: db_1.T.text(oauth ? null : b.username), e: db_1.T.text(email), n: b.displayName, h: db_1.T.text(hash),
-        p: db_1.T.text(oauth?.p ?? null), s: db_1.T.text(oauth?.sub ?? null), r: b.requestedRole, note: db_1.T.text(b.note || null),
+    // User / Viewer: the account is made at once (no waiting for an admin); Master / Admin still need an admin's approval
+    const auto = AUTO_ROLES.includes(b.requestedRole);
+    const created = await (0, db_1.withTx)(async (tx) => {
+        const row = await (0, db_1.q1)(`INSERT INTO AccountRequests (username, email, display_name, password_hash, provider, provider_subject, requested_role, note)
+         OUTPUT inserted.request_id VALUES (@u, @e, @n, @h, @p, @s, @r, @note)`, {
+            u: db_1.T.text(oauth ? null : b.username), e: db_1.T.text(email), n: b.displayName, h: db_1.T.text(hash),
+            p: db_1.T.text(oauth?.p ?? null), s: db_1.T.text(oauth?.sub ?? null), r: b.requestedRole, note: db_1.T.text(b.note || null),
+        }, tx);
+        return auto ? approveRequest(tx, row.request_id, b.requestedRole, undefined, null, 'สร้างบัญชีอัตโนมัติตอนสมัคร (User / Viewer)', req) : null;
     });
+    if (created) {
+        await (0, service_1.notifyAdmins)('มีบัญชีใหม่', `${b.displayName} (${email ?? b.username ?? '-'}${oauth ? ` · ${PROVIDER_TH[oauth.p]}` : ''}) สมัครเป็น ${ROLE_TH[b.requestedRole]} — สร้างบัญชีให้อัตโนมัติแล้ว (เปลี่ยนระดับ / ปิดบัญชีได้ที่ จัดการผู้ใช้)`);
+        return (0, http_1.ok)(res, { requested: true, created: true, via: oauth?.p ?? null }, 201);
+    }
     await (0, service_1.notifyAdmins)('คำขอสร้างบัญชีใหม่', `${b.displayName} (${email ?? b.username ?? '-'}${oauth ? ` · ${PROVIDER_TH[oauth.p]}` : ''}) ขอบัญชีระดับ ${ROLE_TH[b.requestedRole]}`);
     (0, http_1.ok)(res, { requested: true, via: oauth?.p ?? null }, 201);
 }));
+/**
+ * Turns a pending request into an account (approve). `by` = the admin, or null when the account is made by itself at sign-up
+ * (roles User / Viewer: no waiting). Runs inside the caller's transaction.
+ */
+async function approveRequest(tx, id, role, tagIds, by, reviewNote, req) {
+    const r = await (0, db_1.q1)(`SELECT * FROM AccountRequests WITH (UPDLOCK, ROWLOCK) WHERE request_id = @id`, { id: db_1.T.uuid(id) }, tx);
+    if (!r)
+        throw (0, http_1.notFound)('ไม่พบคำขอ');
+    if (r.status !== 'pending')
+        throw (0, http_1.conflict)('คำขอนี้ได้รับการพิจารณาไปแล้ว');
+    if (r.email && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE email = @e`, { e: r.email }, tx)))
+        throw (0, http_1.conflict)(`อีเมล ${r.email} มีบัญชีอยู่แล้ว — ปฏิเสธคำขอนี้แทน`);
+    let username = r.username;
+    if (username && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE username = @u`, { u: username }, tx)))
+        throw (0, http_1.conflict)(`ชื่อผู้ใช้ ${username} ถูกใช้แล้ว — ปฏิเสธคำขอนี้แทน`);
+    if (!username)
+        username = await (0, service_1.uniqueUsername)(String(r.email).split('@')[0]);
+    const hash = r.password_hash ?? (await bcryptjs_1.default.hash(crypto_1.default.randomBytes(24).toString('hex'), 10)); // Microsoft / Google: signs in there
+    const u = await (0, db_1.q1)(`INSERT INTO Users (username, email, password_hash, display_name, created_by) OUTPUT inserted.user_id VALUES (@u, @e, @h, @n, @by)`, { u: username, e: db_1.T.text(r.email ?? null), h: hash, n: r.display_name, by: db_1.T.uuid(by) }, tx);
+    const newId = u.user_id;
+    await (0, db_1.q)(`INSERT INTO UserRoles (user_id, role_id, assigned_by) VALUES (@u, @r, @by)`, { u: db_1.T.uuid(newId), r: auth_1.ROLE_ID[role], by: db_1.T.uuid(by) }, tx);
+    if (r.provider && r.provider_subject && !(await (0, db_1.q1)(`SELECT 1 AS x FROM OAuthIdentities WHERE provider = @p AND subject = @s`, { p: r.provider, s: r.provider_subject }, tx)))
+        await (0, db_1.q)(`INSERT INTO OAuthIdentities (provider, subject, user_id, email) VALUES (@p, @s, @u, @e)`, { p: r.provider, s: r.provider_subject, u: db_1.T.uuid(newId), e: r.email }, tx);
+    if (tagIds?.length)
+        await (0, routes_1.setUserTags)(tx, newId, tagIds, by ?? newId);
+    await (0, db_1.q)(`UPDATE AccountRequests SET status = 'approved', granted_role = @g, user_id = @u, reviewed_by = @by, review_note = @n, reviewed_at = SYSUTCDATETIME(), password_hash = NULL
+         WHERE request_id = @id`, { g: role, u: db_1.T.uuid(newId), by: db_1.T.uuid(by), n: db_1.T.text(reviewNote || null), id: db_1.T.uuid(id) }, tx);
+    await (0, audit_1.audit)({ userId: by ?? newId, action: 'user_create', entityType: 'user', entityId: newId,
+        newValue: { username, role: role, requestedRole: r.requested_role, via: r.provider ?? 'signup', requestId: id } }, req, tx);
+    return newId;
+}
+/** roles whose sign-up makes the account at once */
+const AUTO_ROLES = ['user', 'viewer'];
 /* ---------------- admin: review ---------------- */
 const router = (0, express_1.Router)();
 const adminOnly = (0, auth_1.requireRole)('admin');
@@ -106,33 +148,7 @@ router.get('/account-requests/pending-count', adminOnly, (0, http_1.ah)(async (_
 router.post('/account-requests/:id/approve', adminOnly, (0, http_1.ah)(async (req, res) => {
     const id = (0, http_1.pid)(req);
     const b = (0, http_1.parse)(zod_1.z.object({ role: zRole, tagIds: zod_1.z.array(http_1.zId).max(200).optional(), reviewNote: zod_1.z.string().trim().max(1000).optional() }), req.body);
-    const userId = await (0, db_1.withTx)(async (tx) => {
-        const r = await (0, db_1.q1)(`SELECT * FROM AccountRequests WITH (UPDLOCK, ROWLOCK) WHERE request_id = @id`, { id: db_1.T.uuid(id) }, tx);
-        if (!r)
-            throw (0, http_1.notFound)('ไม่พบคำขอ');
-        if (r.status !== 'pending')
-            throw (0, http_1.conflict)('คำขอนี้ได้รับการพิจารณาไปแล้ว');
-        if (r.email && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE email = @e`, { e: r.email }, tx)))
-            throw (0, http_1.conflict)(`อีเมล ${r.email} มีบัญชีอยู่แล้ว — ปฏิเสธคำขอนี้แทน`);
-        let username = r.username;
-        if (username && (await (0, db_1.q1)(`SELECT 1 AS x FROM Users WHERE username = @u`, { u: username }, tx)))
-            throw (0, http_1.conflict)(`ชื่อผู้ใช้ ${username} ถูกใช้แล้ว — ปฏิเสธคำขอนี้แทน`);
-        if (!username)
-            username = await (0, service_1.uniqueUsername)(String(r.email).split('@')[0]);
-        const hash = r.password_hash ?? (await bcryptjs_1.default.hash(crypto_1.default.randomBytes(24).toString('hex'), 10)); // Microsoft / Google: signs in there
-        const u = await (0, db_1.q1)(`INSERT INTO Users (username, email, password_hash, display_name, created_by) OUTPUT inserted.user_id VALUES (@u, @e, @h, @n, @by)`, { u: username, e: db_1.T.text(r.email ?? null), h: hash, n: r.display_name, by: db_1.T.uuid(req.user.id) }, tx);
-        const newId = u.user_id;
-        await (0, db_1.q)(`INSERT INTO UserRoles (user_id, role_id, assigned_by) VALUES (@u, @r, @by)`, { u: db_1.T.uuid(newId), r: auth_1.ROLE_ID[b.role], by: db_1.T.uuid(req.user.id) }, tx);
-        if (r.provider && r.provider_subject && !(await (0, db_1.q1)(`SELECT 1 AS x FROM OAuthIdentities WHERE provider = @p AND subject = @s`, { p: r.provider, s: r.provider_subject }, tx)))
-            await (0, db_1.q)(`INSERT INTO OAuthIdentities (provider, subject, user_id, email) VALUES (@p, @s, @u, @e)`, { p: r.provider, s: r.provider_subject, u: db_1.T.uuid(newId), e: r.email }, tx);
-        if (b.tagIds?.length)
-            await (0, routes_1.setUserTags)(tx, newId, b.tagIds, req.user.id);
-        await (0, db_1.q)(`UPDATE AccountRequests SET status = 'approved', granted_role = @g, user_id = @u, reviewed_by = @by, review_note = @n, reviewed_at = SYSUTCDATETIME(), password_hash = NULL
-         WHERE request_id = @id`, { g: b.role, u: db_1.T.uuid(newId), by: db_1.T.uuid(req.user.id), n: db_1.T.text(b.reviewNote || null), id: db_1.T.uuid(id) }, tx);
-        await (0, audit_1.audit)({ userId: req.user.id, action: 'user_create', entityType: 'user', entityId: newId,
-            newValue: { username, role: b.role, requestedRole: r.requested_role, via: r.provider ?? 'signup', requestId: id } }, req, tx);
-        return newId;
-    });
+    const userId = await (0, db_1.withTx)((tx) => approveRequest(tx, id, b.role, b.tagIds, req.user.id, b.reviewNote, req));
     await (0, notify_1.notify)([userId], { type: 'welcome', title: 'ยินดีต้อนรับสู่ DataSheet Pro', message: `บัญชีของคุณได้รับอนุมัติแล้ว ระดับ ${ROLE_TH[b.role]}`, link: '/' });
     (0, http_1.ok)(res, { approved: true, userId });
 }));
