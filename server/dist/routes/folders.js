@@ -161,5 +161,40 @@ router.delete('/folders/:id', (0, http_1.ah)(async (req, res) => {
     (0, permissions_1.invalidateFolders)();
     (0, http_1.ok)(res, { deleted: true, batch });
 }));
+/**
+ * "สร้างโฟลเดอร์ ปี/เดือน/วัน": under this folder, <year> / "01 มกราคม" … "12 ธันวาคม" / "01" … "31" (real days of each month).
+ * Only missing folders are made (nothing renamed or removed), so it can be run again or for the next year.
+ */
+const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+router.post('/folders/:id/date-tree', (0, http_1.ah)(async (req, res) => {
+    const id = (0, http_1.pid)(req);
+    const u = req.user;
+    if ((0, auth_1.isBasicRole)(u.role))
+        throw (0, http_1.forbidden)('เฉพาะ Master หรือ Admin เท่านั้นที่สร้างโฟลเดอร์ได้');
+    const { folder } = await (0, permissions_1.requireFolder)(u, id, permissions_1.LV.write);
+    const b = (0, http_1.parse)(zod_1.z.object({ year: zod_1.z.number().int().min(2000).max(2100), days: zod_1.z.boolean().default(true), months: zod_1.z.array(zod_1.z.number().int().min(1).max(12)).max(12).optional() }), req.body);
+    const p2 = (n) => String(n).padStart(2, '0');
+    let made = 0;
+    await (0, db_1.withTx)(async (tx) => {
+        const ensure = async (parent, name) => {
+            const have = await (0, db_1.q1)(`SELECT folder_id FROM Folders WHERE is_deleted = 0 AND parent_id = @p AND folder_name = @n`, { p: db_1.T.uuid(parent), n: name }, tx);
+            if (have)
+                return have.folder_id;
+            made++;
+            const row = await (0, db_1.q1)(`INSERT INTO Folders (folder_name, parent_id, color, icon, created_by) OUTPUT inserted.folder_id VALUES (@n, @p, @c, N'folder', @u)`, { n: name, p: db_1.T.uuid(parent), c: folder.color ?? '#1552F0', u: db_1.T.uuid(u.id) }, tx);
+            return row.folder_id;
+        };
+        const yearId = await ensure(id, String(b.year));
+        for (const m of b.months?.length ? [...new Set(b.months)].sort((x, y) => x - y) : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+            const monthId = await ensure(yearId, `${p2(m)} ${THAI_MONTHS[m - 1]}`);
+            if (b.days)
+                for (let d = 1; d <= new Date(b.year, m, 0).getDate(); d++)
+                    await ensure(monthId, p2(d));
+        }
+        await (0, audit_1.audit)({ userId: u.id, action: 'folder_create', entityType: 'folder', entityId: id, newValue: { dateTree: b.year, days: b.days, made } }, req, tx);
+    });
+    (0, permissions_1.invalidateFolders)();
+    (0, http_1.ok)(res, { made });
+}));
 exports.default = router;
 //# sourceMappingURL=folders.js.map

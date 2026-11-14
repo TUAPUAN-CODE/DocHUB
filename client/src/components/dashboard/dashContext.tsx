@@ -3,6 +3,8 @@ import type { ColumnFilter, DataSource, Widget } from '@/types';
 
 /** Values chosen in slicer widgets, shared by every widget on the canvas */
 export interface DashCtxValue {
+  /** the dashboard shown (widgets that store things of their own, e.g. รับทราบ of the records widget) */
+  dashboardId?: string;
   slicers: Record<string, ColumnFilter | null>;
   setSlicer: (id: string, f: ColumnFilter | null) => void;
   widgets: Widget[];

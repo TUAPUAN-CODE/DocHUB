@@ -31,6 +31,7 @@ export const foldersApi = {
   create: (b: { name: string; parentId?: string | null; description?: string | null; color?: string }) => post<FolderItem>('/folders', b),
   update: (id: string, b: { name?: string; description?: string | null; color?: string }) => put(`/folders/${id}`, b),
   move: (id: string, parentId: string | null) => post(`/folders/${id}/move`, { parentId }),
+  dateTree: (id: string, b: { year: number; days: boolean; months?: number[] }) => post<{ made: number }>(`/folders/${id}/date-tree`, b),
   remove: (id: string) => del(`/folders/${id}`),
 };
 
