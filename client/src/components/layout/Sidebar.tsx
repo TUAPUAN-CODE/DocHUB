@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import { Badge, canSee, navLabel, orderedNav } from '@/lib/pages';
 import { useAppInfo } from '@/store/appInfo';
 import { AppLogo } from './AppLogo';
+import { useShell } from '@/store/theme';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { useUi } from '@/store/ui';
@@ -16,6 +17,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
   const user = useAuth((s) => s.user)!;
   const logout = useAuth((s) => s.logout);
   const appName = useAppInfo((s) => s.name);
+  const aurora = useShell() === 'aurora';
   const counts: Record<Badge, number> = {
     requests: useData((s) => s.pendingReviews + s.pendingAccounts + s.pendingTagRequests),
     news: useData((s) => s.newsUnread),
@@ -30,7 +32,12 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
     <div className="flex h-full flex-col">
       <Link to="/" onClick={onNavigate} className={cn('flex items-center gap-3 pb-4 pt-6', compact ? 'justify-center px-0' : 'px-6')} title={appName}>
         <AppLogo />
-        {!compact && <span className="truncate text-[17px] font-semibold tracking-tight">{appName}</span>}
+        {!compact && (
+          <span className="min-w-0">
+            <span className="block truncate text-[17px] font-semibold tracking-tight">{appName}</span>
+            {aurora && <span className="mt-1 block h-1 w-12 rounded-full bg-gradient-to-r from-[#1552F0] to-[#FF8A00]" aria-hidden />}
+          </span>
+        )}
       </Link>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-4 pt-6">
@@ -88,7 +95,7 @@ export function Sidebar() {
   return (
     <>
       {mode !== 'hidden' && (
-        <aside className="ds-sidebar hidden h-full shrink-0 lg:block print:!hidden" style={mode === 'icons' ? { width: 76 } : undefined}>
+        <aside className="ds-sidebar ds-sidebar-desktop hidden h-full shrink-0 lg:block print:!hidden" style={mode === 'icons' ? { width: 76 } : undefined}>
           <SidebarBody scope="desktop" compact={mode === 'icons'} />
         </aside>
       )}

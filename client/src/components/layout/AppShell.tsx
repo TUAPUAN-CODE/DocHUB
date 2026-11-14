@@ -16,7 +16,7 @@ export function AppShell() {
   const focus = useUi((s) => s.focusMode);
   const aiAllowed = useAuth((s) => canSee(s.user, 'ai'));
   return (
-    <div className="flex h-full" style={{ background: 'var(--sidebar-bg)' }}>
+    <div className="shell-root flex h-full" style={{ background: 'var(--sidebar-bg)' }}>
       <Sidebar />
       <main id="main-panel" className="main-panel flex min-w-0 flex-1 flex-col overflow-hidden">
         {!focus && <TopBar />}

@@ -10,6 +10,8 @@ export interface ThemeColors {
 export interface Theme {
   version: 1; mode: 'light' | 'dark'; colors: ThemeColors; radius: number; gap: number; fontFamily: string; fontSize: number;
   sidebarWidth: number; components: Partial<Record<ComponentKey, ComponentStyle>>;
+  /** aurora = white floating menu, glass top bar, soft blue / orange background (default in light mode) · classic = the coloured left bar */
+  shell?: 'aurora' | 'classic';
 }
 
 export const LIGHT: ThemeColors = {
@@ -104,6 +106,13 @@ export function applyTheme(t: Theme) {
     s.setProperty(`--${k}-pad`, `${c.padding}px`);
     s.setProperty(`--${k}-shadow`, SHADOWS[c.shadow] ?? 'none');
   });
+  // aurora shell (light mode): white floating left bar with dark text, glass top bar over a soft blue / orange background
+  const aurora = t.mode === 'light' && (t.shell ?? 'aurora') === 'aurora';
+  root.dataset.shell = aurora ? 'aurora' : 'classic';
+  if (aurora) {
+    s.setProperty('--sidebar-bg', 'transparent');
+    s.setProperty('--sidebar-text', '#22304D');
+  }
   root.classList.toggle('dark', t.mode === 'dark');
   root.style.colorScheme = t.mode;
   // the phone browser's bars / status bar take the top bar's colour, so the app reads as one full screen (not blue bands)

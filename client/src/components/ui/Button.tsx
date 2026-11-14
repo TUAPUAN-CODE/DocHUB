@@ -8,7 +8,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant; size?: Size; icon?: ReactNode; iconRight?: ReactNode; loading?: boolean;
 }
 const V: Record<Variant, string> = {
-  primary: 'bg-primary text-white hover:bg-primary/90 active:bg-primary/95 shadow-sm shadow-primary/20',
+  primary: 'btn-primary bg-primary text-white hover:bg-primary/90 active:bg-primary/95 shadow-sm shadow-primary/20',
   secondary: 'bg-surface text-ink border border-line hover:border-primary/40 hover:text-primary',
   ghost: 'text-ink/80 hover:bg-ink/5 hover:text-ink',
   subtle: 'bg-primary/10 text-primary hover:bg-primary/15',

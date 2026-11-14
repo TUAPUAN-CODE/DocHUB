@@ -137,6 +137,13 @@ export function ThemeCustomizer() {
             <h3 className="font-semibold">ชุดสีสำเร็จรูป</h3>
             <Segmented value={draft.mode} onChange={setMode} options={[{ value: 'light', label: 'สว่าง', icon: <Sun /> }, { value: 'dark', label: 'มืด', icon: <Moon /> }]} />
           </div>
+          {draft.mode === 'light' && (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium">รูปแบบหน้าจอ</span>
+              <Segmented size="sm" value={draft.shell ?? 'aurora'} onChange={(v) => update((t) => ({ ...t, shell: v }))}
+                options={[{ value: 'aurora', label: 'ใหม่ (ขาว · ฟ้า · ส้ม)' }, { value: 'classic', label: 'คลาสสิก (เมนูสี)' }]} />
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => (
               <button key={p.name} onClick={() => update((t) => mergeTheme(t, p.theme))} className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm hover:border-primary/50">

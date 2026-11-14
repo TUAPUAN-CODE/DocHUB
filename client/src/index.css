@@ -65,6 +65,52 @@ body {
   .side-item.drop { background: rgb(255 255 255 / .22); outline: 1.5px dashed rgb(255 255 255 / .7); }
 
   .main-panel { background: rgb(var(--c-bg)); }
+
+  /* ================= aurora shell (light): white · blue · orange =================
+     soft blue / orange glow + faint dot grid behind everything, the left bar a white floating panel, the top bar glass,
+     an orange accent on the active item, blue gradient primary buttons, cards with a soft blue shadow */
+  html[data-shell='aurora'] body { background: #F5F8FD; }
+  html[data-shell='aurora'] .shell-root {
+    background:
+      radial-gradient(900px 520px at -10% -10%, rgb(21 82 240 / .13), transparent 60%),
+      radial-gradient(700px 420px at 105% -5%, rgb(255 138 0 / .14), transparent 60%),
+      radial-gradient(900px 600px at 100% 110%, rgb(21 82 240 / .10), transparent 60%),
+      radial-gradient(rgb(21 82 240 / .07) 1px, transparent 1px) 0 0 / 22px 22px,
+      #F5F8FD !important;
+  }
+  html[data-shell='aurora'] .ds-sidebar-desktop { padding: 12px 0 12px 12px; }
+  html[data-shell='aurora'] .ds-sidebar-desktop > div,
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { background: #fff; border: 1px solid #E6ECF7; border-radius: 24px;
+    box-shadow: 0 24px 48px -28px rgb(21 82 240 / .35), 0 2px 6px rgb(16 24 40 / .04); }
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 24px 24px 0; }
+  html[data-shell='aurora'] .nav-link { margin: 0 12px; border-radius: 14px; height: 44px; font-weight: 500; }
+  html[data-shell='aurora'] .sb-collapsed .nav-link { margin: 0 8px; }
+  html[data-shell='aurora'] .nav-link > :not(.nav-pill) { opacity: .88; }
+  html[data-shell='aurora'] .nav-link:hover { background: #F1F5FF; }
+  html[data-shell='aurora'] .nav-link.active { color: #fff; }
+  html[data-shell='aurora'] .nav-pill { background: linear-gradient(120deg, #1552F0 0%, #3C7BFF 100%); border-radius: 14px;
+    box-shadow: 0 12px 22px -10px rgb(21 82 240 / .7); }
+  /* the orange accent of the active item (in place of the classic connected corners) */
+  html[data-shell='aurora'] .nav-pill::before { top: 10px; bottom: 10px; left: auto; right: 10px; width: 4px; height: auto; border-radius: 99px;
+    background: linear-gradient(#FFB040, #FF7A00); box-shadow: 0 0 10px rgb(255 138 0 / .8); }
+  html[data-shell='aurora'] .nav-pill::after { display: none; }
+  html[data-shell='aurora'] .side-item:hover, html[data-shell='aurora'] .side-item.active { background: #F1F5FF; }
+  html[data-shell='aurora'] .main-panel { background: transparent; border-radius: 0; }
+  @media (min-width: 640px) {
+    html[data-shell='aurora'] .ds-topbar { margin: 12px 16px 0 16px; border-radius: 18px; background: rgb(255 255 255 / .72);
+      border: 1px solid rgb(255 255 255 / .9); box-shadow: 0 10px 30px -18px rgb(21 82 240 / .35); backdrop-filter: saturate(1.4) blur(14px); }
+  }
+  html[data-shell='aurora'] .ds-topbar { background: rgb(255 255 255 / .8); border-bottom-color: transparent; backdrop-filter: blur(12px); }
+  html[data-shell='aurora'] .ds-card { border-color: #E8EEF8; box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 16px 32px -24px rgb(21 82 240 / .35); }
+  html[data-shell='aurora'] .ds-th { background: #F3F7FF; color: #2B3A5C; }
+  html[data-shell='aurora'] .btn-primary { background-image: linear-gradient(120deg, #1552F0 0%, #3C7BFF 100%); box-shadow: 0 10px 20px -10px rgb(21 82 240 / .75); }
+  html[data-shell='aurora'] .btn-primary:hover { filter: brightness(1.06); }
+  html[data-shell='aurora'] .page-icon { height: 3rem; width: 3rem; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #1552F0, #4C8BFF);
+    box-shadow: 0 14px 26px -12px rgb(21 82 240 / .75); }
+  html[data-shell='aurora'] .page-icon::after { content: ''; position: absolute; right: -3px; top: -3px; width: 12px; height: 12px; border-radius: 99px;
+    background: linear-gradient(135deg, #FFB040, #FF7A00); border: 2px solid #fff; }
+  html[data-shell='aurora'] .page-title { font-size: 26px; font-weight: 700; color: #14213D; letter-spacing: -.01em; }
+  html[data-shell='aurora'] .accent-orange { background-image: linear-gradient(120deg, #FF9A1F, #FF6A00) !important; box-shadow: 0 10px 20px -10px rgb(255 122 0 / .8) !important; }
   @media (min-width: 1024px) { .main-panel { border-top-left-radius: 28px; border-bottom-left-radius: 28px; } }
 
   .skeleton { position: relative; overflow: hidden; background: rgb(var(--c-border) / .6); border-radius: 8px; }
@@ -117,4 +163,14 @@ body {
   .main-panel, #page-scroll { overflow: visible !important; height: auto !important; display: block !important; }
   .guide-step { break-inside: avoid; }
   @page { margin: 12mm; }
+}
+
+/* Application tiles: a white card; on hover it lifts and a blue → orange line grows under it */
+@layer components {
+  .app-tile { position: relative; overflow: hidden; background: rgb(var(--c-surface)); border: 1px solid rgb(var(--c-border));
+    box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 14px 28px -22px rgb(21 82 240 / .45); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .app-tile::after { content: ''; position: absolute; left: 50%; bottom: 0; height: 4px; width: 0; translate: -50% 0; border-radius: 99px;
+    background: linear-gradient(90deg, #1552F0, #FF8A00); transition: width .28s ease; }
+  .app-tile:hover { transform: translateY(-3px); border-color: rgb(21 82 240 / .25); box-shadow: 0 2px 4px rgb(16 24 40 / .05), 0 22px 36px -22px rgb(21 82 240 / .6); }
+  .app-tile:hover::after { width: 70%; }
 }
