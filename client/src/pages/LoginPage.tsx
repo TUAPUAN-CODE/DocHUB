@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, TextInput } from '@/components/ui/Inputs';
 import { useAuth } from '@/store/auth';
 import { useAppInfo } from '@/store/appInfo';
+import { AppLogo } from '@/components/layout/AppLogo';
 
 /** Where to go after signing in: ?next=/files/… (same-site paths only, never another host) */
 export function nextPath(search: string, fallback = '/') {
@@ -67,9 +68,7 @@ export default function LoginPage() {
           <rect width="100%" height="100%" fill="url(#g)" />
         </svg>
         <div className="relative flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-white text-primary">
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M5 7h14M5 12h14M5 17h9M10 4v16" /></svg>
-          </span>
+          <AppLogo className="h-10 w-10 !bg-white" />
           <span className="text-lg font-semibold">{useAppInfo.getState().name}</span>
         </div>
         <div className="relative mt-auto max-w-lg">
