@@ -26,7 +26,7 @@ const ALL: Role[] = ['viewer', 'user', 'master', 'admin'];
 const BUILDERS: Role[] = ['master', 'admin'];
 
 export const PAGES: PageDef[] = [
-  { key: 'home', label: 'หน้าแรก', kind: 'page', defaults: ALL, always: true },
+  { key: 'home', label: 'หน้าแรก', kind: 'page', defaults: ALL, hint: 'ปิดแล้ว ผู้ใช้เข้าระบบจะไปหน้าแรกของเมนูที่เห็นแทน' },
   { key: 'news', label: 'ข่าวสาร', kind: 'page', defaults: ALL },
   { key: 'browse', label: 'ไฟล์ทั้งหมด', kind: 'page', defaults: ALL, hint: 'ปิดแล้วยังเปิดไฟล์จากลิงก์ที่แชร์ / รายการโปรดได้' },
   { key: 'requests', label: 'คำขออนุมัติ', kind: 'page', defaults: ALL, hint: 'อนุมัติเอกสาร · คำขอสิทธิ์ไฟล์ · คำขอสร้างบัญชี (Admin) · คำขอ Tag (ขอ Tag ได้ทุกคน · Master ขึ้นไปอนุมัติและจัดการ Tag)' },

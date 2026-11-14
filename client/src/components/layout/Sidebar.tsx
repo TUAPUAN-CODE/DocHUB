@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { LogOut, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { Badge, canSee, NAV, navLabel } from '@/lib/pages';
+import { Badge, canSee, navLabel, orderedNav } from '@/lib/pages';
 import { useAppInfo } from '@/store/appInfo';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
@@ -21,7 +21,7 @@ function SidebarBody({ onNavigate, scope, compact }: { onNavigate?: () => void; 
   };
   const { pathname } = useLocation();
   // pages the role sees: set by a root on จัดการสิทธิ์ (lib/pages.tsx)
-  const items = NAV.filter((n) => !n.notInNav && canSee(user, n.key)).map((n) => ({ ...n, name: navLabel(user, n) ?? t(n.label), active: n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
+  const items = orderedNav(user.pageOrder).filter((n) => !n.notInNav && canSee(user, n.key)).map((n) => ({ ...n, name: navLabel(user, n) ?? t(n.label), active: n.match?.(pathname), badge: n.badge ? counts[n.badge] : 0 }));
 
   return (
     <div className="flex h-full flex-col">
