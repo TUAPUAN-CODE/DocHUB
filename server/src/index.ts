@@ -47,6 +47,7 @@ import pageAccessModule from './modules/pageAccess/module';
 import appInfoModule from './modules/appInfo/module';
 import newsModule from './modules/news/module';
 import appsModule from './modules/apps/module';
+import dashAcksModule from './modules/dashAcks/module';
 import { ensureRootAccount } from './scripts/rootAccount';
 import exportArchiveModule from './modules/exportArchive/module';
 import approvalsModule from './modules/approvals/module';
@@ -95,7 +96,7 @@ app.use('/api', devicesModule.ingest);
 app.use('/api', authenticate);
 for (const r of [
   userRoutes, folderRoutes, fileRoutes, sheetRoutes, columnRoutes, rowRoutes, cellRoutes, accessRoutes, auditRoutes,
-  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, inkcodeModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router, revisionsModule.router, tagsModule.router, accountRequestsModule.router, dataSearchModule.router, monitorModule.router, pageAccessModule.router, newsModule.router, appInfoModule.router, appsModule.router,
+  favoriteRoutes, activityRoutes, searchRoutes, notificationRoutes, themeRoutes, dashboardRoutes, uploadRoutes, trashRoutes, shareManageRouter, unionRoutes, pdfRoutes, formulaModule.router, exportArchiveModule.router, approvalsModule.router, connectorsModule.router, aiModule.router, inkcodeModule.router, lineAlertsModule.router, scanModule.router, mixModule.router, linesModule.router, traceModule.router, formLayoutModule.router, devicesModule.router, revisionsModule.router, tagsModule.router, accountRequestsModule.router, dataSearchModule.router, monitorModule.router, pageAccessModule.router, newsModule.router, appInfoModule.router, appsModule.router, dashAcksModule.router,
 ]) app.use('/api', r);
 app.use('/api', (_req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'ไม่พบ API ที่เรียก' } });

@@ -193,4 +193,40 @@ router.delete(
   }),
 );
 
+/**
+ * "สร้างโฟลเดอร์ ปี/เดือน/วัน": under this folder, <year> / "01 มกราคม" … "12 ธันวาคม" / "01" … "31" (real days of each month).
+ * Only missing folders are made (nothing renamed or removed), so it can be run again or for the next year.
+ */
+const THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+router.post(
+  '/folders/:id/date-tree',
+  ah(async (req, res) => {
+    const id = pid(req);
+    const u = req.user!;
+    if (isBasicRole(u.role)) throw forbidden('เฉพาะ Master หรือ Admin เท่านั้นที่สร้างโฟลเดอร์ได้');
+    const { folder } = await requireFolder(u, id, LV.write);
+    const b = parse(z.object({ year: z.number().int().min(2000).max(2100), days: z.boolean().default(true), months: z.array(z.number().int().min(1).max(12)).max(12).optional() }), req.body);
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    let made = 0;
+    await withTx(async (tx) => {
+      const ensure = async (parent: string, name: string): Promise<string> => {
+        const have = await q1(`SELECT folder_id FROM Folders WHERE is_deleted = 0 AND parent_id = @p AND folder_name = @n`, { p: T.uuid(parent), n: name }, tx);
+        if (have) return have.folder_id as string;
+        made++;
+        const row = await q1(`INSERT INTO Folders (folder_name, parent_id, color, icon, created_by) OUTPUT inserted.folder_id VALUES (@n, @p, @c, N'folder', @u)`,
+          { n: name, p: T.uuid(parent), c: folder.color ?? '#1552F0', u: T.uuid(u.id) }, tx);
+        return row!.folder_id as string;
+      };
+      const yearId = await ensure(id, String(b.year));
+      for (const m of b.months?.length ? [...new Set(b.months)].sort((x, y) => x - y) : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+        const monthId = await ensure(yearId, `${p2(m)} ${THAI_MONTHS[m - 1]}`);
+        if (b.days) for (let d = 1; d <= new Date(b.year, m, 0).getDate(); d++) await ensure(monthId, p2(d));
+      }
+      await audit({ userId: u.id, action: 'folder_create', entityType: 'folder', entityId: id, newValue: { dateTree: b.year, days: b.days, made } }, req, tx);
+    });
+    invalidateFolders();
+    ok(res, { made });
+  }),
+);
+
 export default router;

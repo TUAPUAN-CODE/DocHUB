@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { History, Search, X } from 'lucide-react';
+import { History, Search, Users, X } from 'lucide-react';
 import { rowsApi } from '@/api/endpoints';
 import { useDebounce } from '@/hooks';
 import { cn } from '@/lib/cn';
@@ -10,6 +10,7 @@ import { RevDiffView, RevValue } from '@/modules/revisions/RevDiffView';
 import type { Column, Row, Widget } from '@/types';
 import { ImageGallery } from '../sheet/ImageCell';
 import { useDash, withSlicers } from './dashContext';
+import { AckSummary, BoxCard, CardModel, RecordDetail } from './RecordCard';
 
 function useColumns(sheetId: string | undefined) {
   const [cols, setCols] = useState<Column[]>([]);
@@ -45,7 +46,13 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
   const fieldIds: string[] = c.fieldColumnsAll
     ? cols.filter((x) => x.dataType !== 'image' && !titleIds.includes(x.id)).map((x) => x.id)
     : (c.fieldColumnIds ?? []).filter((id: string) => byId.has(id));
-  const searchIds: string[] = (c.searchColumnIds ?? []).filter((id: string) => byId.has(id));
+  // searchAll: every column is searched (columns added later included, e.g. Mat Name / Supplier)
+  const searchIds: string[] = c.searchAll ? [] : (c.searchColumnIds ?? []).filter((id: string) => byId.has(id));
+  const boxes = c.cardStyle === 'boxes';
+  const ack = !!c.ack;
+  const [openRow, setOpenRow] = useState<Row | null>(null);
+  const [summary, setSummary] = useState(false);
+  const model: CardModel = { titleIds: (c.titleColumnIds ?? []).filter((id: string) => byId.has(id)), fieldIds: [], imageCol: c.imageColumnId ? byId.get(c.imageColumnId) : undefined, byId };
   const pageSize = Math.max(5, Math.min(200, Number(c.pageSize) || 20));
   /** a heading as the table shows it (dates dd/mm/yyyy, option labels …) */
   const shown = (id: string, r: Row) => { const col = byId.get(id); return col ? displayValue(col, r.values[id] ?? null) : text(r.values[id]); };
@@ -90,6 +97,7 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
     return out;
   }, [rows, titleIds.join()]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  model.fieldIds = fieldIds;
   if (!ds?.sheetId || !titleIds.length) return <p className="grid h-full place-items-center text-center text-xs opacity-60">{editing ? 'เลือกชีตและคอลัมน์หัวข้อที่แผง “ข้อมูล” ด้านขวา' : 'ยังไม่ได้ตั้งค่าข้อมูล'}</p>;
   const searchNames = searchIds.map((id) => byId.get(id)!.name);
   const fs = Number(c.fontSize) || 14;
@@ -105,11 +113,17 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
       <div className="mb-1.5 flex shrink-0 flex-wrap items-center justify-between gap-x-3 text-xs opacity-70">
         <span>{rows === null ? 'กำลังโหลด…' : dq ? `พบ ${total.toLocaleString()} รายการสำหรับ “${dq}”` : `ทั้งหมด ${total.toLocaleString()} รายการ`}</span>
         {rev && <span className="inline-flex items-center gap-1"><History className="h-3.5 w-3.5" />Rev.{rev.meta.revNo} · {fmtDateTime(rev.meta.createdAt)}</span>}
+        {ack && ctx.dashboardId && !editing && (
+          <button onClick={() => setSummary(true)} onMouseDown={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 font-medium text-white opacity-100 hover:bg-emerald-700">
+            <Users className="h-3.5 w-3.5" />สรุปการรับทราบวันนี้
+          </button>
+        )}
       </div>
       <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-0.5">
         {error && <p className="px-2 py-6 text-center text-sm text-danger">{error}</p>}
         {rows !== null && !rows.length && !error && <p className="px-2 py-10 text-center text-sm opacity-60">{dq ? `ไม่พบ “${dq}”` : 'ยังไม่มีข้อมูล'}</p>}
-        {groups.map((g) => (
+        {boxes && (rows ?? []).map((r) => <BoxCard key={r.id} m={model} r={r} ack={ack} onOpen={() => setOpenRow(r)} />)}
+        {!boxes && groups.map((g) => (
           <div key={g.rows[0].id} className="overflow-hidden rounded-2xl border border-line bg-surface">
             <div className="flex items-center gap-2 border-b border-line bg-primary/[.05] px-3 py-2">
               <p className="min-w-0 flex-1 truncate text-[1.15em] font-semibold text-primary">{titleIds[0] ? g.key || '—' : `แถว ${g.rows[0].order}`}</p>
@@ -163,6 +177,8 @@ export function RecordsBody({ w, refreshKey, editing }: { w: Widget; refreshKey:
           </button>
         )}
       </div>
+      {openRow && <RecordDetail m={model} r={openRow} onClose={() => setOpenRow(null)} dashId={ctx.dashboardId} widgetId={w.id} ack={ack && !editing} />}
+      {summary && ctx.dashboardId && <AckSummary dashId={ctx.dashboardId} widgetId={w.id} onClose={() => setSummary(false)} />}
     </div>
   );
 }

@@ -207,7 +207,7 @@ export default function DashboardPage() {
   const pad = full ? 0 : 48;
   const flow = narrow && !edit && !full;
   return (
-    <DashCtx.Provider value={{ slicers, setSlicer, widgets }}>
+    <DashCtx.Provider value={{ slicers, setSlicer, widgets, dashboardId: dashId }}>
     <div ref={page} className={cn('flex flex-col bg-app', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
       {full && <button onClick={() => void toggleFull()} className="absolute right-3 top-3 z-[60] inline-flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity hover:opacity-100 focus:opacity-100"><Shrink className="h-3.5 w-3.5" />ออกจากเต็มจอ (Esc)</button>}
       <div className={cn('shrink-0 flex-wrap items-center gap-2 px-4 pb-3 sm:px-6', full ? 'hidden' : 'flex')}>
