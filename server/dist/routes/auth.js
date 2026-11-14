@@ -17,7 +17,7 @@ const http_1 = require("../shared/http");
 const mappers_1 = require("../shared/mappers");
 const module_1 = require("../modules/pageAccess/module");
 /** + the pages of the left bar (and features) the user's role sees */
-const withPages = async (u) => ({ ...u, pages: await (0, module_1.pagesFor)(u.role), pageLabels: await (0, module_1.pageLabels)() });
+const withPages = async (u) => ({ ...u, pages: await (0, module_1.pagesFor)(u.role), pageLabels: await (0, module_1.pageLabels)(), pageOrder: await (0, module_1.pageOrder)() });
 const router = (0, express_1.Router)();
 const COOKIE = 'dsp_rt';
 const sha = (s) => crypto_1.default.createHash('sha256').update(s).digest('hex');

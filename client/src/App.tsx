@@ -5,7 +5,7 @@ import { ConfirmHost, Toaster } from '@/components/ui/Feedback';
 import { Spinner } from '@/components/ui/misc';
 import { useAuth } from '@/store/auth';
 import { useAppInfo } from '@/store/appInfo';
-import { canSee } from '@/lib/pages';
+import { canSee, firstPage } from '@/lib/pages';
 import LoginPage, { nextPath } from '@/pages/LoginPage';
 import HomePage from '@/pages/HomePage';
 import FolderPage from '@/pages/FolderPage';
@@ -46,6 +46,11 @@ function RequireAuth({ children }: { children: ReactNode }) {
   }
   return <>{children}</>;
 }
+/** "/" = the home page, or the first page of the left bar when an admin turned the home page off for the role */
+function HomeOrFirst() {
+  const user = useAuth((s) => s.user);
+  return canSee(user, 'home') ? <HomePage /> : <Navigate to={firstPage(user)} replace />;
+}
 function RequireRole({ roles, children }: { roles: string[]; children: ReactNode }) {
   const role = useAuth((s) => s.user?.role);
   return role && (roles.includes(role) || role === 'root') ? <>{children}</> : <Navigate to="/" replace />;
@@ -83,7 +88,7 @@ export default function App() {
         <Route path="/signup" element={status === 'authed' ? <Navigate to="/" replace /> : <Suspense fallback={<div className="grid h-full place-items-center"><Spinner /></div>}><SignupPage /></Suspense>} />
         <Route path="/s/:token" element={<Suspense fallback={<div className="grid h-full place-items-center"><Spinner /></div>}><PublicSharePage /></Suspense>} />
         <Route element={<RequireAuth><AppShell /></RequireAuth>}>
-          <Route index element={<HomePage />} />
+          <Route index element={<HomeOrFirst />} />
           <Route path="browse" element={<RequirePage page="browse"><FolderPage /></RequirePage>} />
           <Route path="news" element={<RequirePage page="news"><NewsPage /></RequirePage>} />
           <Route path="tags" element={<TagsMoved />} />

@@ -13,6 +13,8 @@ export interface User {
   pages?: string[];
   /** names of left-bar items renamed by an admin (key → name) */
   pageLabels?: Record<string, string>;
+  /** order of left-bar items set by an admin (keys) */
+  pageOrder?: string[];
 }
 export interface TagRef { id: string; name: string; color: string }
 export interface Tag extends TagRef { description: string | null; memberCount: number; grantCount?: number; createdAt: string; isSystem?: boolean }

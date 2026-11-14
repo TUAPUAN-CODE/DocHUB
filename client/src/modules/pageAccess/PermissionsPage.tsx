@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Info, Lock, RotateCcw, Save, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Info, Lock, RotateCcw, Save, ShieldCheck, Sparkles } from 'lucide-react';
 import { Page } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { Segmented, TextInput } from '@/components/ui/Inputs';
@@ -7,7 +7,7 @@ import { EmptyState, PageHeader, RoleBadge, Skeleton } from '@/components/ui/mis
 import { useLoad } from '@/hooks';
 import { cn } from '@/lib/cn';
 import { fmtDateTime } from '@/lib/format';
-import { NAV } from '@/lib/pages';
+import { NAV, orderedNav } from '@/lib/pages';
 import { ROLE_LABEL } from '@/lib/format';
 import { confirmDialog, toast } from '@/store/ui';
 import type { Role } from '@/types';
@@ -44,7 +44,24 @@ export default function PermissionsPage() {
   const [busy, setBusy] = useState(false);
   const [role, setRole] = useState<Role>('user');
   const [labels, setLabels] = useState<Record<string, string>>({});
-  useEffect(() => { if (data) { setAllowed(data.allowed); setLabels(data.labels ?? {}); } }, [data]);
+  const [order, setOrder] = useState<string[]>([]);
+  useEffect(() => { if (data) { setAllowed(data.allowed); setLabels(data.labels ?? {}); setOrder(orderedNav(data.order).map((n) => n.key)); } }, [data]);
+  const orderDirty = !!data && order.join() !== orderedNav(data.order).map((n) => n.key).join();
+  /** moves a left-bar item one place up / down among the items that are in the left bar */
+  const move = (key: string, dir: -1 | 1) => setOrder((o) => {
+    const navKeys = o.filter((k) => navPages.some((p) => p.key === k));
+    const i = navKeys.indexOf(key), j = i + dir;
+    if (i < 0 || j < 0 || j >= navKeys.length) return o;
+    [navKeys[i], navKeys[j]] = [navKeys[j], navKeys[i]];
+    const rest = o.filter((k) => !navKeys.includes(k));
+    return [...navKeys, ...rest];
+  });
+  const mover = (p: PageInfo, idx: number, count: number) => (
+    <span className="inline-flex shrink-0 flex-col">
+      <button type="button" aria-label={`เลื่อน ${p.label} ขึ้น`} disabled={idx === 0} onClick={() => move(p.key, -1)} className="rounded p-0.5 text-muted hover:bg-ink/5 hover:text-primary disabled:opacity-25"><ArrowUp className="h-3.5 w-3.5" /></button>
+      <button type="button" aria-label={`เลื่อน ${p.label} ลง`} disabled={idx === count - 1} onClick={() => move(p.key, 1)} className="rounded p-0.5 text-muted hover:bg-ink/5 hover:text-primary disabled:opacity-25"><ArrowDown className="h-3.5 w-3.5" /></button>
+    </span>
+  );
   const labelsDirty = !!data && JSON.stringify(Object.entries(labels).filter(([, v]) => v.trim()).sort()) !== JSON.stringify(Object.entries(data.labels ?? {}).sort());
   const nameField = (p: PageInfo) => p.kind === 'page' && !p.notInNav
     ? <TextInput value={labels[p.key] ?? ''} placeholder={`ชื่อในเมนู (เดิม: ${p.label})`} maxLength={60} aria-label={`ชื่อเมนู ${p.label}`}
@@ -54,12 +71,12 @@ export default function PermissionsPage() {
   const has = (r: Role, key: string) => r === 'root' || (allowed[r] ?? []).includes(key);
   const toggle = (r: Role, key: string) =>
     setAllowed((a) => ({ ...a, [r]: (a[r] ?? []).includes(key) ? a[r].filter((k) => k !== key) : [...(a[r] ?? []), key] }));
-  const dirty = useMemo(() => !!data && data.roles.some((r) => [...(allowed[r] ?? [])].sort().join() !== [...data.allowed[r]].sort().join()), [allowed, data]) || labelsDirty;
+  const dirty = useMemo(() => !!data && data.roles.some((r) => [...(allowed[r] ?? [])].sort().join() !== [...data.allowed[r]].sort().join()), [allowed, data]) || labelsDirty || orderDirty;
 
   const save = async () => {
     setBusy(true);
     try {
-      const r = await pageAccessApi.save(allowed, Object.fromEntries(Object.entries(labels).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)));
+      const r = await pageAccessApi.save(allowed, Object.fromEntries(Object.entries(labels).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)), order);
       setAllowed(r.allowed);
       toast.success('บันทึกสิทธิ์แล้ว', 'เมนูของผู้ใช้ที่เปิดอยู่จะเปลี่ยนตามทันที');
       void reload(true);
@@ -69,11 +86,15 @@ export default function PermissionsPage() {
     if (!data) return;
     if (!(await confirmDialog({ title: 'คืนค่าเริ่มต้น?', message: 'ตั้งทุกบทบาทกลับเป็นค่าเริ่มต้นของระบบ (ยังไม่บันทึกจนกว่าจะกด “บันทึก”)', confirmText: 'คืนค่าเริ่มต้น' }))) return;
     setAllowed(Object.fromEntries(data.roles.map((r) => [r, data.pages.filter((p) => p.always || (!p.rootOnly && p.defaults.includes(r) && !lockReason(p, r))).map((p) => p.key)])));
+    setOrder(NAV.map((n) => n.key));
   };
 
   const pages = data?.pages ?? [];
-  const groups: { title: string; items: PageInfo[] }[] = [
-    { title: 'หน้าในเมนูด้านซ้าย', items: pages.filter((p) => p.kind === 'page') },
+  const at = new Map(order.map((k, i) => [k, i]));
+  const navPages = pages.filter((p) => p.kind === 'page' && !p.notInNav).sort((a, b) => (at.get(a.key) ?? 999) - (at.get(b.key) ?? 999));
+  const groups: { title: string; note?: string; items: PageInfo[]; ordered?: boolean }[] = [
+    { title: 'เมนูด้านซ้าย (ลูกศร = เลื่อนลำดับ)', items: navPages, ordered: true },
+    { title: 'เปิดจากหน้า Application (ไม่อยู่ในแถบซ้าย)', note: 'ติ๊ก = role นั้นเห็นแอปนี้ในหน้า Application และเปิดหน้านั้นได้', items: pages.filter((p) => p.kind === 'page' && p.notInNav) },
     { title: 'ฟังก์ชัน', items: pages.filter((p) => p.kind === 'feature') },
   ];
   const cols: Role[] = ['viewer', 'user', 'master', 'admin', 'root'];
@@ -110,11 +131,11 @@ export default function PermissionsPage() {
                 </thead>
                 {groups.map((g) => (
                   <tbody key={g.title} className="divide-y divide-line">
-                    <tr><td colSpan={cols.length + 1} className="bg-ink/[.02] px-4 py-2 text-xs font-semibold text-muted">{g.title}</td></tr>
-                    {g.items.map((p) => (
+                    <tr><td colSpan={cols.length + 1} className="bg-ink/[.02] px-4 py-2 text-xs font-semibold text-muted">{g.title}{g.note && <span className="ml-2 font-normal">· {g.note}</span>}</td></tr>
+                    {g.items.map((p, idx) => (
                       <tr key={p.key} className="hover:bg-ink/[.02]">
                         <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-2.5 font-medium"><span className="text-primary">{iconOf(p.key)}</span>{p.label}</div>
+                          <div className="flex items-center gap-2.5 font-medium">{g.ordered && mover(p, idx, g.items.length)}<span className="text-primary">{iconOf(p.key)}</span>{p.label}</div>
                           {p.hint && <p className="ml-7 mt-0.5 text-xs text-muted">{p.hint}</p>}
                           {nameField(p) && <div className="ml-7">{nameField(p)}</div>}
                         </td>
@@ -137,11 +158,12 @@ export default function PermissionsPage() {
               </div>
               {groups.map((g) => (
                 <div key={g.title} className="ds-card mb-3 divide-y divide-line overflow-hidden">
-                  <p className="bg-ink/[.02] px-4 py-2 text-xs font-semibold text-muted">{g.title}</p>
-                  {g.items.map((p) => {
+                  <p className="bg-ink/[.02] px-4 py-2 text-xs font-semibold text-muted">{g.title}{g.note && <span className="block font-normal">{g.note}</span>}</p>
+                  {g.items.map((p, idx) => {
                     const locked = lockReason(p, role);
                     return (
                       <div key={p.key} className="flex items-center gap-3 px-4 py-2.5">
+                        {g.ordered && mover(p, idx, g.items.length)}
                         <span className="text-primary">{iconOf(p.key)}</span>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{p.label}</p>
@@ -159,7 +181,7 @@ export default function PermissionsPage() {
               <div className="sticky bottom-3 mt-4 flex items-center justify-between gap-3 rounded-theme border border-warning/40 bg-surface px-4 py-3 shadow-lg">
                 <span className="text-sm text-warning">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => { if (data) { setAllowed(data.allowed); setLabels(data.labels ?? {}); } }}>ยกเลิก</Button>
+                  <Button size="sm" variant="secondary" onClick={() => { if (data) { setAllowed(data.allowed); setLabels(data.labels ?? {}); setOrder(orderedNav(data.order).map((n) => n.key)); } }}>ยกเลิก</Button>
                   <Button size="sm" icon={<Save className="h-3.5 w-3.5" />} onClick={() => void save()} loading={busy}>บันทึก</Button>
                 </div>
               </div>

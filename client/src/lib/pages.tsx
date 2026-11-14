@@ -16,7 +16,7 @@ const i = 'h-[18px] w-[18px]';
 export const NAV: NavPage[] = [
   { key: 'home', to: '/', label: 'หน้าแรก', icon: <Home className={i} />, match: (p) => p === '/' },
   { key: 'news', to: '/news', label: 'ข่าวสาร', icon: <Megaphone className={i} />, badge: 'news' },
-  { key: 'browse', to: '/browse', label: 'ไฟล์ทั้งหมด', icon: <FolderOpen className={i} />, match: (p) => p.startsWith('/browse') || p.startsWith('/folders') || p.startsWith('/files') },
+  { key: 'browse', to: '/browse', label: 'ไฟล์ทั้งหมด', icon: <FolderOpen className={i} />, match: (p) => p.startsWith('/browse') || p.startsWith('/folders') || (p.startsWith('/files') && !p.includes('/dashboards/')) },
   { key: 'apps', to: '/apps', label: 'Application', icon: <AppWindow className={i} />, match: (p) => p.startsWith('/apps') || p.startsWith('/dashboards') || p.includes('/dashboards/') || p.startsWith('/inkcode/plan') },
   { key: 'requests', to: '/requests', label: 'คำขออนุมัติ', icon: <ClipboardCheck className={i} />, badge: 'requests', match: (p) => p.startsWith('/requests') },
   { key: 'audit', to: '/audit', label: 'ประวัติการแก้ไข', icon: <History className={i} /> },
@@ -41,7 +41,7 @@ const DEFAULTS: Record<Role, string[]> = {
   admin: [...ALL, 'audit', 'devices', 'connectors', 'inkcodePlan', 'users', 'monitor', 'ai', 'permissions'],
   root: [...NAV.map((n) => n.key), 'ai'],
 };
-const ALWAYS = ['home', 'settings'];
+const ALWAYS = ['settings'];
 
 export function canSee(user: Pick<User, 'role' | 'pages'> | null | undefined, key: string) {
   if (!user) return false;
@@ -51,3 +51,12 @@ export function canSee(user: Pick<User, 'role' | 'pages'> | null | undefined, ke
 
 /** the name of a left-bar item: as renamed by an admin on จัดการสิทธิ์, else the built-in one (which is translated) */
 export const navLabel = (user: Pick<User, 'pageLabels'> | null | undefined, n: Pick<NavPage, 'key' | 'label'>) => user?.pageLabels?.[n.key] || null;
+
+/** NAV in the order an admin set on จัดการสิทธิ์ (keys not in that list keep the built-in order, after it) */
+export function orderedNav(order: string[] | undefined | null): NavPage[] {
+  const at = new Map((order ?? []).map((k, i) => [k, i]));
+  return NAV.map((n, i) => ({ n, i })).sort((a, b) => (at.get(a.n.key) ?? 1000 + a.i) - (at.get(b.n.key) ?? 1000 + b.i)).map((x) => x.n);
+}
+/** The first left-bar page a user sees (where "/" goes when the home page is turned off for the role) */
+export const firstPage = (user: Pick<User, 'role' | 'pages' | 'pageOrder'> | null | undefined) =>
+  orderedNav(user?.pageOrder).find((n) => !n.notInNav && n.key !== 'home' && canSee(user, n.key))?.to ?? '/settings';

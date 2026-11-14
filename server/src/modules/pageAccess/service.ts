@@ -10,7 +10,7 @@ let cache: { at: number; rows: Map<string, boolean> } | null = null;
 const CACHE_MS = 30_000;
 
 export function invalidatePageAccess() {
-  cache = null; labelCache = null;
+  cache = null; labelCache = null; orderCache = null;
   broadcast('pageAccess');
 }
 onBroadcast('pageAccess', () => { cache = null; });
@@ -45,6 +45,18 @@ export async function pageLabels(): Promise<Record<string, string>> {
   return v;
 }
 onBroadcast('pageAccess', () => { labelCache = null; });
+
+/** Order of the left-bar items set by an admin / root (SystemSettings pageOrder = [keys]); missing keys keep the built-in order after them */
+let orderCache: { at: number; v: string[] } | null = null;
+export async function pageOrder(): Promise<string[]> {
+  if (orderCache && Date.now() - orderCache.at < CACHE_MS) return orderCache.v;
+  const r = await q(`SELECT setting_value FROM SystemSettings WHERE setting_key = N'pageOrder'`);
+  let v: string[] = [];
+  try { const j = JSON.parse(r[0]?.setting_value ?? '[]'); if (Array.isArray(j)) v = j.map(String); } catch { /* bad value → none */ }
+  orderCache = { at: Date.now(), v };
+  return v;
+}
+onBroadcast('pageAccess', () => { orderCache = null; });
 
 /** Keys of the pages / features a role sees */
 export async function pagesFor(role: Role): Promise<string[]> {

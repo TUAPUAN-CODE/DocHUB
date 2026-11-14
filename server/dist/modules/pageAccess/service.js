@@ -5,6 +5,7 @@ exports.invalidatePageAccess = invalidatePageAccess;
 exports.savedAccess = savedAccess;
 exports.isAllowed = isAllowed;
 exports.pageLabels = pageLabels;
+exports.pageOrder = pageOrder;
 exports.pagesFor = pagesFor;
 const db_1 = require("../../config/db");
 const auth_1 = require("../../middleware/auth");
@@ -17,6 +18,7 @@ const CACHE_MS = 30_000;
 function invalidatePageAccess() {
     cache = null;
     labelCache = null;
+    orderCache = null;
     (0, cluster_1.broadcast)('pageAccess');
 }
 (0, cluster_1.onBroadcast)('pageAccess', () => { cache = null; });
@@ -60,6 +62,23 @@ async function pageLabels() {
     return v;
 }
 (0, cluster_1.onBroadcast)('pageAccess', () => { labelCache = null; });
+/** Order of the left-bar items set by an admin / root (SystemSettings pageOrder = [keys]); missing keys keep the built-in order after them */
+let orderCache = null;
+async function pageOrder() {
+    if (orderCache && Date.now() - orderCache.at < CACHE_MS)
+        return orderCache.v;
+    const r = await (0, db_1.q)(`SELECT setting_value FROM SystemSettings WHERE setting_key = N'pageOrder'`);
+    let v = [];
+    try {
+        const j = JSON.parse(r[0]?.setting_value ?? '[]');
+        if (Array.isArray(j))
+            v = j.map(String);
+    }
+    catch { /* bad value → none */ }
+    orderCache = { at: Date.now(), v };
+    return v;
+}
+(0, cluster_1.onBroadcast)('pageAccess', () => { orderCache = null; });
 /** Keys of the pages / features a role sees */
 async function pagesFor(role) {
     const saved = await savedAccess();
