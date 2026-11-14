@@ -246,3 +246,8 @@ body {
 /* faint scanlines over the whole page (does not catch clicks) */
 html[data-shell='aurora'] .main-panel::after { content: ''; pointer-events: none; position: fixed; inset: 0; z-index: 1;
   background: repeating-linear-gradient(0deg, rgb(10 31 143 / .025) 0 1px, transparent 1px 3px); }
+
+/* aurora · square: every rounded corner becomes a sharp one (spinners stay round so they still turn smoothly) */
+html[data-shell='aurora'] *:not(.animate-spin),
+html[data-shell='aurora'] *:not(.animate-spin)::before,
+html[data-shell='aurora'] *:not(.animate-spin)::after { border-radius: 0 !important; }
