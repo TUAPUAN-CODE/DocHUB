@@ -72,29 +72,35 @@ body {
   html[data-shell='aurora'] body { background: #F5F8FD; }
   html[data-shell='aurora'] .shell-root {
     background:
-      radial-gradient(900px 520px at -10% -10%, rgb(21 82 240 / .13), transparent 60%),
-      radial-gradient(700px 420px at 105% -5%, rgb(255 138 0 / .14), transparent 60%),
-      radial-gradient(900px 600px at 100% 110%, rgb(21 82 240 / .10), transparent 60%),
+      radial-gradient(1000px 560px at 10% -15%, rgb(21 82 240 / .18), transparent 60%),
+      radial-gradient(760px 460px at 100% -8%, rgb(255 138 0 / .22), transparent 60%),
+      radial-gradient(900px 600px at 95% 112%, rgb(21 82 240 / .14), transparent 60%),
+      radial-gradient(520px 380px at 30% 108%, rgb(255 138 0 / .10), transparent 60%),
       radial-gradient(rgb(21 82 240 / .07) 1px, transparent 1px) 0 0 / 22px 22px,
       #F5F8FD !important;
   }
   html[data-shell='aurora'] .ds-sidebar-desktop { padding: 12px 0 12px 12px; }
+  /* the signature: a deep-blue glass panel with an orange glow at its foot, white text */
   html[data-shell='aurora'] .ds-sidebar-desktop > div,
-  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { background: #fff; border: 1px solid #E6ECF7; border-radius: 24px;
-    box-shadow: 0 24px 48px -28px rgb(21 82 240 / .35), 0 2px 6px rgb(16 24 40 / .04); }
-  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 24px 24px 0; }
-  html[data-shell='aurora'] .nav-link { margin: 0 12px; border-radius: 14px; height: 44px; font-weight: 500; }
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) {
+    background:
+      radial-gradient(260px 200px at 100% 100%, rgb(255 138 0 / .55), transparent 70%),
+      radial-gradient(240px 200px at 0% 0%, rgb(90 160 255 / .55), transparent 70%),
+      linear-gradient(170deg, #0A2FC4 0%, #1552F0 55%, #2D6BFF 100%);
+    color: #fff; border: 1px solid rgb(255 255 255 / .18); border-radius: 28px;
+    box-shadow: 0 30px 60px -26px rgb(21 82 240 / .75), inset 0 1px 0 rgb(255 255 255 / .25); }
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 28px 28px 0; }
+  html[data-shell='aurora'] .nav-link { margin: 0 12px; border-radius: 16px; height: 44px; font-weight: 500; color: rgb(255 255 255 / .86); }
   html[data-shell='aurora'] .sb-collapsed .nav-link { margin: 0 8px; }
-  html[data-shell='aurora'] .nav-link > :not(.nav-pill) { opacity: .88; }
-  html[data-shell='aurora'] .nav-link:hover { background: #F1F5FF; }
-  html[data-shell='aurora'] .nav-link.active { color: #fff; }
-  html[data-shell='aurora'] .nav-pill { background: linear-gradient(120deg, #1552F0 0%, #3C7BFF 100%); border-radius: 14px;
-    box-shadow: 0 12px 22px -10px rgb(21 82 240 / .7); }
-  /* the orange accent of the active item (in place of the classic connected corners) */
-  html[data-shell='aurora'] .nav-pill::before { top: 10px; bottom: 10px; left: auto; right: 10px; width: 4px; height: auto; border-radius: 99px;
-    background: linear-gradient(#FFB040, #FF7A00); box-shadow: 0 0 10px rgb(255 138 0 / .8); }
+  html[data-shell='aurora'] .nav-link:hover { background: rgb(255 255 255 / .14); color: #fff; }
+  html[data-shell='aurora'] .nav-link.active { color: #0F3FD0; font-weight: 600; }
+  /* active item: a white pill with an orange dot */
+  html[data-shell='aurora'] .nav-pill { background: #fff; border-radius: 16px; box-shadow: 0 14px 24px -12px rgb(0 20 110 / .55); }
+  html[data-shell='aurora'] .nav-pill::before { top: 50%; bottom: auto; left: auto; right: 14px; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 99px;
+    background: linear-gradient(135deg, #FFB040, #FF7A00); box-shadow: 0 0 0 4px rgb(255 138 0 / .22), 0 0 12px rgb(255 138 0 / .9); }
   html[data-shell='aurora'] .nav-pill::after { display: none; }
-  html[data-shell='aurora'] .side-item:hover, html[data-shell='aurora'] .side-item.active { background: #F1F5FF; }
+  html[data-shell='aurora'] .side-item { color: rgb(255 255 255 / .85); }
+  html[data-shell='aurora'] .side-item:hover, html[data-shell='aurora'] .side-item.active { background: rgb(255 255 255 / .14); }
   html[data-shell='aurora'] .main-panel { background: transparent; border-radius: 0; }
   @media (min-width: 640px) {
     html[data-shell='aurora'] .ds-topbar { margin: 12px 16px 0 16px; border-radius: 18px; background: rgb(255 255 255 / .72);
@@ -105,11 +111,12 @@ body {
   html[data-shell='aurora'] .ds-th { background: #F3F7FF; color: #2B3A5C; }
   html[data-shell='aurora'] .btn-primary { background-image: linear-gradient(120deg, #1552F0 0%, #3C7BFF 100%); box-shadow: 0 10px 20px -10px rgb(21 82 240 / .75); }
   html[data-shell='aurora'] .btn-primary:hover { filter: brightness(1.06); }
-  html[data-shell='aurora'] .page-icon { height: 3rem; width: 3rem; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #1552F0, #4C8BFF);
+  html[data-shell='aurora'] .page-icon { height: 3.25rem; width: 3.25rem; border-radius: 20px; transform: rotate(-6deg); color: #fff; background: linear-gradient(135deg, #1552F0, #4C8BFF);
     box-shadow: 0 14px 26px -12px rgb(21 82 240 / .75); }
   html[data-shell='aurora'] .page-icon::after { content: ''; position: absolute; right: -3px; top: -3px; width: 12px; height: 12px; border-radius: 99px;
     background: linear-gradient(135deg, #FFB040, #FF7A00); border: 2px solid #fff; }
-  html[data-shell='aurora'] .page-title { font-size: 26px; font-weight: 700; color: #14213D; letter-spacing: -.01em; }
+  html[data-shell='aurora'] .page-title { font-size: 28px; font-weight: 800; letter-spacing: -.015em; color: #0F2A8A;
+    background: linear-gradient(100deg, #0A2FC4 0%, #2D6BFF 55%, #FF7A00 120%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   html[data-shell='aurora'] .accent-orange { background-image: linear-gradient(120deg, #FF9A1F, #FF6A00) !important; box-shadow: 0 10px 20px -10px rgb(255 122 0 / .8) !important; }
   @media (min-width: 1024px) { .main-panel { border-top-left-radius: 28px; border-bottom-left-radius: 28px; } }
 
@@ -173,4 +180,6 @@ body {
     background: linear-gradient(90deg, #1552F0, #FF8A00); transition: width .28s ease; }
   .app-tile:hover { transform: translateY(-3px); border-color: rgb(21 82 240 / .25); box-shadow: 0 2px 4px rgb(16 24 40 / .05), 0 22px 36px -22px rgb(21 82 240 / .6); }
   .app-tile:hover::after { width: 70%; }
+  html[data-shell='aurora'] .app-tile { border-radius: 28px; background: linear-gradient(180deg, rgb(21 82 240 / .07), #fff 42%); border-color: #E3EAF8; }
+  html[data-shell='aurora'] .app-tile:hover { transform: translateY(-5px) scale(1.015); border-color: rgb(255 138 0 / .45); box-shadow: 0 30px 44px -26px rgb(21 82 240 / .7), 0 0 0 4px rgb(255 138 0 / .08); }
 }
