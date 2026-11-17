@@ -131,10 +131,29 @@ async function copyRich(html: string, text: string): Promise<boolean> {
   return ok;
 }
 
+/**
+ * An unsent message (.eml, header X-Unsent: 1): double-click it and Outlook for Windows opens the compose window with To / CC / subject and the
+ * whole HTML table filled in — no copy and paste, and no length limit like a mailto link has.
+ */
+function downloadEml(draft: NonNullable<NonNullable<AutoResult['qhMail']>['draft']>, name: string) {
+  const b64 = (s: string) => btoa(unescape(encodeURIComponent(s)));
+  const wrap = (s: string) => s.replace(/.{1,76}/g, '$&\r\n');
+  const head = [
+    'X-Unsent: 1', ...(draft.to.length ? [`To: ${draft.to.join(', ')}`] : []), ...(draft.cc.length ? [`Cc: ${draft.cc.join(', ')}`] : []),
+    `Subject: =?UTF-8?B?${b64(draft.subject)}?=`, 'MIME-Version: 1.0', 'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: base64',
+  ].join('\r\n');
+  const html = `<html><head><meta charset="utf-8"></head><body>${draft.html}</body></html>`;
+  const blob = new Blob([`${head}\r\n\r\n${wrap(b64(html))}`], { type: 'message/rfc822' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `${name}.eml`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+}
+
 /** What happened to the Quality Highlight e-mail of this plan; and the draft to send from your own mail program */
 function QhMailLine({ r }: { r: NonNullable<AutoResult['qhMail']> }) {
   const draft = r.draft;
   const copy = async () => { if (draft) { if (await copyRich(draft.html, draft.text)) toast.success('คัดลอกตารางแล้ว', 'วางในอีเมลด้วย Ctrl+V'); else toast.error('คัดลอกไม่สำเร็จ'); } };
+  const eml = () => { if (draft) { downloadEml(draft, `Quality-Highlight-${draft.subject.match(/\d{2}\/\d{2}\/\d{4}/)?.[0]?.split('/').reverse().join('-') ?? 'plan'}`); toast.success('ดาวน์โหลดไฟล์อีเมลแล้ว', 'เปิดไฟล์นั้น (ดับเบิลคลิก) Outlook จะขึ้นหน้าเขียนอีเมลพร้อมตาราง กดส่งได้เลย'); } };
   const open = async () => {
     if (!draft) return;
     const q = (s: string) => encodeURIComponent(s);
@@ -152,8 +171,9 @@ function QhMailLine({ r }: { r: NonNullable<AutoResult['qhMail']> }) {
       {draft ? (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2">
           <p className="text-sm"><b>{r.matched}</b> Doc No ในแผนตรงกับ Quality Highlight</p>
-          <Button size="sm" onClick={() => void open()}>เปิดร่างอีเมล</Button>
+          <Button size="sm" onClick={eml}>เปิดอีเมลใน Outlook</Button>
           <Button size="sm" variant="secondary" onClick={() => void copy()}>คัดลอกเป็นตาราง</Button>
+          <button type="button" className="text-xs text-primary hover:underline" onClick={() => void open()} title="เปิดโปรแกรมอีเมลของเครื่องด้วยลิงก์ mailto (ตารางต้องวางเอง ถ้าอีเมลยาว)">แบบ mailto</button>
           {!draft.to.length && <span className="text-xs text-muted">ยังไม่ได้ตั้งผู้รับ — ใส่ที่การ์ด “อีเมลแจ้ง Quality Highlight”</span>}
         </div>
       ) : !r.sent && !r.error && <p className="text-muted">อีเมล Quality Highlight: {r.skipped}</p>}
