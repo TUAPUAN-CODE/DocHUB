@@ -28,12 +28,9 @@ const isByCol = (c: Column) => /update.?by|updated.?by|ผู้|บันทึ
 const isDateCol = (c: Column) => c.dataType === 'date' || c.dataType === 'datetime';
 const isLong = (c: Column, v: unknown) => c.dataType === 'text' || (typeof v === 'string' && v.length > 40);
 
-const TITLE_TONES = ['bg-blue-600 text-white', 'bg-violet-600 text-white', 'bg-teal-600 text-white', 'bg-slate-700 text-white'];
-const BOX = {
-  date: 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200',
-  by: 'border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200',
-  other: 'border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-200',
-};
+/** the value colour of each heading box (theme colours: blue, orange, text) */
+const TITLE_TONES = ['rec-chip--primary', 'rec-chip--accent', 'rec-chip--ink', 'rec-chip--primary'];
+const BOX = { date: 'rec-chip--accent', by: 'rec-chip--primary', other: 'rec-chip--ink' };
 
 export interface CardModel {
   titleIds: string[]; fieldIds: string[]; imageCol?: Column; byId: Map<string, Column>;
@@ -48,9 +45,9 @@ function TitleBoxes({ m, r, big }: { m: CardModel; r: Row; big?: boolean }) {
         const v = val(m, id, r);
         if (!v) return null;
         return (
-          <div key={id} className={cn('rounded-xl px-3 py-1.5 shadow-sm', TITLE_TONES[i % TITLE_TONES.length])}>
-            <p className="text-[0.7em] font-medium uppercase tracking-wide opacity-80">{m.byId.get(id)!.name}</p>
-            <p className={cn('font-bold leading-tight', big ? 'text-[1.5em]' : 'text-[1.15em]')}>{v}</p>
+          <div key={id} className={cn('rec-chip', TITLE_TONES[i % TITLE_TONES.length])}>
+            <p className="rec-chip-label">{m.byId.get(id)!.name}</p>
+            <p className={cn('rec-chip-value', big ? 'text-[1.5em]' : 'text-[1.25em]')}>{v}</p>
           </div>
         );
       })}
@@ -73,9 +70,9 @@ function FieldBoxes({ m, r, big }: { m: CardModel; r: Row; big?: boolean }) {
       {boxes.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {boxes.map((b) => (
-            <div key={b.id} className={cn('min-w-[8rem] rounded-xl border px-3 py-1.5', BOX[b.tone])}>
-              <p className="flex items-center gap-1 text-[0.72em] font-medium opacity-80">{b.icon}{m.byId.get(b.id)!.name}</p>
-              <p className={cn('font-semibold', big && 'text-[1.1em]')}>{val(m, b.id, r)}</p>
+            <div key={b.id} className={cn('rec-chip', BOX[b.tone])}>
+              <p className="rec-chip-label">{b.icon}{m.byId.get(b.id)!.name}</p>
+              <p className={cn('rec-chip-value', big ? 'text-[1.2em]' : 'text-[1.05em]')}>{val(m, b.id, r)}</p>
             </div>
           ))}
         </div>
