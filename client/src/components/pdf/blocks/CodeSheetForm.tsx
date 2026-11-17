@@ -64,17 +64,20 @@ export function CodeSheetForm({ block: b, template, onChange }: BlockFormProps<C
         <Field label="สีหัวตาราง"><ColorInput value={b.headerBg} swatches={PDF_SWATCHES} onChange={(v) => onChange({ headerBg: v ?? '#DCEAF7' })} /></Field>
       </Group>
       <Group title="QR Code">
-        <p className="text-[11px] text-muted">ข้อมูลใน QR = 4 บรรทัดโค้ด บรรทัดละ N ตัวอักษร (เติมช่องว่างให้ครบ) ต่อกัน แล้วตัดช่องว่างท้ายออก — วิธีเดียวกับเครื่องมือสร้าง QR เดิม</p>
+        <p className="text-[11px] text-muted">ข้อมูลใน QR แยกตามประเภทบรรจุภัณฑ์ (ดูจากคอลัมน์ PKG) — วิธีเดียวกับเครื่องมือสร้าง QR เดิม:
+          Can = 4 บรรทัด บรรทัดละ 23 ตัวอักษร (เติมช่องว่างให้ครบ) · Pouch / อื่นๆ = บรรทัดละ 40 (เติมช่องว่างให้ครบ) ·
+          Cup = ข้อมูลจริงของแต่ละบรรทัด ไม่เติมช่องว่าง ไม่เอา HH:MM / HHMM · Pouch Sachet = เหมือน Cup แต่ขึ้นบรรทัดใหม่ระหว่างบรรทัด</p>
         <div className="grid grid-cols-2 gap-2">
           <Num label="Can: ตัวอักษร/แถว" value={b.qrCanChars ?? 23} onChange={(v) => onChange({ qrCanChars: v ?? 23 })} min={5} max={80} />
-          <Num label="อื่นๆ: ตัวอักษร/แถว" value={b.qrOtherChars ?? 40} onChange={(v) => onChange({ qrOtherChars: v ?? 40 })} min={5} max={80} />
+          <Num label="Pouch / Cup / Sachet: ตัวอักษร/แถว (สูงสุด)" value={b.qrOtherChars ?? 40} onChange={(v) => onChange({ qrOtherChars: v ?? 40 })} min={5} max={80} />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Num label="ขนาด QR (ว่าง = เต็มช่อง)" value={b.qrSizeMm ?? null} onChange={(v) => onChange({ qrSizeMm: v })} min={10} max={80} suffix="mm" />
           <Num label="ขอบขาวรอบ QR" value={b.qrPadMm ?? 0.8} onChange={(v) => onChange({ qrPadMm: v ?? 0.8 })} min={0} max={10} step={0.1} suffix="mm" />
         </div>
         <p className="text-[11px] text-muted">ถ้าใส่ขนาดที่ใหญ่กว่าช่อง ระบบเพิ่มความสูงของแถวโค้ดและความกว้างคอลัมน์ QR ให้พอดี · ขอบขาวรอบ QR ที่น้อยกว่าประมาณ 2 มม. (หรือใกล้เส้นตารางเกินไป) ทำให้โทรศัพท์สแกนยาก แนะนำ 1.5–3 มม.</p>
-        <Field label="ข้อความที่บอกว่าเป็น Can"><TextInput value={b.qrCanText ?? '{{PKG}}'} onChange={(e) => onChange({ qrCanText: e.target.value })} className="font-mono text-xs" /></Field>
+        <Field label="ข้อความที่บอกประเภท (Can / Cup / Sachet / อื่นๆ = Pouch)"><TextInput value={b.qrCanText ?? '{{PKG}}'} onChange={(e) => onChange({ qrCanText: e.target.value })} className="font-mono text-xs" /></Field>
+        <Field label="ถ้าช่องข้างบนว่าง ดูประเภทจากชื่อไลน์"><TextInput value={b.qrLineText ?? '{{ไลน์}}'} onChange={(e) => onChange({ qrLineText: e.target.value })} className="font-mono text-xs" /></Field>
       </Group>
       <SideEditor title="คอลัมน์ขวา (หลังตารางตำแหน่ง)" cols={b.right} onChange={(right) => onChange({ right })} tokens={tokens} />
       <p className="text-[11px] text-muted">ถ้าความกว้างรวมเกินหน้ากระดาษ ระบบย่อคอลัมน์ข้างให้อัตโนมัติ (ช่องตำแหน่งแคบสุดประมาณ 2.8 มม.) แนะนำกระดาษ A3 แนวนอน</p>

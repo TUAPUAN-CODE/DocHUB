@@ -3,6 +3,7 @@ import { fillTokens } from '../variables';
 import type { BuildCtx } from '../build';
 import { MM } from '../types';
 import { charCell } from './charCell';
+import { qrKindOf, qrPayload } from './qrPayload';
 import type { BlockBase } from '../types';
 
 /**
@@ -32,11 +33,17 @@ export interface CodeSheetBlock extends BlockBase {
   /** hide the boxes to the right of the longest code line (the table keeps its width: the other columns widen) */
   autoCells?: boolean;
   minCells?: number;
-  /** QR payload = the 4 lines, each padded/cut to N characters, joined, trailing spaces removed (same as the QR tool of the plant) */
+  /**
+   * QR payload by package type, the same rules as the QR tool of the plant (see qrPayload.ts):
+   * Can = 23 characters per line padded · Pouch / other = 40 padded · Cup = real data only (no padding, no HH:MM / HHMM) ·
+   * Pouch Sachet = like Cup with a new line between the lines.
+   */
   qrCanChars?: number;
   qrOtherChars?: number;
-  /** text that is "can" for a Can package (e.g. {{PKG}}) → qrCanChars per line, anything else → qrOtherChars */
+  /** text that tells the package type (default {{PKG}}: Can / Cup / Sachet / anything else = Pouch) */
   qrCanText?: string;
+  /** used for the type only when qrCanText is empty: the production line (default {{ไลน์}}: "Cup 3", "Can R", "Sachet") */
+  qrLineText?: string;
   /** QR size (mm). Empty = as large as the cell allows. A larger size makes the code rows taller / the QR column wider to fit it */
   qrSizeMm?: number | null;
   /** white space kept around the QR inside its cell (mm, default 0.8) */
@@ -98,10 +105,8 @@ export function qrCanvas(payload: string, sizePt: number) {
 }
 const NO_BORDER = [false, false, false, false];
 
-/** What the QR Code of a notice contains: 4 lines × N characters (N = 23 for a Can, 40 otherwise), joined, trailing spaces cut */
-export function qrPayload(lines: string[], charsPerRow: number): string {
-  return lines.map((l) => { const cs = [...l]; return cs.length >= charsPerRow ? cs.slice(0, charsPerRow).join('') : l + ' '.repeat(charsPerRow - cs.length); }).join('').replace(/\s+$/, '');
-}
+export { qrPayload, qrKindOf, QR_RULES } from './qrPayload';
+export type { QrKind } from './qrPayload';
 
 export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
   const nMax = Math.max(5, Math.min(80, Math.floor(b.cells || 40)));
@@ -137,8 +142,9 @@ export function buildCodeSheet(b: CodeSheetBlock, c: BuildCtx) {
   const cellH = Math.max(pt(b.cellHeightMm), qrWant ? pt(qrWant + 2 * qrPad) / rows : 0);
   const head = (text: string, extra: object = {}) => ({ text, bold: true, fontSize: Math.min(9, b.fontSize), alignment: 'center', fillColor: b.headerBg, margin: [0, 2, 0, 2], ...extra });
   const span = (_col: SheetSideCol, rowSpan: number) => ({ text: '', rowSpan });
-  const isCan = fillTokens(b.qrCanText ?? '{{PKG}}', c.vars, c.rowVars).trim().toLowerCase() === 'can';
-  const payload = qrPayload(texts, isCan ? (b.qrCanChars ?? 23) : (b.qrOtherChars ?? 40));
+  // QR rule by package type (Can / Pouch / Cup / Pouch Sachet) — the PKG of the product, else the name of the line
+  const kind = qrKindOf(fillTokens(b.qrCanText ?? '{{PKG}}', c.vars, c.rowVars), fillTokens(b.qrLineText ?? '{{ไลน์}}', c.vars, c.rowVars));
+  const payload = qrPayload(texts, kind, { chars: kind === 'can' ? (b.qrCanChars ?? 23) : (b.qrOtherChars ?? 40) });
 
   const body: any[][] = [];
   const r1: any[] = [...b.left.map((x) => head(x.header, { rowSpan: b.showIndex ? 2 : 1 })), head(b.gridHeader, { colSpan: n, fontSize: 9 }), ...Array.from({ length: n - 1 }, () => ({})), ...b.right.map((x) => head(x.header, { rowSpan: b.showIndex ? 2 : 1 }))];
