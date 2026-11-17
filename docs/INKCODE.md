@@ -25,7 +25,7 @@ npx ts-node --transpile-only scripts/seedInkCode.ts --dry     (ดูก่อ�
 npx ts-node --transpile-only scripts/seedInkCode.ts
 ```
 สคริปต์เรียก API ปกติ (ตรวจสิทธิ์/บันทึก audit เหมือนใช้หน้าเว็บ) ไม่แตะ SQL ตรง และไม่เขียนทับ — ถ้ามีไฟล์ชื่อเดียวกันในโฟลเดอร์จะข้าม
-ข้อมูลอยู่ใน `scripts/inkcode/data/*.json` สร้างจาก Excel ด้วย `python3 scripts/inkcode/extract.py "<Master_Database.xlsx>" [รหัสผ่านไฟล์]` (ต้อง `pip install msoffcrypto-tool openpyxl`)
+ข้อมูลอยู่ใน `scripts/inkcode/data/*.json` — **ไม่อยู่ใน repo** (เป็นข้อมูลสินค้าของบริษัท / repo เป็น public; `.gitignore` กันไว้) สร้างบนเครื่องที่มีไฟล์ Excel ด้วย `python3 scripts/inkcode/extract.py "<Master_Database.xlsx>" [รหัสผ่านไฟล์]` (ต้อง `pip install msoffcrypto-tool openpyxl`)
 
 ## QR Code ในใบออกโค้ด (แยกตามประเภทบรรจุภัณฑ์)
 ข้อมูลใน QR สร้างตามกติกาเดียวกับเครื่องมือ QR_Code_Ink_Code_HUB ประเภทดูจากคอลัมน์ **PKG** ของสินค้า (ถ้าว่าง ดูจากชื่อไลน์ เช่น `Cup 3`, `Can R`, `Sachet`) — โค้ดอยู่ที่ `client/src/lib/pdf/blocks/qrPayload.ts`
