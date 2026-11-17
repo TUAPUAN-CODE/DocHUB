@@ -10,6 +10,8 @@ import { dropPlan, importAuto, planFolderId, previewAuto } from './auto';
 import { ensureMsConnector, fetchPlanFromLink } from './planLink';
 import { traceCode } from './trace';
 import { newsTagIds, setNewsTagIds } from './news';
+import { getConfig as getQhMail, saveConfig as saveQhMail, sendTestMail } from './qhMail';
+import { outlookDisconnect, outlookStatus } from '../connectors/outlook';
 import { idList, jsonParam, q } from '../../config/db';
 import { requirePage } from '../pageAccess/service';
 
@@ -29,6 +31,23 @@ router.put('/inkcode/news-tags', ah(async (req, res) => {
   await setNewsTagIds(tagIds, req.user!);
   ok(res, { tagIds });
 }));
+
+/** E-mail to the people typed here when a plan has Doc No that are in Quality Highlight (master / admin) */
+const masterOnly = (req: any) => { if (isBasicRole(req.user!.role)) throw badRequest('เฉพาะ Master หรือ Admin'); };
+router.get('/inkcode/qh-mail', ah(async (req, res) => { masterOnly(req); ok(res, { config: await getQhMail(), outlook: await outlookStatus() }); }));
+router.put('/inkcode/qh-mail', ah(async (req, res) => {
+  masterOnly(req);
+  const b = parse(z.object({ enabled: z.boolean(), to: z.array(z.string().max(200)).max(50), cc: z.array(z.string().max(200)).max(50), subject: z.string().max(200), intro: z.string().max(2000) }), req.body);
+  ok(res, { config: await saveQhMail(b, req.user!.id) });
+}));
+router.post('/inkcode/qh-mail/test', ah(async (req, res) => {
+  masterOnly(req);
+  const o = await outlookStatus();
+  if (!o.connected || !o.account) throw badRequest('ยังไม่ได้เชื่อม Outlook สำหรับส่งอีเมล');
+  try { await sendTestMail(o.account); } catch (e) { throw badRequest((e as Error).message); }
+  ok(res, { sentTo: o.account });
+}));
+router.delete('/inkcode/qh-mail/outlook', ah(async (req, res) => { masterOnly(req); await outlookDisconnect(req.user!.id); ok(res, { outlook: await outlookStatus() }); }));
 
 router.get('/inkcode/trace', requirePage('search'), ah(async (req, res) => ok(res, await traceCode(req.user!, String(req.query.q ?? '')))));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });

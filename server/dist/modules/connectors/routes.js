@@ -17,6 +17,7 @@ const parse_1 = require("./parse");
 const runner_1 = require("./runner");
 const secret_1 = require("./secret");
 const source_1 = require("./source");
+const outlook_1 = require("./outlook");
 const parse_2 = require("./parse");
 const router = (0, express_1.Router)();
 const MS_STATE = 'ms_connector_state';
@@ -127,6 +128,15 @@ router.post('/connectors/:id/run', manage, (0, http_1.ah)(async (req, res) => {
 }));
 /* ---------- Microsoft sign-in popup (SharePoint / OneDrive links) ---------- */
 const baseUrl = (req) => env_1.env.publicUrl || `${req.protocol}://${req.get('host')}`;
+// sign-in of the Outlook mailbox that sends the plan e-mails (scope Mail.Send) — same popup / callback, state kind "mail"
+router.get('/connectors/mail/ms/start', manage, (0, http_1.ah)(async (req, res) => {
+    if (!(0, source_1.msConfigured)())
+        throw (0, http_1.badRequest)('ยังไม่ได้ตั้งค่า MS_CLIENT_ID / MS_CLIENT_SECRET บนเซิร์ฟเวอร์');
+    const nonce = crypto_1.default.randomBytes(16).toString('hex');
+    const st = jsonwebtoken_1.default.sign({ k: 'mail', u: req.user.id, n: nonce }, env_1.env.jwt.secret, { expiresIn: '10m' });
+    res.cookie(MS_STATE, st, { httpOnly: true, sameSite: 'lax', secure: env_1.env.cookieSecure, maxAge: 600_000, path: '/api/connectors/ms' });
+    (0, http_1.ok)(res, { url: (0, source_1.msAuthorizeUrl)(baseUrl(req), nonce, source_1.MS_MAIL_SCOPE) });
+}));
 router.get('/connectors/:id/ms/start', manage, (0, http_1.ah)(async (req, res) => {
     const cur = await owned(req);
     if (!(0, source_1.msConfigured)())
@@ -146,6 +156,14 @@ router.get('/connectors/ms/callback', (0, http_1.ah)(async (req, res) => {
         res.clearCookie(MS_STATE, { path: '/api/connectors/ms' });
         if (st.n !== req.query.state || !req.query.code)
             return done(false, 'ข้อมูลยืนยันไม่ถูกต้อง');
+        if (st.k === 'mail') {
+            const mt = await (0, source_1.msExchangeCode)(baseUrl(req), String(req.query.code), source_1.MS_MAIL_SCOPE);
+            if (!mt.refresh_token)
+                return done(false, 'Microsoft ไม่ได้ส่ง refresh token (ตรวจสิทธิ์ offline_access ของแอป)');
+            await (0, outlook_1.saveOutlookSignIn)(mt.refresh_token, mt.access_token, st.u);
+            await (0, audit_1.audit)({ userId: st.u, action: 'outlook_signin', entityType: 'mail', entityId: st.u }, req);
+            return done(true, 'เชื่อม Outlook สำหรับส่งอีเมลสำเร็จ — กลับไปที่หน้าเดิมได้เลย');
+        }
         const tok = await (0, source_1.msExchangeCode)(baseUrl(req), String(req.query.code));
         if (!tok.refresh_token)
             return done(false, 'Microsoft ไม่ได้ส่ง refresh token (ตรวจสิทธิ์ offline_access ของแอป)');

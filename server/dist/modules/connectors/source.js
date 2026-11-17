@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.msExchangeCode = exports.msRedirect = exports.msConfigured = exports.NeedsAuth = void 0;
+exports.msExchangeCode = exports.MS_MAIL_SCOPE = exports.msRedirect = exports.msConfigured = exports.NeedsAuth = void 0;
 exports.msAuthorizeUrl = msAuthorizeUrl;
+exports.msToken = msToken;
 exports.fetchSource = fetchSource;
 exports.loadRecords = loadRecords;
 const env_1 = require("../../config/env");
@@ -22,24 +23,26 @@ exports.msConfigured = msConfigured;
 const msRedirect = (base) => `${base}/api/connectors/ms/callback`;
 exports.msRedirect = msRedirect;
 const MS_SCOPE = 'offline_access Files.Read.All Sites.Read.All';
-function msAuthorizeUrl(base, state) {
+/** Sign-in used only to send the plan e-mails from Outlook (needs the delegated permission Mail.Send on the Azure app) */
+exports.MS_MAIL_SCOPE = 'offline_access Mail.Send User.Read';
+function msAuthorizeUrl(base, state, scope = MS_SCOPE) {
     const t = encodeURIComponent(env_1.env.oauth.microsoft.tenant);
     return `https://login.microsoftonline.com/${t}/oauth2/v2.0/authorize?` + new URLSearchParams({
-        client_id: env_1.env.oauth.microsoft.clientId, response_type: 'code', redirect_uri: (0, exports.msRedirect)(base), response_mode: 'query', scope: MS_SCOPE, state, prompt: 'select_account',
+        client_id: env_1.env.oauth.microsoft.clientId, response_type: 'code', redirect_uri: (0, exports.msRedirect)(base), response_mode: 'query', scope, state, prompt: 'select_account',
     });
 }
-async function msToken(params) {
+async function msToken(params, scope = MS_SCOPE) {
     const t = encodeURIComponent(env_1.env.oauth.microsoft.tenant);
     const r = await fetch(`https://login.microsoftonline.com/${t}/oauth2/v2.0/token`, {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ client_id: env_1.env.oauth.microsoft.clientId, client_secret: env_1.env.oauth.microsoft.clientSecret, scope: MS_SCOPE, ...params }), signal: AbortSignal.timeout(30_000),
+        body: new URLSearchParams({ client_id: env_1.env.oauth.microsoft.clientId, client_secret: env_1.env.oauth.microsoft.clientSecret, scope, ...params }), signal: AbortSignal.timeout(30_000),
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok)
         throw new Error(j.error_description || j.error || `Microsoft ${r.status}`);
     return j;
 }
-const msExchangeCode = (base, code) => msToken({ grant_type: 'authorization_code', code, redirect_uri: (0, exports.msRedirect)(base) });
+const msExchangeCode = (base, code, scope = MS_SCOPE) => msToken({ grant_type: 'authorization_code', code, redirect_uri: (0, exports.msRedirect)(base) }, scope);
 exports.msExchangeCode = msExchangeCode;
 /** Returns the bytes of the source. `saveSecret` is called when a refreshed Microsoft token must be stored. */
 async function fetchSource(kind, cfg, secretEnc, saveSecret) {

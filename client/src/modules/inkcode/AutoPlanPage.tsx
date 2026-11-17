@@ -10,6 +10,7 @@ import { toast } from '@/store/ui';
 import { AutoPreview, AutoResult, inkcodeAutoApi } from './api';
 import { NewsTagsCard } from './NewsTagsCard';
 import { PlanDropZone } from './PlanDropZone';
+import { QhMailCard } from './QhMailCard';
 
 /**
  * Drop the daily production plan (Excel): the production date picks the day file, the plant of each line picks PF1 / PF2 and the area
@@ -68,6 +69,7 @@ export default function AutoPlanPage() {
     <div className="mx-auto max-w-6xl px-3 pb-10 sm:px-6">
       <PageHeader icon={<FileSpreadsheet className="h-6 w-6" />} title="นำเข้าแผนผลิต (อัตโนมัติ)" subtitle="วางไฟล์แผนผลิตประจำวัน — ระบบดูวันที่ โรงงาน (PF1/PF2) และพื้นที่ (Pouch/Can/Cup) และกะ (DS/NS จากเวลาผลิต) แล้วสร้างไฟล์รายวันและใส่ข้อมูลให้เอง โค้ด 40 ตัว 4 แถวสร้างให้อัตโนมัติ" />
       <NewsTagsCard />
+      <QhMailCard />
       {!pv && !manual && (
         <>
           {planFolder ? <PlanDropZone folderId={planFolder} onDone={() => undefined} /> : <p className="ds-card p-4 text-sm text-muted">{folderErr || 'กำลังเตรียมโฟลเดอร์ InkCode › แผนผลิต…'}</p>}

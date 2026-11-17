@@ -19,6 +19,7 @@ const permissions_2 = require("../../shared/permissions");
 const plan_1 = require("./plan");
 const record_1 = require("./record");
 const news_1 = require("./news");
+const qhMail_1 = require("./qhMail");
 const folderChild = async (parentId, name) => (await (0, db_1.q1)(`SELECT folder_id FROM Folders WHERE is_deleted = 0 AND folder_name = @n AND ((@p IS NULL AND parent_id IS NULL) OR parent_id = @p)`, { n: name, p: db_1.T.uuid(parentId) }))?.folder_id ?? null;
 const fileIn = async (folderId, name) => (await (0, db_1.q1)(`SELECT file_id FROM Files WHERE is_deleted = 0 AND folder_id = @f AND file_name = @n`, { f: db_1.T.uuid(folderId), n: name }))?.file_id ?? null;
 async function ensureFolder(user, parentId, name) {
@@ -180,7 +181,8 @@ async function importAuto(user, buf, o, req) {
     const alerts = (0, record_1.findAlerts)(items, await (0, record_1.masterRemarks)(p.ctx.docLookup?.sheetId ?? null, items.map((i) => i.doc)), new Map(), []);
     const first = r.targets.find((t) => t.fileId);
     const newsPostId = await (0, news_1.postNewCodeNews)(user, p.date, alerts, first ? `/files/${first.fileId}` : null).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
-    return { ...r, newsPostId };
+    const qhMail = await (0, qhMail_1.notifyQhMail)(user.id, p.date, p.items, 'แผนผลิต');
+    return { ...r, newsPostId, qhMail };
 }
 async function importPrepared(user, p, o, req) {
     const out = {
@@ -263,6 +265,7 @@ async function dropPlan(user, buf, originalName, folderId, req) {
     const alerts = (0, record_1.findAlerts)(items, await (0, record_1.masterRemarks)(p.ctx.docLookup?.sheetId ?? null, docs), await (0, record_1.lastRevs)(p.date, docs), p.plan.warnings);
     const recordFileId = await (0, record_1.writeRecord)(user, folderId, originalName, p.date, p.plan, items, alerts, req);
     const newsPostId = await (0, news_1.postNewCodeNews)(user, p.date, alerts, `/files/${recordFileId}`).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
-    return { ...r, recordFileId, alerts, newsPostId };
+    const qhMail = await (0, qhMail_1.notifyQhMail)(user.id, p.date, p.items, originalName);
+    return { ...r, recordFileId, alerts, newsPostId, qhMail };
 }
 //# sourceMappingURL=auto.js.map
