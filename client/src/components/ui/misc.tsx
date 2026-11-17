@@ -98,9 +98,9 @@ export function PageHeader({ title, subtitle, actions, icon }: { title: ReactNod
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        {icon && <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary [&>svg]:h-5 [&>svg]:w-5">{icon}</div>}
+        {icon && <div className="page-icon relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary [&>svg]:h-5 [&>svg]:w-5">{icon}</div>}
         <div className="min-w-0">
-          <h1 className="truncate text-[22px] font-semibold tracking-tight">{title}</h1>
+          <h1 className="page-title truncate text-[22px] font-semibold tracking-tight">{title}</h1>
           {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
         </div>
       </div>

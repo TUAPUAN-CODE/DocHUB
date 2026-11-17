@@ -65,6 +65,59 @@ body {
   .side-item.drop { background: rgb(255 255 255 / .22); outline: 1.5px dashed rgb(255 255 255 / .7); }
 
   .main-panel { background: rgb(var(--c-bg)); }
+
+  /* ================= aurora shell (light): white · blue · orange =================
+     soft blue / orange glow + faint dot grid behind everything, the left bar a white floating panel, the top bar glass,
+     an orange accent on the active item, blue gradient primary buttons, cards with a soft blue shadow */
+  html[data-shell='aurora'] body { background: #F5F8FD; }
+  html[data-shell='aurora'] .shell-root {
+    background:
+      radial-gradient(1000px 560px at 10% -15%, rgb(21 82 240 / .18), transparent 60%),
+      radial-gradient(760px 460px at 100% -8%, rgb(255 138 0 / .22), transparent 60%),
+      radial-gradient(900px 600px at 95% 112%, rgb(21 82 240 / .14), transparent 60%),
+      radial-gradient(520px 380px at 30% 108%, rgb(255 138 0 / .10), transparent 60%),
+      radial-gradient(rgb(21 82 240 / .07) 1px, transparent 1px) 0 0 / 22px 22px,
+      #F5F8FD !important;
+  }
+  html[data-shell='aurora'] .ds-sidebar-desktop { padding: 12px 0 12px 12px; }
+  /* the signature: a deep-blue glass panel with an orange glow at its foot, white text */
+  html[data-shell='aurora'] .ds-sidebar-desktop > div,
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) {
+    background:
+      radial-gradient(260px 200px at 100% 100%, rgb(255 138 0 / .55), transparent 70%),
+      radial-gradient(240px 200px at 0% 0%, rgb(90 160 255 / .55), transparent 70%),
+      linear-gradient(170deg, #0A2FC4 0%, #1552F0 55%, #2D6BFF 100%);
+    color: #fff; border: 1px solid rgb(255 255 255 / .18); border-radius: 28px;
+    box-shadow: 0 30px 60px -26px rgb(21 82 240 / .75), inset 0 1px 0 rgb(255 255 255 / .25); }
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 28px 28px 0; }
+  html[data-shell='aurora'] .nav-link { margin: 0 12px; border-radius: 16px; height: 44px; font-weight: 500; color: rgb(255 255 255 / .86); }
+  html[data-shell='aurora'] .sb-collapsed .nav-link { margin: 0 8px; }
+  html[data-shell='aurora'] .nav-link:hover { background: rgb(255 255 255 / .14); color: #fff; }
+  html[data-shell='aurora'] .nav-link.active { color: #0F3FD0; font-weight: 600; }
+  /* active item: a white pill with an orange dot */
+  html[data-shell='aurora'] .nav-pill { background: #fff; border-radius: 16px; box-shadow: 0 14px 24px -12px rgb(0 20 110 / .55); }
+  html[data-shell='aurora'] .nav-pill::before { top: 50%; bottom: auto; left: auto; right: 14px; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 99px;
+    background: linear-gradient(135deg, #FFB040, #FF7A00); box-shadow: 0 0 0 4px rgb(255 138 0 / .22), 0 0 12px rgb(255 138 0 / .9); }
+  html[data-shell='aurora'] .nav-pill::after { display: none; }
+  html[data-shell='aurora'] .side-item { color: rgb(255 255 255 / .85); }
+  html[data-shell='aurora'] .side-item:hover, html[data-shell='aurora'] .side-item.active { background: rgb(255 255 255 / .14); }
+  html[data-shell='aurora'] .main-panel { background: transparent; border-radius: 0; }
+  @media (min-width: 640px) {
+    html[data-shell='aurora'] .ds-topbar { margin: 12px 16px 0 16px; border-radius: 18px; background: rgb(255 255 255 / .72);
+      border: 1px solid rgb(255 255 255 / .9); box-shadow: 0 10px 30px -18px rgb(21 82 240 / .35); backdrop-filter: saturate(1.4) blur(14px); }
+  }
+  html[data-shell='aurora'] .ds-topbar { background: rgb(255 255 255 / .8); border-bottom-color: transparent; backdrop-filter: blur(12px); }
+  html[data-shell='aurora'] .ds-card { border-color: #E8EEF8; box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 16px 32px -24px rgb(21 82 240 / .35); }
+  html[data-shell='aurora'] .ds-th { background: #F3F7FF; color: #2B3A5C; }
+  html[data-shell='aurora'] .btn-primary { background-image: linear-gradient(120deg, #1552F0 0%, #3C7BFF 100%); box-shadow: 0 10px 20px -10px rgb(21 82 240 / .75); }
+  html[data-shell='aurora'] .btn-primary:hover { filter: brightness(1.06); }
+  html[data-shell='aurora'] .page-icon { height: 3.25rem; width: 3.25rem; border-radius: 20px; transform: rotate(-6deg); color: #fff; background: linear-gradient(135deg, #1552F0, #4C8BFF);
+    box-shadow: 0 14px 26px -12px rgb(21 82 240 / .75); }
+  html[data-shell='aurora'] .page-icon::after { content: ''; position: absolute; right: -3px; top: -3px; width: 12px; height: 12px; border-radius: 99px;
+    background: linear-gradient(135deg, #FFB040, #FF7A00); border: 2px solid #fff; }
+  html[data-shell='aurora'] .page-title { font-size: 28px; font-weight: 800; letter-spacing: -.015em; color: #0F2A8A;
+    background: linear-gradient(100deg, #0A2FC4 0%, #2D6BFF 55%, #FF7A00 120%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  html[data-shell='aurora'] .accent-orange { background-image: linear-gradient(120deg, #FF9A1F, #FF6A00) !important; box-shadow: 0 10px 20px -10px rgb(255 122 0 / .8) !important; }
   @media (min-width: 1024px) { .main-panel { border-top-left-radius: 28px; border-bottom-left-radius: 28px; } }
 
   .skeleton { position: relative; overflow: hidden; background: rgb(var(--c-border) / .6); border-radius: 8px; }
@@ -117,4 +170,172 @@ body {
   .main-panel, #page-scroll { overflow: visible !important; height: auto !important; display: block !important; }
   .guide-step { break-inside: avoid; }
   @page { margin: 12mm; }
+}
+
+/* Application tiles: a white card; on hover it lifts and a blue → orange line grows under it */
+@layer components {
+  .app-tile { position: relative; overflow: hidden; background: rgb(var(--c-surface)); border: 1px solid rgb(var(--c-border));
+    box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 14px 28px -22px rgb(21 82 240 / .45); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .app-tile::after { content: ''; position: absolute; left: 50%; bottom: 0; height: 4px; width: 0; translate: -50% 0; border-radius: 99px;
+    background: linear-gradient(90deg, #1552F0, #FF8A00); transition: width .28s ease; }
+  .app-tile:hover { transform: translateY(-3px); border-color: rgb(21 82 240 / .25); box-shadow: 0 2px 4px rgb(16 24 40 / .05), 0 22px 36px -22px rgb(21 82 240 / .6); }
+  .app-tile:hover::after { width: 70%; }
+  html[data-shell='aurora'] .app-tile { border-radius: 28px; background: linear-gradient(180deg, rgb(21 82 240 / .07), #fff 42%); border-color: #E3EAF8; }
+  html[data-shell='aurora'] .app-tile:hover { transform: translateY(-5px) scale(1.015); border-color: rgb(255 138 0 / .45); box-shadow: 0 30px 44px -26px rgb(21 82 240 / .7), 0 0 0 4px rgb(255 138 0 / .08); }
+}
+
+/* ================= aurora · cyberpunk: neon grid, HUD brackets, scanlines, glitch title ================= */
+@layer components {
+  html[data-shell='aurora'] .shell-root {
+    background:
+      linear-gradient(rgb(21 82 240 / .06) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(90deg, rgb(21 82 240 / .06) 1px, transparent 1px) 0 0 / 40px 40px,
+      radial-gradient(1000px 560px at 10% -15%, rgb(0 214 255 / .20), transparent 60%),
+      radial-gradient(760px 460px at 100% -8%, rgb(255 138 0 / .24), transparent 60%),
+      radial-gradient(900px 600px at 95% 112%, rgb(124 58 237 / .14), transparent 60%),
+      #EEF3FC !important;
+  }
+  /* sidebar: near-black navy, neon grid, cyan + orange glow, chamfered corners */
+  html[data-shell='aurora'] .ds-sidebar-desktop > div,
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) {
+    background:
+      linear-gradient(rgb(0 214 255 / .07) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, rgb(0 214 255 / .07) 1px, transparent 1px) 0 0 / 24px 24px,
+      radial-gradient(260px 220px at 100% 100%, rgb(255 122 0 / .55), transparent 70%),
+      radial-gradient(260px 220px at 0% 0%, rgb(0 214 255 / .35), transparent 70%),
+      linear-gradient(170deg, #050B2E 0%, #08144F 60%, #0B1C6B 100%);
+    border: 1px solid rgb(0 214 255 / .45); border-radius: 6px;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / .4), 0 0 26px -4px rgb(0 214 255 / .55), 0 30px 60px -26px rgb(5 11 46 / .9), inset 0 0 40px rgb(0 214 255 / .08); }
+  html[data-shell='aurora'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 6px 6px 0; }
+  html[data-shell='aurora'] .nav-link { border-radius: 4px; text-transform: none; letter-spacing: .01em; color: rgb(190 220 255 / .85); }
+  html[data-shell='aurora'] .nav-link:hover { background: rgb(0 214 255 / .12); color: #fff; box-shadow: inset 2px 0 0 #00D6FF; }
+  html[data-shell='aurora'] .nav-link.active { color: #fff; text-shadow: 0 0 10px rgb(0 214 255 / .9); }
+  html[data-shell='aurora'] .nav-pill { border-radius: 4px; background: linear-gradient(90deg, rgb(0 214 255 / .30), rgb(21 82 240 / .18));
+    border: 1px solid #00D6FF; box-shadow: 0 0 18px rgb(0 214 255 / .55), inset 0 0 14px rgb(0 214 255 / .25);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+  html[data-shell='aurora'] .nav-pill::before { background: #FF8A00; box-shadow: 0 0 0 3px rgb(255 138 0 / .25), 0 0 14px #FF8A00; border-radius: 1px; width: 8px; height: 8px; margin-top: -4px; right: 18px; rotate: 45deg; }
+  html[data-shell='aurora'] .side-item { color: rgb(190 220 255 / .85); }
+  html[data-shell='aurora'] .ds-sidebar-desktop .border-t, html[data-shell='aurora'] .ds-sidebar .border-t { border-color: rgb(0 214 255 / .3); }
+  /* top bar: thin neon underline */
+  html[data-shell='aurora'] .ds-topbar { border-radius: 6px; border: 1px solid rgb(21 82 240 / .25);
+    box-shadow: 0 1px 0 rgb(0 214 255 / .6), 0 12px 30px -18px rgb(21 82 240 / .6); }
+  /* title: neon gradient with a cyan / orange glitch shadow */
+  html[data-shell='aurora'] .page-title { font-weight: 800; letter-spacing: .005em; color: #0A1F8F;
+    background: linear-gradient(100deg, #0A1F8F 0%, #1552F0 50%, #00B8E6 85%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(2px 0 0 rgb(255 122 0 / .55)) drop-shadow(-1px 0 0 rgb(0 214 255 / .5)); }
+  html[data-shell='aurora'] .page-icon { border-radius: 4px; rotate: 0deg; transform: none; background: linear-gradient(135deg, #0A1F8F, #1552F0);
+    border: 1px solid #00D6FF; box-shadow: 0 0 18px rgb(0 214 255 / .65);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+  html[data-shell='aurora'] .page-icon::after { display: none; }
+  /* buttons: sharp, neon */
+  html[data-shell='aurora'] .btn-primary { border-radius: 4px; background-image: linear-gradient(120deg, #0A2FC4, #1552F0 60%, #00B8E6);
+    box-shadow: 0 0 16px -2px rgb(0 184 230 / .7); border: 1px solid rgb(0 214 255 / .7); text-transform: none; }
+  html[data-shell='aurora'] .accent-orange { border-radius: 4px !important; background-image: linear-gradient(120deg, #FF6A00, #FF9A1F) !important;
+    box-shadow: 0 0 18px -2px rgb(255 122 0 / .85) !important; border: 1px solid #FFB040 !important; }
+  html[data-shell='aurora'] .ds-card { border-radius: 6px; border-color: rgb(21 82 240 / .22); box-shadow: 0 0 0 1px rgb(255 255 255 / .6) inset, 0 0 22px -12px rgb(0 184 230 / .8); }
+  html[data-shell='aurora'] .ds-th { background: #E4EEFF; color: #0A1F8F; border-bottom: 1px solid #00B8E6; }
+  /* app tiles: HUD corner brackets (cyan top-left, orange bottom-right) that light up on hover */
+  html[data-shell='aurora'] .app-tile { border-radius: 8px; background: linear-gradient(180deg, rgb(0 184 230 / .09), #fff 45%); border-color: rgb(21 82 240 / .22); overflow: visible; }
+  html[data-shell='aurora'] .app-tile::before { content: ''; position: absolute; left: -1px; top: -1px; width: 18px; height: 18px; border-top: 2px solid #00B8E6; border-left: 2px solid #00B8E6; border-radius: 8px 0 0 0; transition: all .2s ease; }
+  html[data-shell='aurora'] .app-tile::after { left: auto; right: -1px; bottom: -1px; translate: 0 0; width: 18px; height: 18px; border-radius: 0 0 8px 0; background: none;
+    border-right: 2px solid #FF8A00; border-bottom: 2px solid #FF8A00; transition: all .2s ease; }
+  html[data-shell='aurora'] .app-tile:hover { transform: translateY(-3px); border-color: #00B8E6; box-shadow: 0 0 24px -4px rgb(0 184 230 / .7), 0 0 0 1px rgb(0 184 230 / .35); }
+  html[data-shell='aurora'] .app-tile:hover::before { width: 34px; height: 34px; filter: drop-shadow(0 0 4px #00D6FF); }
+  html[data-shell='aurora'] .app-tile:hover::after { width: 34px; height: 34px; filter: drop-shadow(0 0 4px #FF8A00); }
+}
+/* faint scanlines over the whole page (does not catch clicks) */
+html[data-shell='aurora'] .main-panel::after { content: ''; pointer-events: none; position: fixed; inset: 0; z-index: 1;
+  background: repeating-linear-gradient(0deg, rgb(10 31 143 / .025) 0 1px, transparent 1px 3px); }
+
+/* aurora · square: every rounded corner becomes a sharp one (spinners stay round so they still turn smoothly) */
+html[data-shell='aurora'] *:not(.animate-spin),
+html[data-shell='aurora'] *:not(.animate-spin)::before,
+html[data-shell='aurora'] *:not(.animate-spin)::after { border-radius: 0 !important; }
+
+/* square shell: the classic bar (active tab joined to the main panel) with sharp corners — no pill curve, no inverted corners */
+html[data-shell='square'] .nav-link, html[data-shell='square'] .nav-pill { border-radius: 0; }
+html[data-shell='square'] .nav-pill::before, html[data-shell='square'] .nav-pill::after { display: none; }
+html[data-shell='square'] .main-panel { border-radius: 0; }
+html[data-shell='square'] *:not(.animate-spin),
+html[data-shell='square'] *:not(.animate-spin)::before,
+html[data-shell='square'] *:not(.animate-spin)::after { border-radius: 0 !important; }
+
+/* square shell · cut corners: buttons, page icon, tiles and the active tab lose their corners at 45° instead of curving.
+   (clip-path also clips what hangs outside the box, so it is used only on elements that hold no pop-up menus) */
+html[data-shell='square'] .page-icon,
+html[data-shell='square'] .btn-primary, html[data-shell='square'] .accent-orange, html[data-shell='square'] .ds-btn {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+html[data-shell='square'] .page-icon { clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+html[data-shell='square'] .app-tile { clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+/* the active tab joins the main panel on its right, so only its left corners are cut */
+html[data-shell='square'] .nav-pill, html[data-shell='square'] .nav-link:hover {
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px), 0 12px); }
+
+/* ================= glass shell (light): pastel iridescent background, frosted panels, glossy bevels, lavender pill buttons ================= */
+@keyframes glass-float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px,24px) scale(.9); } }
+html[data-shell='glass'] body { background: #E3ECFB; }
+html[data-shell='glass'] .shell-root { isolation: isolate; position: relative;
+  background:
+    radial-gradient(900px 600px at 8% 0%, rgb(150 215 255 / .75), transparent 62%),
+    radial-gradient(800px 560px at 100% 8%, rgb(196 170 255 / .70), transparent 60%),
+    radial-gradient(900px 600px at 70% 110%, rgb(255 190 220 / .70), transparent 62%),
+    radial-gradient(700px 500px at 0% 100%, rgb(170 235 240 / .6), transparent 62%),
+    #E6EEFC !important; }
+/* two glossy orbs drifting behind the glass (they show through the frost) */
+html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after { content: ''; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / .65); box-shadow: inset 10px 0 24px rgb(255 255 255 / .9); }
+html[data-shell='glass'] .shell-root::before { width: 210px; height: 210px; right: 5%; bottom: 7%; background: linear-gradient(160deg, #FFB347, #FF4FC3); opacity: .7; animation: glass-float 26s ease-in-out infinite; }
+html[data-shell='glass'] .shell-root::after { width: 130px; height: 130px; left: 4%; bottom: 16%; background: linear-gradient(90deg, #FFC46B, #E94FE0); opacity: .8; animation: glass-float 32s ease-in-out infinite reverse; }
+@media (prefers-reduced-motion: reduce) { html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after { animation: none; } }
+@layer components {
+  html[data-shell='glass'] .main-panel { background: transparent; border-radius: 0; }
+  /* frosted panels with a glossy bevel */
+  html[data-shell='glass'] .ds-sidebar-desktop { padding: 12px 0 12px 12px; }
+  html[data-shell='glass'] .ds-sidebar-desktop > div,
+  html[data-shell='glass'] .ds-sidebar:not(.ds-sidebar-desktop),
+  html[data-shell='glass'] .ds-topbar, html[data-shell='glass'] .ds-modal {
+    background: linear-gradient(145deg, rgb(255 255 255 / .62), rgb(255 255 255 / .30));
+    -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+    border: 1px solid rgb(255 255 255 / .8);
+    box-shadow: inset 2px 2px 6px rgb(255 255 255 / .9), inset -3px -3px 10px rgb(130 150 255 / .16), 0 24px 50px -28px rgb(80 90 190 / .5); }
+  html[data-shell='glass'] .ds-sidebar-desktop > div { border-radius: 30px; }
+  html[data-shell='glass'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 30px 30px 0; background: linear-gradient(145deg, rgb(255 255 255 / .84), rgb(240 244 255 / .7)); }
+  html[data-shell='glass'] .ds-modal { border-radius: 28px; background: linear-gradient(145deg, rgb(255 255 255 / .9), rgb(244 246 255 / .8)); }
+  html[data-shell='glass'] .ds-topbar { border-radius: 0 0 22px 22px; }
+  @media (min-width: 640px) { html[data-shell='glass'] .ds-topbar { margin: 12px 16px 0; border-radius: 26px; } }
+  html[data-shell='glass'] .nav-link { margin: 0 12px; border-radius: 20px; height: 44px; font-weight: 500; color: #3B4A72; }
+  html[data-shell='glass'] .sb-collapsed .nav-link { margin: 0 8px; }
+  html[data-shell='glass'] .nav-link:hover { background: rgb(255 255 255 / .55); box-shadow: inset 1px 1px 3px #fff; }
+  html[data-shell='glass'] .nav-link.active { color: #fff; font-weight: 600; text-shadow: 0 1px 6px rgb(90 70 200 / .45); }
+  /* active item: a lavender glass pill */
+  html[data-shell='glass'] .nav-pill { border-radius: 20px; background: linear-gradient(135deg, #B79CFF 0%, #8FA6FF 100%);
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .75), inset -2px -3px 8px rgb(80 80 220 / .3), 0 14px 24px -12px rgb(110 100 230 / .75); }
+  html[data-shell='glass'] .nav-pill::before { top: 3px; left: 14px; right: 14px; bottom: auto; width: auto; height: 42%; border-radius: 99px; box-shadow: none; background: linear-gradient(rgb(255 255 255 / .5), transparent); }
+  html[data-shell='glass'] .nav-pill::after { display: none; }
+  html[data-shell='glass'] .side-item { color: #3B4A72; }
+  html[data-shell='glass'] .side-item:hover, html[data-shell='glass'] .side-item.active { background: rgb(255 255 255 / .55); }
+  html[data-shell='glass'] .ds-sidebar .border-t { border-color: rgb(255 255 255 / .7); }
+  /* cards, inputs, table head */
+  html[data-shell='glass'] .ds-card { background: linear-gradient(145deg, rgb(255 255 255 / .62), rgb(255 255 255 / .36)); border: 1px solid rgb(255 255 255 / .85); border-radius: 26px;
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .9), inset -2px -3px 9px rgb(130 150 255 / .13), 0 18px 36px -26px rgb(80 90 190 / .45); }
+  html[data-shell='glass'] .ds-input { background: rgb(255 255 255 / .5); border: 1px solid rgb(255 255 255 / .85); border-radius: 18px;
+    box-shadow: inset 2px 2px 5px rgb(120 140 220 / .14), inset -1px -1px 3px rgb(255 255 255 / .9); }
+  html[data-shell='glass'] .ds-th { background: rgb(214 208 255 / .45); color: #3A4A80; }
+  /* buttons: lavender pill with a gloss; the accent one is orange → magenta like the orbs */
+  html[data-shell='glass'] .btn-primary { border-radius: 999px; background-image: linear-gradient(135deg, #B79CFF, #8FA6FF); color: #fff; text-shadow: 0 1px 4px rgb(80 60 200 / .4);
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .7), inset -2px -3px 7px rgb(80 80 220 / .28), 0 12px 22px -12px rgb(110 100 230 / .8); }
+  html[data-shell='glass'] .btn-primary:hover { filter: brightness(1.05); }
+  html[data-shell='glass'] .accent-orange { border-radius: 999px !important; background-image: linear-gradient(135deg, #FFB347, #FF4FC3) !important;
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .6), 0 12px 22px -12px rgb(255 79 195 / .75) !important; }
+  html[data-shell='glass'] .page-icon { height: 3rem; width: 3rem; border-radius: 18px; color: #6C63D9; background: linear-gradient(145deg, rgb(255 255 255 / .85), rgb(214 208 255 / .5));
+    box-shadow: inset 2px 2px 5px #fff, inset -2px -2px 8px rgb(130 150 255 / .25), 0 14px 24px -14px rgb(100 100 220 / .6); }
+  html[data-shell='glass'] .page-title { font-size: 28px; font-weight: 700; color: #2F4F86; letter-spacing: -.01em; }
+  /* application tiles: frosted glass that gets a diagonal shine on hover */
+  html[data-shell='glass'] .app-tile { border-radius: 28px; overflow: hidden; background: linear-gradient(145deg, rgb(255 255 255 / .66), rgb(255 255 255 / .3));
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid rgb(255 255 255 / .85);
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .9), inset -2px -3px 9px rgb(130 150 255 / .15), 0 18px 34px -24px rgb(80 90 190 / .55); }
+  html[data-shell='glass'] .app-tile::after { left: -60%; right: auto; bottom: auto; top: -20%; width: 40%; height: 150%; translate: none; border-radius: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .75), transparent);
+    transform: rotate(18deg); opacity: 0; transition: left .6s ease, opacity .3s ease; }
+  html[data-shell='glass'] .app-tile:hover { transform: translateY(-4px); border-color: #fff; box-shadow: inset 2px 2px 5px #fff, 0 26px 40px -24px rgb(110 100 230 / .7); }
+  html[data-shell='glass'] .app-tile:hover::after { left: 120%; width: 40%; opacity: 1; }
 }
