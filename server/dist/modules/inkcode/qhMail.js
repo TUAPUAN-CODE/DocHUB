@@ -57,7 +57,9 @@ async function qhMaster() {
                       WHERE f.is_deleted = 0 AND f.file_name IN (N'Quality Highlight - Master', N'Quality Hilight - Master') ORDER BY f.created_at`);
     return r ? { fileId: String(r.file_id), sheetId: String(r.sheet_id) } : null;
 }
-const COLS = { subDoc: 'Sub Doc No.', material: 'Material', shortCode: 'Short Code', note: 'ให้Spread', updated: 'วันที่ Update ข้อมูล', by: 'Updated by' };
+const COLS = { subDoc: 'Sub Doc No.', material: 'Material', shortCode: 'Short Code', updated: 'วันที่ Update ข้อมูล', by: 'Updated by' };
+/** The description column of Quality Highlight: "รายละเอียด" (the name on the live sheet); older copies call it "ให้Spread" */
+const NOTE_COLS = ['รายละเอียด', 'ให้Spread', 'Description', 'Note'];
 /** Quality Highlight rows whose Sub Doc No. is one of `docs` (compared without case / spaces), by Doc No. */
 async function qhRowsFor(docs) {
     const m = await qhMaster();
@@ -77,7 +79,8 @@ async function qhRowsFor(docs) {
             const v = row.values;
             const k = (0, core_1.norm)(v[cs]);
             const g = (n) => (id(n) ? txt(v[id(n)]) : '');
-            byDoc.set(k, [...(byDoc.get(k) ?? []), { subDoc: txt(v[cs]), material: g(COLS.material), shortCode: g(COLS.shortCode), note: g(COLS.note), updated: g(COLS.updated).slice(0, 10), by: g(COLS.by) }]);
+            const noteCol = NOTE_COLS.map(id).find(Boolean);
+            byDoc.set(k, [...(byDoc.get(k) ?? []), { subDoc: txt(v[cs]), material: g(COLS.material), shortCode: g(COLS.shortCode), note: noteCol ? txt(v[noteCol]) : '', updated: g(COLS.updated).slice(0, 10), by: g(COLS.by) }]);
         }
     }
     return { fileId: m.fileId, byDoc };
@@ -96,7 +99,7 @@ function buildMail(cfg, date, file, lines, qh) {
     const rows = hit.sort((a, b) => `${a.time ?? ''}${a.line}`.localeCompare(`${b.time ?? ''}${b.line}`)).map((l) => {
         const qr = qh.byDoc.get((0, core_1.norm)(l.doc));
         return `<tr><td ${td}>${esc(l.time ?? '')}</td><td ${td}>${esc(l.line)}</td><td ${td}>${esc(l.product)}</td><td ${td}>${esc(l.country)}</td><td ${td}><b>${esc(l.doc)}</b></td>
-      <td ${td}>${qr.map((r) => `<div style="margin-bottom:6px"><b>${esc(r.material)}</b>${r.shortCode ? ` · Short Code ${esc(r.shortCode)}` : ''}${r.note ? `<br>${esc(r.note).replace(/\n/g, '<br>')}` : ''}${r.updated ? `<br><span style="color:#667">อัปเดต ${esc(r.updated)}${r.by ? ` โดย ${esc(r.by)}` : ''}</span>` : ''}</div>`).join('')}</td></tr>`;
+      <td ${td}>${qr.map((r) => `<div style="margin-bottom:6px"><b>${esc(r.material)}</b>${r.shortCode ? ` · Short Code ${esc(r.shortCode)}` : ''}${r.note ? `<br><span style="color:#667">รายละเอียด:</span> ${esc(r.note).replace(/\n/g, '<br>')}` : ''}${r.updated ? `<br><span style="color:#667">อัปเดต ${esc(r.updated)}${r.by ? ` โดย ${esc(r.by)}` : ''}</span>` : ''}</div>`).join('')}</td></tr>`;
     }).join('');
     const link = env_1.env.publicUrl ? `<p style="font-size:13px">ดูทั้งหมดใน DocHUB: <a href="${esc(env_1.env.publicUrl)}/files/${esc(qh.fileId)}">Quality Highlight - Master</a></p>` : '';
     const html = `<div style="font-family:Segoe UI,Tahoma,sans-serif;color:#1d2433"><p>${esc(fill(cfg.intro, vars)).replace(/\n/g, '<br>')}</p>
@@ -105,7 +108,7 @@ function buildMail(cfg, date, file, lines, qh) {
     // the same content as plain text (for the "open in my mail program" draft)
     const text = [fill(cfg.intro, vars), '',
         ...hit.map((l) => [`• ${[l.time, l.line, l.product, l.country].filter(Boolean).join(' · ')} — Doc No ${l.doc}`,
-            ...qh.byDoc.get((0, core_1.norm)(l.doc)).map((r) => `    ${[r.material, r.shortCode && `Short Code ${r.shortCode}`, r.note.replace(/\s*\n\s*/g, ' / '), r.updated && `อัปเดต ${r.updated}${r.by ? ` โดย ${r.by}` : ''}`].filter(Boolean).join(' · ')}`)].join('\n')),
+            ...qh.byDoc.get((0, core_1.norm)(l.doc)).map((r) => `    ${[r.material, r.shortCode && `Short Code ${r.shortCode}`, r.note && `รายละเอียด: ${r.note.replace(/\s*\n\s*/g, ' / ')}`, r.updated && `อัปเดต ${r.updated}${r.by ? ` โดย ${r.by}` : ''}`].filter(Boolean).join(' · ')}`)].join('\n')),
         ...(env_1.env.publicUrl ? ['', `ดูทั้งหมดใน DocHUB: ${env_1.env.publicUrl}/files/${qh.fileId}`] : [])].join('\n');
     return { subject: fill(cfg.subject, vars), html, text, matched: new Set(hit.map((l) => (0, core_1.norm)(l.doc))).size };
 }

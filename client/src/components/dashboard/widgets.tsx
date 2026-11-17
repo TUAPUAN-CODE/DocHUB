@@ -169,8 +169,10 @@ export function WidgetView({ w: given, refreshKey, editing, phone }: { w: Widget
   const [expanded, setExpanded] = useState(false);
   if (s.hidden && !editing) return null;
 
+  // a widget whose background was set to plain white follows the theme instead (frosted glass in the Glass theme); other colours are kept
+  const themed = s.bg === undefined || /^(#fff(fff)?|white|rgba?\(\s*255\s*,\s*255\s*,\s*255\s*(,\s*1(\.0+)?\s*)?\))$/i.test(String(s.bg).trim());
   const frame: React.CSSProperties = {
-    background: s.bg ?? 'var(--widget-bg)', color: s.text || 'var(--widget-text)',
+    background: themed ? 'var(--widget-bg)' : s.bg, color: s.text || 'var(--widget-text)',
     border: `${s.borderWidth ?? 'var(--widget-bw)'}${s.borderWidth !== undefined ? 'px' : ''} solid ${s.border ?? 'var(--widget-border)'}`,
     borderRadius: s.radius !== undefined ? s.radius : 'var(--widget-radius)', boxShadow: s.shadow ? SHADOWS[s.shadow] : 'var(--widget-shadow)',
     padding: s.padding !== undefined ? s.padding : 'var(--widget-pad)', opacity: s.hidden ? 0.35 : s.opacity ?? 1,
@@ -211,7 +213,7 @@ export function WidgetView({ w: given, refreshKey, editing, phone }: { w: Widget
   // a chart opens full screen when tapped (view mode): every label of the x axis, scroll sideways when there are many
   const canExpand = !editing && isData && !!data && CHART_TYPES.includes(w.type);
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden" style={w.type === 'shape' ? { opacity: s.opacity ?? 1 } : frame}>
+    <div className={`flex h-full w-full flex-col overflow-hidden${w.type !== 'shape' && themed ? ' ds-widget' : ''}`} style={w.type === 'shape' ? { opacity: s.opacity ?? 1 } : frame}>
       {showTitle && (
         <div className="mb-2 shrink-0" style={{ textAlign: s.titleAlign ?? 'left' }}>
           <div className="flex items-center gap-2" style={{ justifyContent: s.titleAlign === 'center' ? 'center' : s.titleAlign === 'right' ? 'flex-end' : 'flex-start' }}>

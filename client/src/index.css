@@ -346,3 +346,32 @@ html[data-shell='glass'] [data-popover-keep], html[data-shell='glass'] .ds-modal
   -webkit-backdrop-filter: blur(30px) saturate(1.4); backdrop-filter: blur(30px) saturate(1.4);
   border: 1px solid rgb(255 255 255 / .95);
   box-shadow: inset 2px 2px 5px #fff, inset -2px -3px 9px rgb(130 150 255 / .14), 0 24px 48px -16px rgb(60 70 170 / .45); }
+
+/* glass shell · dashboards: the white widget cards (and the cards / search box inside them) become frosted glass like the rest of the theme.
+   A widget whose owner picked its own background colour keeps it. */
+html[data-shell='glass'] .main-panel {
+  --widget-bg: linear-gradient(145deg, rgb(255 255 255 / .62), rgb(255 255 255 / .34));
+  --widget-border: rgb(255 255 255 / .85);
+  --widget-shadow: inset 2px 2px 5px rgb(255 255 255 / .9), inset -2px -3px 9px rgb(130 150 255 / .13), 0 18px 36px -26px rgb(80 90 190 / .45);
+}
+html[data-shell='glass'] .ds-widget { -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); }
+html[data-shell='glass'] .dash-page .bg-surface { background-color: rgb(255 255 255 / .5); }
+
+/* dashboard record cards: each field is a small tinted card (muted label on top, the value big and bold in the deeper shade of the same hue).
+   Every kind of data has its own hue so a card can be checked at a glance; the hues come from the web theme (blue / lavender / sky / pink / orange). */
+.rec-chip { --tint: var(--c-primary); --chip: var(--c-primary); min-width: 8rem; border-radius: 14px; padding: 8px 14px;
+  border: 1px solid rgb(var(--tint) / .38);
+  background: linear-gradient(rgb(var(--tint) / .13), rgb(var(--tint) / .13)), rgb(var(--c-surface) / .7);
+  box-shadow: 0 1px 2px rgb(16 24 40 / .04); }
+.rec-chip--blue { --tint: var(--c-primary); --chip: var(--c-primary); }
+.rec-chip--violet { --tint: 139 108 255; --chip: 92 70 214; }
+.rec-chip--cyan { --tint: 0 184 230; --chip: 6 112 152; }
+.rec-chip--rose { --tint: 255 79 195; --chip: 190 36 138; }
+.rec-chip--orange { --tint: var(--c-warning); --chip: 190 92 0; }
+.rec-chip--mint { --tint: 16 185 160; --chip: 6 112 98; }
+.rec-chip--slate { --tint: 100 116 139; --chip: var(--c-text); }
+.rec-chip-label { display: flex; align-items: center; gap: 4px; font-size: .72em; font-weight: 600; color: rgb(var(--chip) / .8); }
+.rec-chip-value { font-weight: 700; line-height: 1.15; color: rgb(var(--chip)); }
+html[data-shell='glass'] .rec-chip { border-color: rgb(var(--tint) / .5);
+  background: linear-gradient(145deg, rgb(var(--tint) / .26), rgb(var(--tint) / .08)), linear-gradient(145deg, rgb(255 255 255 / .7), rgb(255 255 255 / .4));
+  box-shadow: inset 2px 2px 4px rgb(255 255 255 / .85), inset -2px -2px 7px rgb(var(--tint) / .14), 0 10px 20px -16px rgb(var(--tint) / .5); }
