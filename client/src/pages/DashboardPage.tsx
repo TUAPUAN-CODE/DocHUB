@@ -91,7 +91,10 @@ export default function DashboardPage() {
   }, [dashId, dirty, reload]);
 
   // viewing a dashboard with the default background: shown like the other pages (title header, the widgets straight on the page — no grey frame, no paper)
-  const plain = !edit && !full && !!meta && !meta.background?.imageUrl && (!meta.background?.color || meta.background.color.toUpperCase() === '#F4F6FB');
+  const defaultBg = !!meta && !meta.background?.imageUrl && (!meta.background?.color || meta.background.color.toUpperCase() === '#F4F6FB');
+  const plain = !edit && !full && defaultBg;
+  // full screen with the default background: the glass theme's pastel background + drifting orbs instead of white / black
+  const glassFull = !edit && full && defaultBg;
   const fitZoom = useCallback(() => {
     if (!viewport.current || !meta) return;
     const pad = full ? 0 : plain ? 0 : 48;
@@ -210,7 +213,7 @@ export default function DashboardPage() {
   const flow = narrow && !edit && !full;
   return (
     <DashCtx.Provider value={{ slicers, setSlicer, widgets, dashboardId: dashId }}>
-    <div ref={page} className={cn('dash-page flex flex-col', !plain && 'bg-app', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
+    <div ref={page} className={cn('dash-page flex flex-col', !plain && !glassFull && 'bg-app', glassFull && 'dash-full', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
       {full && <button onClick={() => void toggleFull()} className="absolute right-3 top-3 z-[60] inline-flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity hover:opacity-100 focus:opacity-100"><Shrink className="h-3.5 w-3.5" />ออกจากเต็มจอ (Esc)</button>}
       <div className={cn('shrink-0 flex-wrap items-center gap-2 px-4 pb-3 sm:px-6', full ? 'hidden' : 'flex')}>
         <Link to={fromApps ? '/apps' : `/files/${fileId}`} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-ink/5" aria-label={fromApps ? 'กลับไปที่ Application' : 'กลับไปที่ไฟล์'}><ArrowLeft className="h-5 w-5" /></Link>
@@ -285,7 +288,7 @@ export default function DashboardPage() {
             {!widgets.length && <p className="py-16 text-center text-sm text-muted">ยังไม่มีวิดเจ็ต</p>}
           </div>
         ) : (
-        <div ref={viewport} className={cn('relative min-w-0 flex-1 overflow-auto', full ? 'bg-black' : plain ? '' : 'rounded-theme border border-line bg-ink/[.035]')} style={full ? { scrollbarGutter: 'stable' } : undefined} onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>
+        <div ref={viewport} className={cn('relative min-w-0 flex-1 overflow-auto', full ? (glassFull ? '' : 'bg-black') : plain ? '' : 'rounded-theme border border-line bg-ink/[.035]')} style={full ? { scrollbarGutter: 'stable' } : undefined} onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>
           <div className={cn(full ? 'mx-auto' : plain ? 'pb-6' : 'p-6')} style={{ width: meta.canvas.width * zoom + pad, height: meta.canvas.height * zoom + pad }}>
             <div style={{ width: meta.canvas.width * zoom, height: meta.canvas.height * zoom }} className="relative">
               <div onDragOver={(e) => { if (e.dataTransfer.types.includes(WMIME)) e.preventDefault(); }} onDrop={onDrop}
@@ -293,7 +296,7 @@ export default function DashboardPage() {
                 className={cn('absolute left-0 top-0 origin-top-left overflow-hidden', full || plain ? '' : 'rounded-[6px] shadow-[0_8px_30px_-12px_rgb(16_24_40/.35)]')}
                 style={{
                   width: meta.canvas.width, height: meta.canvas.height, transform: `scale(${zoom})`,
-                  backgroundColor: plain ? 'transparent' : bg.color ?? '#F4F6FB',
+                  backgroundColor: plain || glassFull ? 'transparent' : bg.color ?? '#F4F6FB',
                   backgroundImage: [edit && meta.canvas.snap ? `radial-gradient(circle, rgb(var(--c-muted) / .28) 1px, transparent 1px)` : '', bg.imageUrl ? `url("${bg.imageUrl}")` : ''].filter(Boolean).join(', ') || undefined,
                   backgroundSize: [edit && meta.canvas.snap ? `${g * 2}px ${g * 2}px` : '', bg.imageUrl ? (bg.fit === 'repeat' ? 'auto' : bg.fit ?? 'cover') : ''].filter(Boolean).join(', ') || undefined,
                   backgroundRepeat: bg.fit === 'repeat' ? 'repeat' : edit && meta.canvas.snap ? 'repeat, no-repeat' : 'no-repeat',

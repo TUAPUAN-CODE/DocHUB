@@ -272,9 +272,10 @@ html[data-shell='square'] .nav-pill, html[data-shell='square'] .nav-link:hover {
   clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px), 0 12px); }
 
 /* ================= glass shell (light): pastel iridescent background, frosted panels, glossy bevels, lavender pill buttons ================= */
+@keyframes glass-hue { to { filter: hue-rotate(360deg); } }
 @keyframes glass-float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px,24px) scale(.9); } }
 html[data-shell='glass'] body { background: #E3ECFB; }
-html[data-shell='glass'] .shell-root { isolation: isolate; position: relative;
+html[data-shell='glass'] .shell-root, html[data-shell='glass'] .dash-full { isolation: isolate; position: relative;
   background:
     radial-gradient(900px 600px at 8% 0%, rgb(150 215 255 / .75), transparent 62%),
     radial-gradient(800px 560px at 100% 8%, rgb(196 170 255 / .70), transparent 60%),
@@ -282,11 +283,11 @@ html[data-shell='glass'] .shell-root { isolation: isolate; position: relative;
     radial-gradient(700px 500px at 0% 100%, rgb(170 235 240 / .6), transparent 62%),
     #E6EEFC !important; }
 /* two glossy orbs drifting behind the glass (they show through the frost) */
-html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after { content: ''; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%;
+html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after, html[data-shell='glass'] .dash-full::before, html[data-shell='glass'] .dash-full::after { content: ''; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%;
   border: 2px solid rgb(255 255 255 / .65); box-shadow: inset 10px 0 24px rgb(255 255 255 / .9); }
-html[data-shell='glass'] .shell-root::before { width: 210px; height: 210px; right: 5%; bottom: 7%; background: linear-gradient(160deg, #FFB347, #FF4FC3); opacity: .7; animation: glass-float 26s ease-in-out infinite; }
-html[data-shell='glass'] .shell-root::after { width: 130px; height: 130px; left: 4%; bottom: 16%; background: linear-gradient(90deg, #FFC46B, #E94FE0); opacity: .8; animation: glass-float 32s ease-in-out infinite reverse; }
-@media (prefers-reduced-motion: reduce) { html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after { animation: none; } }
+html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .dash-full::before { width: 210px; height: 210px; right: 5%; bottom: 7%; background: linear-gradient(160deg, #FFB347, #FF4FC3); opacity: .7; animation: glass-float 26s ease-in-out infinite, glass-hue 36s linear infinite; }
+html[data-shell='glass'] .shell-root::after, html[data-shell='glass'] .dash-full::after { width: 130px; height: 130px; left: 4%; bottom: 16%; background: linear-gradient(90deg, #FFC46B, #E94FE0); opacity: .8; animation: glass-float 32s ease-in-out infinite reverse, glass-hue 44s linear infinite -20s; }
+@media (prefers-reduced-motion: reduce) { html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after, html[data-shell='glass'] .dash-full::before, html[data-shell='glass'] .dash-full::after { animation: none; } }
 @layer components {
   html[data-shell='glass'] .main-panel { background: transparent; border-radius: 0; }
   /* frosted panels with a glossy bevel */
@@ -375,3 +376,23 @@ html[data-shell='glass'] .dash-page .bg-surface { background-color: rgb(255 255 
 html[data-shell='glass'] .rec-chip { border-color: rgb(var(--tint) / .5);
   background: linear-gradient(145deg, rgb(var(--tint) / .26), rgb(var(--tint) / .08)), linear-gradient(145deg, rgb(255 255 255 / .7), rgb(255 255 255 / .4));
   box-shadow: inset 2px 2px 4px rgb(255 255 255 / .85), inset -2px -2px 7px rgb(var(--tint) / .14), 0 10px 20px -16px rgb(var(--tint) / .5); }
+
+/* ================= glass · dashboards: less round, more character, livelier expanded view ================= */
+/* 1) corners: the dashboard cards are tighter than the rest of the theme */
+html[data-shell='glass'] .ds-widget { border-radius: 14px !important; }
+html[data-shell='glass'] .dash-page .rounded-2xl { border-radius: 12px; }
+html[data-shell='glass'] .dash-page .rounded-xl { border-radius: 9px; }
+html[data-shell='glass'] .dash-page .rec-chip { border-radius: 10px; }
+/* 2) character: a soft glow in the corner, depth, and a lift on hover */
+html[data-shell='glass'] .ds-widget { position: relative; transition: transform .2s ease, box-shadow .2s ease;
+  background-image: radial-gradient(160px 90px at 100% 0%, rgb(var(--c-primary) / .10), transparent 70%), var(--widget-bg) !important;
+  box-shadow: inset 2px 2px 5px rgb(255 255 255 / .9), inset -2px -3px 9px rgb(130 150 255 / .13), 0 20px 38px -24px rgb(80 90 190 / .55) !important; }
+html[data-shell='glass'] .ds-widget:hover { transform: translateY(-2px); box-shadow: inset 2px 2px 5px #fff, 0 26px 44px -22px rgb(80 90 190 / .7) !important; }
+/* 3) expanded chart: a colourful glass sheet over a tinted, blurred scrim — not a white box on white */
+html[data-shell='glass'] .modal-scrim { background: radial-gradient(900px 500px at 15% 10%, rgb(21 82 240 / .35), transparent 60%), radial-gradient(800px 500px at 90% 90%, rgb(255 138 0 / .28), transparent 60%), rgb(30 24 80 / .45);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2); backdrop-filter: blur(8px) saturate(1.2); }
+html[data-shell='glass'] .expanded-modal { overflow: hidden;
+  background: radial-gradient(700px 360px at 0% 0%, rgb(125 190 255 / .55), transparent 62%), radial-gradient(640px 360px at 100% 100%, rgb(255 190 225 / .55), transparent 62%), linear-gradient(145deg, rgb(244 247 255 / .97), rgb(236 232 255 / .96)); }
+html[data-shell='glass'] .expanded-modal h2 { font-size: 22px; font-weight: 700; color: #2F4F86; }
+html[data-shell='glass'] .expanded-plot { border-radius: 14px; padding: 14px; background: linear-gradient(145deg, rgb(255 255 255 / .8), rgb(255 255 255 / .5)); border: 1px solid rgb(255 255 255 / .95);
+  box-shadow: inset 2px 2px 5px #fff, 0 14px 30px -22px rgb(80 90 190 / .5); }
