@@ -105,6 +105,8 @@ router.post('/inkcode/plan/auto/import', upload.single('file'), (0, http_1.ah)(a
         throw (0, http_1.badRequest)('ไม่พบไฟล์ที่อัปโหลด');
     (0, http_1.ok)(res, await (0, auto_1.importAuto)(req.user, req.file.buffer, { date: b.date, onlyMatched: b.onlyMatched === '1', lineMap: (0, http_1.safeJson)(b.lineMap, {}), plantMap: (0, http_1.safeJson)(b.plantMap, {}) }, req));
 }));
+/** Where the Application tile "แผนผลิต" drops plan files: the folder InkCode / แผนผลิต */
+router.get('/inkcode/plan/folder', (0, http_1.ah)(async (req, res) => (0, http_1.ok)(res, { folderId: await (0, auto_1.planFolderId)(req.user) })));
 /** A plan file dropped into a plan folder (… / แผนผลิต / ปี / เดือน) in the file browser */
 router.post('/inkcode/plan/drop', upload.single('file'), (0, http_1.ah)(async (req, res) => {
     const b = (0, http_1.parse)(zod_1.z.object({ folderId: zod_1.z.string().min(30).max(40) }), req.body);

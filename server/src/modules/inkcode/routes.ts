@@ -6,7 +6,7 @@ import { badRequest, ah, ok, parse, safeJson } from '../../shared/http';
 import { LV, requireSheet } from '../../shared/permissions';
 import { annotate, context, dbPairs, insertItems, NAMES, norm } from './core';
 import { parsePlan } from './plan';
-import { dropPlan, importAuto, previewAuto } from './auto';
+import { dropPlan, importAuto, planFolderId, previewAuto } from './auto';
 import { ensureMsConnector, fetchPlanFromLink } from './planLink';
 import { traceCode } from './trace';
 import { newsTagIds, setNewsTagIds } from './news';
@@ -90,6 +90,9 @@ router.post('/inkcode/plan/auto/import', upload.single('file'), ah(async (req, r
   if (!req.file) throw badRequest('ไม่พบไฟล์ที่อัปโหลด');
   ok(res, await importAuto(req.user!, req.file.buffer, { date: b.date, onlyMatched: b.onlyMatched === '1', lineMap: safeJson(b.lineMap, {}), plantMap: safeJson(b.plantMap, {}) }, req));
 }));
+
+/** Where the Application tile "แผนผลิต" drops plan files: the folder InkCode / แผนผลิต */
+router.get('/inkcode/plan/folder', ah(async (req, res) => ok(res, { folderId: await planFolderId(req.user!) })));
 
 /** A plan file dropped into a plan folder (… / แผนผลิต / ปี / เดือน) in the file browser */
 router.post('/inkcode/plan/drop', upload.single('file'), ah(async (req, res) => {

@@ -40,6 +40,7 @@ export const inkTraceApi = { trace: (q: string) => get<TraceResult>('/inkcode/tr
 
 export type DropResult = AutoResult | { needsMicrosoft: { connectorId: string; configured: boolean; message: string } };
 export const inkcodeAutoApi = {
+  planFolder: () => get<{ folderId: string }>('/inkcode/plan/folder'),
   dropUrl: (url: string, folderId: string) => post<DropResult>('/inkcode/plan/drop-url', { url, folderId }, { timeout: 300_000 }),
   msConnector: () => post<{ id: string; configured: boolean }>('/inkcode/plan/ms-connector', {}),
   drop: (file: File, folderId: string) => post<AutoResult>('/inkcode/plan/drop', form(file, '', { folderId }), { timeout: 300_000 }),

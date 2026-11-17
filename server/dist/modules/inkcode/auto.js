@@ -4,6 +4,7 @@ exports.sheetsOf = void 0;
 exports.dayFile = dayFile;
 exports.previewAuto = previewAuto;
 exports.importAuto = importAuto;
+exports.planFolderId = planFolderId;
 exports.dropPlan = dropPlan;
 const db_1 = require("../../config/db");
 const http_1 = require("../../shared/http");
@@ -235,6 +236,16 @@ async function inPlanFolder(folderId) {
     }
     const at = names.indexOf(model_1.TREE.plans);
     return at >= 0 && names[names.length - 1] === model_1.TREE.root && !cur;
+}
+/** The folder "แผนผลิต" under InkCode where plan files are dropped (the shallowest one; made under InkCode when it is missing) */
+async function planFolderId(user) {
+    const t = await inkFolders();
+    if (!t)
+        throw (0, http_1.badRequest)(`ไม่พบโฟลเดอร์ ${model_1.TREE.root} — รัน seedInkCodeTree.ts ถ้ายังไม่เคยสร้าง`);
+    const have = t.list.filter((f) => f.name === model_1.TREE.plans).sort((x, y) => x.depth - y.depth)[0];
+    const id = have?.id ?? await ensureFolder(user, t.root, model_1.TREE.plans);
+    await (0, permissions_2.requireFolder)(user, id, permissions_2.LV.write);
+    return String(id).toLowerCase();
 }
 /**
  * A plan file dropped into a plan folder of DocHUB: imported like the "นำเข้าแผนผลิต" page does (nothing to confirm — lines without a

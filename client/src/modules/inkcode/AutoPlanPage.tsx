@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileSpreadsheet, UploadCloud } from 'lucide-react';
 import { apiError } from '@/api/client';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn';
 import { toast } from '@/store/ui';
 import { AutoPreview, AutoResult, inkcodeAutoApi } from './api';
 import { NewsTagsCard } from './NewsTagsCard';
+import { PlanDropZone } from './PlanDropZone';
 
 /**
  * Drop the daily production plan (Excel): the production date picks the day file, the plant of each line picks PF1 / PF2 and the area
@@ -25,6 +26,11 @@ export default function AutoPlanPage() {
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [result, setResult] = useState<AutoResult | null>(null);
+  // the app tile "แผนผลิต": drop the file and it is imported by itself into InkCode / แผนผลิต (the manual check below is optional)
+  const [manual, setManual] = useState(false);
+  const [planFolder, setPlanFolder] = useState<string | null>(null);
+  const [folderErr, setFolderErr] = useState('');
+  useEffect(() => { inkcodeAutoApi.planFolder().then((r) => setPlanFolder(r.folderId)).catch((e) => setFolderErr(apiError(e).message)); }, []);
 
   const reset = () => { setFile(null); setPv(null); setResult(null); setLineMap({}); setPlantMap({}); setDate(''); };
 
@@ -62,7 +68,13 @@ export default function AutoPlanPage() {
     <div className="mx-auto max-w-6xl px-3 pb-10 sm:px-6">
       <PageHeader icon={<FileSpreadsheet className="h-6 w-6" />} title="นำเข้าแผนผลิต (อัตโนมัติ)" subtitle="วางไฟล์แผนผลิตประจำวัน — ระบบดูวันที่ โรงงาน (PF1/PF2) และพื้นที่ (Pouch/Can/Cup) และกะ (DS/NS จากเวลาผลิต) แล้วสร้างไฟล์รายวันและใส่ข้อมูลให้เอง โค้ด 40 ตัว 4 แถวสร้างให้อัตโนมัติ" />
       <NewsTagsCard />
-      {!pv && (
+      {!pv && !manual && (
+        <>
+          {planFolder ? <PlanDropZone folderId={planFolder} onDone={() => undefined} /> : <p className="ds-card p-4 text-sm text-muted">{folderErr || 'กำลังเตรียมโฟลเดอร์ InkCode › แผนผลิต…'}</p>}
+          <p className="mb-4 text-sm text-muted">ไฟล์ที่นำเข้าจะถูกสร้างอัตโนมัติในโฟลเดอร์ InkCode › แผนผลิต (บันทึกผลทุกแถว) และไฟล์รายวันใน PF1 / PF2 · ต้องการเลือกไลน์/โรงงานเองก่อนนำเข้า <button type="button" className="text-primary hover:underline" onClick={() => setManual(true)}>ใช้แบบตรวจก่อนนำเข้า</button></p>
+        </>
+      )}
+      {!pv && manual && (
         <div onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); load(e.dataTransfer.files?.[0]); }}
           className={cn('ds-card flex cursor-pointer flex-col items-center gap-2 border-2 border-dashed px-6 py-16 text-center text-sm text-muted hover:border-primary/50', drag && 'border-primary bg-primary/5')} onClick={() => input.current?.click()} role="button" tabIndex={0}>
           <UploadCloud className="h-10 w-10" />

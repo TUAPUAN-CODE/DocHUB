@@ -208,6 +208,16 @@ async function inPlanFolder(folderId: string): Promise<boolean> {
   return at >= 0 && names[names.length - 1] === TREE.root && !cur;
 }
 
+/** The folder "แผนผลิต" under InkCode where plan files are dropped (the shallowest one; made under InkCode when it is missing) */
+export async function planFolderId(user: AuthUser): Promise<string> {
+  const t = await inkFolders();
+  if (!t) throw badRequest(`ไม่พบโฟลเดอร์ ${TREE.root} — รัน seedInkCodeTree.ts ถ้ายังไม่เคยสร้าง`);
+  const have = t.list.filter((f) => f.name === TREE.plans).sort((x, y) => x.depth - y.depth)[0];
+  const id = have?.id ?? await ensureFolder(user, t.root, TREE.plans);
+  await requireFolder(user, id, LV.write);
+  return String(id).toLowerCase();
+}
+
 /**
  * A plan file dropped into a plan folder of DocHUB: imported like the "นำเข้าแผนผลิต" page does (nothing to confirm — lines without a
  * plant or not in the database are skipped and listed), and a record file is left in that folder with everything the plan says
