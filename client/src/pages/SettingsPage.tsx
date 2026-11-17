@@ -132,7 +132,9 @@ function SystemIcon() {
   const saveIcon = useAppInfo((s) => s.saveIcon);
   const [busy, setBusy] = useState(false);
   const [bg, setBg] = useState('#FFFFFF');
-  const [pad, setPad] = useState(true);
+  // default: no coloured background and no margin, so a full-bleed icon is kept as it is (no white frame)
+  const [solid, setSolid] = useState(false);
+  const [pad, setPad] = useState(false);
   const pick = async (f?: File) => {
     if (!f) return;
     if (!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type)) return void toast.error('ใช้ไฟล์รูป PNG, JPG, WEBP หรือ GIF');
@@ -141,7 +143,7 @@ function SystemIcon() {
       const url = URL.createObjectURL(f);
       const img = await new Promise<HTMLImageElement>((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('อ่านรูปไม่ได้')); i.src = url; });
       const make = async (size: number) => {
-        const blob = await squarePng(img, size, bg, pad ? 0.08 : 0);
+        const blob = await squarePng(img, size, solid ? bg : null, pad ? 0.08 : 0);
         return (await uploadsApi.image(new File([blob], `app-icon-${size}.png`, { type: 'image/png' }))).url;
       };
       const icons = { '512': await make(512), '192': await make(192), '180': await make(180) };
@@ -171,10 +173,11 @@ function SystemIcon() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        <label className="flex items-center gap-2">สีพื้นหลัง <input type="color" value={bg} onChange={(e) => setBg(e.target.value)} className="h-8 w-10 cursor-pointer rounded border border-line" /></label>
+        <Toggle checked={solid} onChange={setSolid} label="ใส่สีพื้นหลัง" />
+        {solid && <input type="color" value={bg} onChange={(e) => setBg(e.target.value)} className="h-8 w-10 cursor-pointer rounded border border-line" aria-label="สีพื้นหลัง" />}
         <Toggle checked={pad} onChange={setPad} label="เว้นขอบรอบรูป" />
       </div>
-      <p className="rounded-xl bg-ink/[.04] px-3 py-2 text-xs text-muted">ตั้งสี/ขอบก่อนเลือกไฟล์ · ไอคอนบนมือถือที่ติดตั้งไว้แล้วจะเปลี่ยนเมื่อลบไอคอนแล้วเพิ่มลงหน้าจอใหม่ (ข้อจำกัดของมือถือ)</p>
+      <p className="rounded-xl bg-ink/[.04] px-3 py-2 text-xs text-muted">ค่าเริ่มต้นคือใช้รูปตามที่อัปโหลด (ไม่ใส่พื้น ไม่เว้นขอบ) — ถ้ารูปมีพื้นโปร่งใสแล้วเห็นกรอบขาว ให้เปิด "ใส่สีพื้นหลัง" · ตั้งก่อนเลือกไฟล์ · ไอคอนบนมือถือที่ติดตั้งไว้แล้วจะเปลี่ยนเมื่อลบไอคอนแล้วเพิ่มลงหน้าจอใหม่ (ข้อจำกัดของมือถือ)</p>
     </div>
   );
 }

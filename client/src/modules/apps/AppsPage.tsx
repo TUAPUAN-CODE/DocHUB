@@ -71,7 +71,7 @@ export default function AppsPage() {
   return (
     <Page>
       <PageHeader icon={<AppWindow />} title={title} subtitle={apps ? `${apps.filter((a) => !a.hidden).length} แอปที่คุณเปิดได้` : 'กำลังโหลด…'}
-        actions={admin ? <Button icon={<Plus className="h-4 w-4" />} onClick={() => setAdding(true)}>เพิ่ม App</Button> : undefined} />
+        actions={admin ? <Button icon={<Plus className="h-4 w-4" />} onClick={() => setAdding(true)} className="accent-orange">เพิ่ม App</Button> : undefined} />
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <TextInput icon={<Search />} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาแอป…" className="!h-11 min-w-[220px] flex-1" />
         <Segmented size="sm" value={String(size)} onChange={setSize} options={[{ value: '48', label: 'เล็ก' }, { value: '64', label: 'กลาง' }, { value: '88', label: 'ใหญ่' }, { value: '120', label: 'ใหญ่มาก' }]} />
@@ -94,10 +94,10 @@ export default function AppsPage() {
       {!apps ? <div className="grid grid-cols-3 gap-6 sm:grid-cols-5 lg:grid-cols-7">{Array.from({ length: 10 }, (_, i) => <Skeleton key={i} className="mx-auto h-24 w-20 rounded-2xl" />)}</div>
         : !list.length ? <div className="ds-card"><EmptyState icon={<AppWindow />} title={q ? 'ไม่พบแอปที่ค้นหา' : 'ยังไม่มีแอป'} description={admin && !q ? 'กด เพิ่ม App เพื่อสร้างไอคอนไปยังไฟล์ โฟลเดอร์ แดชบอร์ด หรือลิงก์เว็บ' : undefined} /></div>
         : (
-          <div className="grid gap-x-3 gap-y-6" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size + 44}px, 1fr))` }}>
+          <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${size + 70}px, calc(50% - 8px)), 1fr))` }}>
             {list.map((a) => (
               <div key={a.key} className={cn('group relative flex flex-col items-center', a.hidden && 'opacity-50')}>
-                <button type="button" onClick={() => open(a)} className="flex w-full flex-col items-center gap-2 rounded-2xl p-2 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={a.description ?? a.source}>
+                <button type="button" onClick={() => open(a)} className="app-tile flex w-full flex-col items-center gap-2.5 rounded-3xl px-2 pb-4 pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={a.description ?? a.source}>
                   <AppIcon app={a} size={size} />
                   <span className="line-clamp-2 w-full break-words text-center font-medium leading-tight" style={{ fontSize: size >= 88 ? 15 : size <= 48 ? 12 : 13 }}>{a.name}</span>
                 </button>
