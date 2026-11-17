@@ -102,22 +102,28 @@ function buildMail(cfg, date, file, lines, qh) {
     const html = `<div style="font-family:Segoe UI,Tahoma,sans-serif;color:#1d2433"><p>${esc(fill(cfg.intro, vars)).replace(/\n/g, '<br>')}</p>
     <table style="border-collapse:collapse"><tr><th ${th}>เวลา</th><th ${th}>ไลน์</th><th ${th}>Product</th><th ${th}>ประเทศ</th><th ${th}>Doc No</th><th ${th}>Quality Highlight</th></tr>${rows}</table>${link}
     <p style="font-size:12px;color:#889">อีเมลนี้ส่งอัตโนมัติจาก DocHUB เมื่อนำเข้าแผนผลิต</p></div>`;
-    return { subject: fill(cfg.subject, vars), html, matched: new Set(hit.map((l) => (0, core_1.norm)(l.doc))).size };
+    // the same content as plain text (for the "open in my mail program" draft)
+    const text = [fill(cfg.intro, vars), '',
+        ...hit.map((l) => [`• ${[l.time, l.line, l.product, l.country].filter(Boolean).join(' · ')} — Doc No ${l.doc}`,
+            ...qh.byDoc.get((0, core_1.norm)(l.doc)).map((r) => `    ${[r.material, r.shortCode && `Short Code ${r.shortCode}`, r.note.replace(/\s*\n\s*/g, ' / '), r.updated && `อัปเดต ${r.updated}${r.by ? ` โดย ${r.by}` : ''}`].filter(Boolean).join(' · ')}`)].join('\n')),
+        ...(env_1.env.publicUrl ? ['', `ดูทั้งหมดใน DocHUB: ${env_1.env.publicUrl}/files/${qh.fileId}`] : [])].join('\n');
+    return { subject: fill(cfg.subject, vars), html, text, matched: new Set(hit.map((l) => (0, core_1.norm)(l.doc))).size };
 }
 /** After a plan import. Never throws: the import must not fail because of a mail. */
 async function notifyQhMail(userId, date, lines, fileName) {
     try {
         const cfg = await getConfig();
-        if (!cfg.enabled)
-            return null;
         const qh = await qhRowsFor(lines.map((l) => l.doc));
         if (!qh)
-            return { matched: 0, sent: false, skipped: 'ไม่พบไฟล์ Quality Highlight - Master' };
+            return cfg.enabled ? { matched: 0, sent: false, skipped: 'ไม่พบไฟล์ Quality Highlight - Master' } : null;
         const mail = buildMail(cfg, date, fileName, lines.filter((l) => l.doc), qh);
         if (!mail.matched)
             return { matched: 0, sent: false, skipped: 'ไม่มี Doc No ที่ตรงกับ Quality Highlight' };
+        const draft = { to: cfg.to, cc: cfg.cc, subject: mail.subject, html: mail.html, text: mail.text };
+        if (!cfg.enabled)
+            return { matched: mail.matched, sent: false, skipped: 'ไม่ได้เปิดส่งอัตโนมัติ', draft };
         if (!cfg.to.length)
-            return { matched: mail.matched, sent: false, skipped: 'ยังไม่ได้ใส่ผู้รับอีเมล' };
+            return { matched: mail.matched, sent: false, skipped: 'ยังไม่ได้ใส่ผู้รับอีเมล', draft };
         const hash = crypto_1.default.createHash('sha1').update(JSON.stringify([date, [...qh.byDoc.keys()].sort(), cfg.to, cfg.cc])).digest('hex');
         let sent = [];
         try {
@@ -125,10 +131,10 @@ async function notifyQhMail(userId, date, lines, fileName) {
         }
         catch { /* none yet */ }
         if (sent.includes(hash))
-            return { matched: mail.matched, sent: false, skipped: 'แผนนี้ส่งอีเมลไปแล้ว' };
+            return { matched: mail.matched, sent: false, skipped: 'แผนนี้ส่งอีเมลไปแล้ว', draft };
         await (0, exports.sendMail)(cfg.channel, { to: cfg.to, cc: cfg.cc, subject: mail.subject, html: mail.html });
         await setSetting(SENT_KEY, JSON.stringify([...sent, hash].slice(-300)), userId);
-        return { matched: mail.matched, sent: true, to: cfg.to.length + cfg.cc.length };
+        return { matched: mail.matched, sent: true, to: cfg.to.length + cfg.cc.length, draft };
     }
     catch (e) {
         console.error('[inkcode] qh mail failed', e.message);
