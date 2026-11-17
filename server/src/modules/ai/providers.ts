@@ -2,7 +2,7 @@ import { safeFetch } from '../connectors/safeFetch';
 
 export type Provider = 'gemini' | 'anthropic' | 'openai';
 export const PROVIDERS: Record<Provider, { label: string; model: string; baseUrl?: string }> = {
-  gemini: { label: 'Google Gemini (มีโควตาฟรี)', model: 'gemini-2.0-flash' },
+  gemini: { label: 'Google Gemini (มีโควตาฟรี)', model: 'gemini-3.8-flash' },
   anthropic: { label: 'Anthropic Claude', model: 'claude-sonnet-5-5' },
   openai: { label: 'OpenAI / เข้ากันได้กับ OpenAI (Groq, OpenRouter, Ollama…)', model: 'gpt-4o-mini', baseUrl: 'https://api.openai.com/v1' },
 };
@@ -17,8 +17,18 @@ export type Msg =
 export interface Turn { text: string; calls: ToolCall[]; raw?: unknown }
 export interface Conn { provider: Provider; key: string; model: string; baseUrl?: string }
 
+/** "busy / rate limited" answers are usually gone a few seconds later: try again (3 tries in all) before showing the error */
+const RETRY_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRY_WAIT_MS = [2000, 5000];
+const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
 async function post(url: string, headers: Record<string, string>, body: unknown): Promise<any> {
-  const r = await safeFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  let r = await safeFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  for (const wait of RETRY_WAIT_MS) {
+    if (!RETRY_STATUS.has(r.status)) break;
+    await sleep(wait);
+    r = await safeFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  }
   const text = r.body.toString('utf8');
   let j: any; try { j = JSON.parse(text); } catch { j = { raw: text.slice(0, 300) }; }
   if (r.status >= 400) {

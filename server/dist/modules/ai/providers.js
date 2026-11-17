@@ -3,12 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.callModel = exports.PROVIDERS = void 0;
 const safeFetch_1 = require("../connectors/safeFetch");
 exports.PROVIDERS = {
-    gemini: { label: 'Google Gemini (มีโควตาฟรี)', model: 'gemini-2.0-flash' },
+    gemini: { label: 'Google Gemini (มีโควตาฟรี)', model: 'gemini-3.8-flash' },
     anthropic: { label: 'Anthropic Claude', model: 'claude-sonnet-5-5' },
     openai: { label: 'OpenAI / เข้ากันได้กับ OpenAI (Groq, OpenRouter, Ollama…)', model: 'gpt-4o-mini', baseUrl: 'https://api.openai.com/v1' },
 };
+/** "busy / rate limited" answers are usually gone a few seconds later: try again (3 tries in all) before showing the error */
+const RETRY_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRY_WAIT_MS = [2000, 5000];
+const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 async function post(url, headers, body) {
-    const r = await (0, safeFetch_1.safeFetch)(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+    let r = await (0, safeFetch_1.safeFetch)(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+    for (const wait of RETRY_WAIT_MS) {
+        if (!RETRY_STATUS.has(r.status))
+            break;
+        await sleep(wait);
+        r = await (0, safeFetch_1.safeFetch)(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+    }
     const text = r.body.toString('utf8');
     let j;
     try {
