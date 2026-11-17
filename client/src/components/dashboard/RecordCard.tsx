@@ -28,9 +28,9 @@ const isByCol = (c: Column) => /update.?by|updated.?by|ผู้|บันทึ
 const isDateCol = (c: Column) => c.dataType === 'date' || c.dataType === 'datetime';
 const isLong = (c: Column, v: unknown) => c.dataType === 'text' || (typeof v === 'string' && v.length > 40);
 
-/** the value colour of each heading box (theme colours: blue, orange, text) */
-const TITLE_TONES = ['rec-chip--primary', 'rec-chip--accent', 'rec-chip--ink', 'rec-chip--primary'];
-const BOX = { date: 'rec-chip--accent', by: 'rec-chip--primary', other: 'rec-chip--ink' };
+/** each kind of data has its own tint (easy to tell apart at a glance) taken from the theme palette */
+const TITLE_TONES = ['rec-chip--blue', 'rec-chip--violet', 'rec-chip--cyan', 'rec-chip--rose'];
+const BOX = { date: 'rec-chip--orange', by: 'rec-chip--mint', other: 'rec-chip--slate' };
 
 export interface CardModel {
   titleIds: string[]; fieldIds: string[]; imageCol?: Column; byId: Map<string, Column>;
