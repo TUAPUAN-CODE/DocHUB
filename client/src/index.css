@@ -272,7 +272,8 @@ html[data-shell='square'] .nav-pill, html[data-shell='square'] .nav-link:hover {
   clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px), 0 12px); }
 
 /* ================= glass shell (light): pastel iridescent background, frosted panels, glossy bevels, lavender pill buttons ================= */
-@keyframes glass-hue { to { filter: hue-rotate(360deg); } }
+/* the orbs drift through every hue but stay soft pastel (low saturation, a little brighter) */
+@keyframes glass-hue { from { filter: hue-rotate(0deg) saturate(.7) brightness(1.06); } to { filter: hue-rotate(360deg) saturate(.7) brightness(1.06); } }
 @keyframes glass-float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px,24px) scale(.9); } }
 html[data-shell='glass'] body { background: #E3ECFB; }
 html[data-shell='glass'] .shell-root, html[data-shell='glass'] .dash-full { isolation: isolate; position: relative;
@@ -285,8 +286,8 @@ html[data-shell='glass'] .shell-root, html[data-shell='glass'] .dash-full { isol
 /* two glossy orbs drifting behind the glass (they show through the frost) */
 html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after, html[data-shell='glass'] .dash-full::before, html[data-shell='glass'] .dash-full::after { content: ''; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%;
   border: 2px solid rgb(255 255 255 / .65); box-shadow: inset 10px 0 24px rgb(255 255 255 / .9); }
-html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .dash-full::before { width: 210px; height: 210px; right: 5%; bottom: 7%; background: linear-gradient(160deg, #FFB347, #FF4FC3); opacity: .7; animation: glass-float 26s ease-in-out infinite, glass-hue 36s linear infinite; }
-html[data-shell='glass'] .shell-root::after, html[data-shell='glass'] .dash-full::after { width: 130px; height: 130px; left: 4%; bottom: 16%; background: linear-gradient(90deg, #FFC46B, #E94FE0); opacity: .8; animation: glass-float 32s ease-in-out infinite reverse, glass-hue 44s linear infinite -20s; }
+html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .dash-full::before { width: 210px; height: 210px; right: 5%; bottom: 7%; background: linear-gradient(160deg, #FFD9A8, #FFB4E2); opacity: .7; animation: glass-float 26s ease-in-out infinite, glass-hue 36s linear infinite; }
+html[data-shell='glass'] .shell-root::after, html[data-shell='glass'] .dash-full::after { width: 130px; height: 130px; left: 4%; bottom: 16%; background: linear-gradient(90deg, #FFE0B0, #F2B8EE); opacity: .8; animation: glass-float 32s ease-in-out infinite reverse, glass-hue 44s linear infinite -20s; }
 @media (prefers-reduced-motion: reduce) { html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after, html[data-shell='glass'] .dash-full::before, html[data-shell='glass'] .dash-full::after { animation: none; } }
 @layer components {
   html[data-shell='glass'] .main-panel { background: transparent; border-radius: 0; }
