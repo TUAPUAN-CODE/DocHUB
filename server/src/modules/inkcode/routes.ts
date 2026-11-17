@@ -11,6 +11,7 @@ import { ensureMsConnector, fetchPlanFromLink } from './planLink';
 import { traceCode } from './trace';
 import { newsTagIds, setNewsTagIds } from './news';
 import { getConfig as getQhMail, saveConfig as saveQhMail, sendTestMail } from './qhMail';
+import { saveSmtp, smtpStatus } from '../connectors/smtp';
 import { outlookDisconnect, outlookStatus } from '../connectors/outlook';
 import { idList, jsonParam, q } from '../../config/db';
 import { requirePage } from '../pageAccess/service';
@@ -34,18 +35,25 @@ router.put('/inkcode/news-tags', ah(async (req, res) => {
 
 /** E-mail to the people typed here when a plan has Doc No that are in Quality Highlight (master / admin) */
 const masterOnly = (req: any) => { if (isBasicRole(req.user!.role)) throw badRequest('เฉพาะ Master หรือ Admin'); };
-router.get('/inkcode/qh-mail', ah(async (req, res) => { masterOnly(req); ok(res, { config: await getQhMail(), outlook: await outlookStatus() }); }));
+router.get('/inkcode/qh-mail', ah(async (req, res) => { masterOnly(req); ok(res, { config: await getQhMail(), outlook: await outlookStatus(), smtp: await smtpStatus() }); }));
 router.put('/inkcode/qh-mail', ah(async (req, res) => {
   masterOnly(req);
-  const b = parse(z.object({ enabled: z.boolean(), to: z.array(z.string().max(200)).max(50), cc: z.array(z.string().max(200)).max(50), subject: z.string().max(200), intro: z.string().max(2000) }), req.body);
+  const b = parse(z.object({ enabled: z.boolean(), channel: z.enum(['smtp', 'outlook']).default('smtp'), to: z.array(z.string().max(200)).max(50), cc: z.array(z.string().max(200)).max(50), subject: z.string().max(200), intro: z.string().max(2000) }), req.body);
   ok(res, { config: await saveQhMail(b, req.user!.id) });
 }));
+router.put('/inkcode/qh-mail/smtp', ah(async (req, res) => {
+  masterOnly(req);
+  const b = parse(z.object({ host: z.string().max(200), port: z.number().int().min(1).max(65535), secure: z.boolean(), user: z.string().max(200), password: z.string().max(500).optional(), from: z.string().max(200), allowSelfSigned: z.boolean() }), req.body);
+  try { ok(res, { smtp: await saveSmtp(b, req.user!.id) }); } catch (e) { throw badRequest((e as Error).message); }
+}));
+/** A test mail to the sender's own address through the saved channel */
 router.post('/inkcode/qh-mail/test', ah(async (req, res) => {
   masterOnly(req);
-  const o = await outlookStatus();
-  if (!o.connected || !o.account) throw badRequest('ยังไม่ได้เชื่อม Outlook สำหรับส่งอีเมล');
-  try { await sendTestMail(o.account); } catch (e) { throw badRequest((e as Error).message); }
-  ok(res, { sentTo: o.account });
+  const channel = (await getQhMail()).channel;
+  const to = channel === 'outlook' ? (await outlookStatus()).account : (await smtpStatus()).from.replace(/^.*<([^>]+)>\s*$/, '$1');
+  if (!to) throw badRequest(channel === 'outlook' ? 'ยังไม่ได้เชื่อม Outlook สำหรับส่งอีเมล' : 'ยังไม่ได้ตั้งค่า SMTP (เซิร์ฟเวอร์ และอีเมลผู้ส่ง)');
+  try { await sendTestMail(channel, to); } catch (e) { throw badRequest((e as Error).message); }
+  ok(res, { sentTo: to });
 }));
 router.delete('/inkcode/qh-mail/outlook', ah(async (req, res) => { masterOnly(req); await outlookDisconnect(req.user!.id); ok(res, { outlook: await outlookStatus() }); }));
 
