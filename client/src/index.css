@@ -270,3 +270,72 @@ html[data-shell='square'] .app-tile { clip-path: polygon(14px 0, 100% 0, 100% ca
 /* the active tab joins the main panel on its right, so only its left corners are cut */
 html[data-shell='square'] .nav-pill, html[data-shell='square'] .nav-link:hover {
   clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px), 0 12px); }
+
+/* ================= glass shell (light): pastel iridescent background, frosted panels, glossy bevels, lavender pill buttons ================= */
+@keyframes glass-float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px,24px) scale(.9); } }
+html[data-shell='glass'] body { background: #E3ECFB; }
+html[data-shell='glass'] .shell-root { isolation: isolate; position: relative;
+  background:
+    radial-gradient(900px 600px at 8% 0%, rgb(150 215 255 / .75), transparent 62%),
+    radial-gradient(800px 560px at 100% 8%, rgb(196 170 255 / .70), transparent 60%),
+    radial-gradient(900px 600px at 70% 110%, rgb(255 190 220 / .70), transparent 62%),
+    radial-gradient(700px 500px at 0% 100%, rgb(170 235 240 / .6), transparent 62%),
+    #E6EEFC !important; }
+/* two glossy orbs drifting behind the glass (they show through the frost) */
+html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after { content: ''; position: fixed; z-index: -1; pointer-events: none; border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / .65); box-shadow: inset 10px 0 24px rgb(255 255 255 / .9); }
+html[data-shell='glass'] .shell-root::before { width: 210px; height: 210px; right: 5%; bottom: 7%; background: linear-gradient(160deg, #FFB347, #FF4FC3); opacity: .7; animation: glass-float 26s ease-in-out infinite; }
+html[data-shell='glass'] .shell-root::after { width: 130px; height: 130px; left: 4%; bottom: 16%; background: linear-gradient(90deg, #FFC46B, #E94FE0); opacity: .8; animation: glass-float 32s ease-in-out infinite reverse; }
+@media (prefers-reduced-motion: reduce) { html[data-shell='glass'] .shell-root::before, html[data-shell='glass'] .shell-root::after { animation: none; } }
+@layer components {
+  html[data-shell='glass'] .main-panel { background: transparent; border-radius: 0; }
+  /* frosted panels with a glossy bevel */
+  html[data-shell='glass'] .ds-sidebar-desktop { padding: 12px 0 12px 12px; }
+  html[data-shell='glass'] .ds-sidebar-desktop > div,
+  html[data-shell='glass'] .ds-sidebar:not(.ds-sidebar-desktop),
+  html[data-shell='glass'] .ds-topbar, html[data-shell='glass'] .ds-modal {
+    background: linear-gradient(145deg, rgb(255 255 255 / .62), rgb(255 255 255 / .30));
+    -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+    border: 1px solid rgb(255 255 255 / .8);
+    box-shadow: inset 2px 2px 6px rgb(255 255 255 / .9), inset -3px -3px 10px rgb(130 150 255 / .16), 0 24px 50px -28px rgb(80 90 190 / .5); }
+  html[data-shell='glass'] .ds-sidebar-desktop > div { border-radius: 30px; }
+  html[data-shell='glass'] .ds-sidebar:not(.ds-sidebar-desktop) { border-radius: 0 30px 30px 0; background: linear-gradient(145deg, rgb(255 255 255 / .84), rgb(240 244 255 / .7)); }
+  html[data-shell='glass'] .ds-modal { border-radius: 28px; background: linear-gradient(145deg, rgb(255 255 255 / .9), rgb(244 246 255 / .8)); }
+  html[data-shell='glass'] .ds-topbar { border-radius: 0 0 22px 22px; }
+  @media (min-width: 640px) { html[data-shell='glass'] .ds-topbar { margin: 12px 16px 0; border-radius: 26px; } }
+  html[data-shell='glass'] .nav-link { margin: 0 12px; border-radius: 20px; height: 44px; font-weight: 500; color: #3B4A72; }
+  html[data-shell='glass'] .sb-collapsed .nav-link { margin: 0 8px; }
+  html[data-shell='glass'] .nav-link:hover { background: rgb(255 255 255 / .55); box-shadow: inset 1px 1px 3px #fff; }
+  html[data-shell='glass'] .nav-link.active { color: #fff; font-weight: 600; text-shadow: 0 1px 6px rgb(90 70 200 / .45); }
+  /* active item: a lavender glass pill */
+  html[data-shell='glass'] .nav-pill { border-radius: 20px; background: linear-gradient(135deg, #B79CFF 0%, #8FA6FF 100%);
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .75), inset -2px -3px 8px rgb(80 80 220 / .3), 0 14px 24px -12px rgb(110 100 230 / .75); }
+  html[data-shell='glass'] .nav-pill::before { top: 3px; left: 14px; right: 14px; bottom: auto; width: auto; height: 42%; border-radius: 99px; box-shadow: none; background: linear-gradient(rgb(255 255 255 / .5), transparent); }
+  html[data-shell='glass'] .nav-pill::after { display: none; }
+  html[data-shell='glass'] .side-item { color: #3B4A72; }
+  html[data-shell='glass'] .side-item:hover, html[data-shell='glass'] .side-item.active { background: rgb(255 255 255 / .55); }
+  html[data-shell='glass'] .ds-sidebar .border-t { border-color: rgb(255 255 255 / .7); }
+  /* cards, inputs, table head */
+  html[data-shell='glass'] .ds-card { background: linear-gradient(145deg, rgb(255 255 255 / .62), rgb(255 255 255 / .36)); border: 1px solid rgb(255 255 255 / .85); border-radius: 26px;
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .9), inset -2px -3px 9px rgb(130 150 255 / .13), 0 18px 36px -26px rgb(80 90 190 / .45); }
+  html[data-shell='glass'] .ds-input { background: rgb(255 255 255 / .5); border: 1px solid rgb(255 255 255 / .85); border-radius: 18px;
+    box-shadow: inset 2px 2px 5px rgb(120 140 220 / .14), inset -1px -1px 3px rgb(255 255 255 / .9); }
+  html[data-shell='glass'] .ds-th { background: rgb(214 208 255 / .45); color: #3A4A80; }
+  /* buttons: lavender pill with a gloss; the accent one is orange → magenta like the orbs */
+  html[data-shell='glass'] .btn-primary { border-radius: 999px; background-image: linear-gradient(135deg, #B79CFF, #8FA6FF); color: #fff; text-shadow: 0 1px 4px rgb(80 60 200 / .4);
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .7), inset -2px -3px 7px rgb(80 80 220 / .28), 0 12px 22px -12px rgb(110 100 230 / .8); }
+  html[data-shell='glass'] .btn-primary:hover { filter: brightness(1.05); }
+  html[data-shell='glass'] .accent-orange { border-radius: 999px !important; background-image: linear-gradient(135deg, #FFB347, #FF4FC3) !important;
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .6), 0 12px 22px -12px rgb(255 79 195 / .75) !important; }
+  html[data-shell='glass'] .page-icon { height: 3rem; width: 3rem; border-radius: 18px; color: #6C63D9; background: linear-gradient(145deg, rgb(255 255 255 / .85), rgb(214 208 255 / .5));
+    box-shadow: inset 2px 2px 5px #fff, inset -2px -2px 8px rgb(130 150 255 / .25), 0 14px 24px -14px rgb(100 100 220 / .6); }
+  html[data-shell='glass'] .page-title { font-size: 28px; font-weight: 700; color: #2F4F86; letter-spacing: -.01em; }
+  /* application tiles: frosted glass that gets a diagonal shine on hover */
+  html[data-shell='glass'] .app-tile { border-radius: 28px; overflow: hidden; background: linear-gradient(145deg, rgb(255 255 255 / .66), rgb(255 255 255 / .3));
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid rgb(255 255 255 / .85);
+    box-shadow: inset 2px 2px 5px rgb(255 255 255 / .9), inset -2px -3px 9px rgb(130 150 255 / .15), 0 18px 34px -24px rgb(80 90 190 / .55); }
+  html[data-shell='glass'] .app-tile::after { left: -60%; right: auto; bottom: auto; top: -20%; width: 40%; height: 150%; translate: none; border-radius: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .75), transparent);
+    transform: rotate(18deg); opacity: 0; transition: left .6s ease, opacity .3s ease; }
+  html[data-shell='glass'] .app-tile:hover { transform: translateY(-4px); border-color: #fff; box-shadow: inset 2px 2px 5px #fff, 0 26px 40px -24px rgb(110 100 230 / .7); }
+  html[data-shell='glass'] .app-tile:hover::after { left: 120%; width: 40%; opacity: 1; }
+}

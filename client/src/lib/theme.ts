@@ -11,7 +11,7 @@ export interface Theme {
   version: 1; mode: 'light' | 'dark'; colors: ThemeColors; radius: number; gap: number; fontFamily: string; fontSize: number;
   sidebarWidth: number; components: Partial<Record<ComponentKey, ComponentStyle>>;
   /** aurora = white floating menu, glass top bar, soft blue / orange background (default in light mode) · classic = the coloured left bar */
-  shell?: 'aurora' | 'classic' | 'square';
+  shell?: 'aurora' | 'classic' | 'square' | 'glass';
 }
 
 export const LIGHT: ThemeColors = {
@@ -107,10 +107,14 @@ export function applyTheme(t: Theme) {
     s.setProperty(`--${k}-shadow`, SHADOWS[c.shadow] ?? 'none');
   });
   // aurora shell (light mode): white floating left bar with dark text, glass top bar over a soft blue / orange background
-  const shell = t.shell ?? 'square';
+  // default: glass in light mode, square in dark (glass needs a light background)
+  const want = t.shell ?? (t.mode === 'light' ? 'glass' : 'square');
+  const shell = want === 'glass' && t.mode !== 'light' ? 'square' : want;
   const aurora = t.mode === 'light' && shell === 'aurora';
+  const glass = shell === 'glass';
   // square = the classic coloured bar whose active tab joins the main panel, with every corner sharp (any mode)
-  root.dataset.shell = aurora ? 'aurora' : shell === 'square' ? 'square' : 'classic';
+  root.dataset.shell = aurora ? 'aurora' : glass ? 'glass' : shell === 'square' ? 'square' : 'classic';
+  if (glass) { s.setProperty('--sidebar-bg', 'transparent'); s.setProperty('--sidebar-text', '#2F4468'); }
   if (aurora) {
     s.setProperty('--sidebar-bg', 'transparent');
     s.setProperty('--sidebar-text', '#D8EBFF');

@@ -139,8 +139,8 @@ export function ThemeCustomizer() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium">รูปแบบหน้าจอ</span>
-            <Segmented size="sm" value={draft.shell ?? 'square'} onChange={(v) => update((t) => ({ ...t, shell: v }))}
-              options={[{ value: 'square', label: 'เหลี่ยม (เมนูติดหน้าหลัก)' }, ...(draft.mode === 'light' ? [{ value: 'aurora' as const, label: 'Aurora (ขาว · ฟ้า · ส้ม)' }] : []), { value: 'classic', label: 'คลาสสิก (มน)' }]} />
+            <Segmented size="sm" value={draft.shell ?? (draft.mode === 'light' ? 'glass' : 'square')} onChange={(v) => update((t) => ({ ...t, shell: v }))}
+              options={[...(draft.mode === 'light' ? [{ value: 'glass' as const, label: 'Glass (กระจกฝ้า)' }] : []), { value: 'square', label: 'เหลี่ยม (เมนูติดหน้าหลัก)' }, ...(draft.mode === 'light' ? [{ value: 'aurora' as const, label: 'Aurora (ขาว · ฟ้า · ส้ม)' }] : []), { value: 'classic', label: 'คลาสสิก (มน)' }]} />
           </div>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => (
