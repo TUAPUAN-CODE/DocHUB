@@ -19,7 +19,7 @@ export function Modal({
       {open && (
         <ModalLayer>
           {/* closes only from its own buttons (✕ / ยกเลิก …): a tap outside or Esc must not throw away what was typed */}
-          <div className="fixed inset-0 bg-slate-900/40" />
+          <div className="modal-scrim fixed inset-0 bg-slate-900/40" />
           <motion.div role="dialog" aria-modal="true"
             className={cn('ds-modal relative my-6 flex w-full flex-col', SIZES[size], className)}
             initial={{ opacity: 0, y: 14, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }}

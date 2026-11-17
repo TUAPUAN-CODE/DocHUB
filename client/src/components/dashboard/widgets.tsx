@@ -244,8 +244,8 @@ function ExpandedChart({ w, data, onClose }: { w: Widget; data: WidgetData; onCl
   const big: Widget = { ...w, config: { ...cfg, xInterval: 0, xAngle: turn ? (cfg.xAngle || -45) : cfg.xAngle, xFontSize: Math.max(12, Number(cfg.xFontSize) || 12), yFontSize: Math.max(12, Number(cfg.yFontSize) || 12), legend: cfg.legend, labelSize: Math.max(11, Number(cfg.labelSize) || 11) } };
   const per = ['bar', 'pareto', 'pct', 'histogram'].includes(w.type) ? Math.max(28, 18 * Math.max(1, data.series.length)) : 28;
   return (
-    <Modal open onClose={onClose} size="full" title={w.title || 'กราฟ'} description={n ? `${n.toLocaleString()} รายการบนแกน X` : undefined}>
-      <div className="overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+    <Modal open onClose={onClose} size="full" className="expanded-modal" title={w.title || 'กราฟ'} description={n ? `${n.toLocaleString()} รายการบนแกน X` : undefined}>
+      <div className="expanded-plot overflow-x-auto" onClick={(e) => e.stopPropagation()}>
         <div style={{ minWidth: Math.max(600, n * per), height: '70vh' }}>
           <ChartBody w={big} data={data} />
         </div>
