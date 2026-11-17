@@ -113,11 +113,52 @@ export function PlanDropZone({ folderId, onDone }: { folderId: string; onDone: (
   );
 }
 
-/** What happened to the Quality Highlight e-mail of this plan */
+/** Copies a table so it pastes into Outlook as a table (rich), with a plain-text fallback. `navigator.clipboard` needs https, so the old way is the fallback. */
+async function copyRich(html: string, text: string): Promise<boolean> {
+  try {
+    if (window.isSecureContext && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })]);
+      return true;
+    }
+  } catch { /* fall through to the old way */ }
+  const box = document.createElement('div');
+  box.contentEditable = 'true'; box.innerHTML = html; box.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre-wrap';
+  document.body.appendChild(box);
+  const sel = window.getSelection(); const range = document.createRange(); range.selectNodeContents(box); sel?.removeAllRanges(); sel?.addRange(range);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { ok = false; }
+  sel?.removeAllRanges(); document.body.removeChild(box);
+  return ok;
+}
+
+/** What happened to the Quality Highlight e-mail of this plan; and the draft to send from your own mail program */
 function QhMailLine({ r }: { r: NonNullable<AutoResult['qhMail']> }) {
-  if (r.sent) return <p className="mt-1 font-medium text-primary">ส่งอีเมลแจ้ง Quality Highlight แล้ว: {r.matched} Doc No ที่ตรง · ถึง {r.to} คน</p>;
-  if (r.error) return <p className="mt-1 text-danger">ส่งอีเมล Quality Highlight ไม่สำเร็จ: {r.error}</p>;
-  return <p className="mt-1 text-muted">อีเมล Quality Highlight: ไม่ได้ส่ง — {r.skipped}</p>;
+  const draft = r.draft;
+  const copy = async () => { if (draft) { if (await copyRich(draft.html, draft.text)) toast.success('คัดลอกตารางแล้ว', 'วางในอีเมลด้วย Ctrl+V'); else toast.error('คัดลอกไม่สำเร็จ'); } };
+  const open = async () => {
+    if (!draft) return;
+    const q = (s: string) => encodeURIComponent(s);
+    const head = `mailto:${draft.to.map(q).join(',')}?subject=${q(draft.subject)}${draft.cc.length ? `&cc=${draft.cc.map(q).join(',')}` : ''}`;
+    // a short mail goes in whole; a long one is copied as a table and pasted by the person (a mailto link has a length limit)
+    if ((head + `&body=${q(draft.text)}`).length <= 1800) { window.location.href = `${head}&body=${q(draft.text)}`; return; }
+    const copied = await copyRich(draft.html, draft.text);
+    window.location.href = `${head}&body=${q(`${draft.text.split('\n')[0]}\n\n(กด Ctrl+V เพื่อวางตารางรายละเอียดที่คัดลอกไว้)`)}`;
+    if (copied) toast.success('คัดลอกตารางไว้แล้ว', 'ในหน้าเขียนอีเมล กด Ctrl+V เพื่อวางตาราง');
+  };
+  return (
+    <div className="mt-1 space-y-1">
+      {r.sent && <p className="font-medium text-primary">ส่งอีเมลแจ้ง Quality Highlight อัตโนมัติแล้ว: {r.matched} Doc No ที่ตรง · ถึง {r.to} คน</p>}
+      {r.error && <p className="text-danger">ส่งอีเมลอัตโนมัติไม่สำเร็จ: {r.error}</p>}
+      {draft ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2">
+          <p className="text-sm"><b>{r.matched}</b> Doc No ในแผนตรงกับ Quality Highlight</p>
+          <Button size="sm" onClick={() => void open()}>เปิดร่างอีเมล</Button>
+          <Button size="sm" variant="secondary" onClick={() => void copy()}>คัดลอกเป็นตาราง</Button>
+          {!draft.to.length && <span className="text-xs text-muted">ยังไม่ได้ตั้งผู้รับ — ใส่ที่การ์ด “อีเมลแจ้ง Quality Highlight”</span>}
+        </div>
+      ) : !r.sent && !r.error && <p className="text-muted">อีเมล Quality Highlight: {r.skipped}</p>}
+    </div>
+  );
 }
 
 /** What the import found that someone should look at: New Code (QC checks 100 %), Rev. changed since the last plan, not in the master … */

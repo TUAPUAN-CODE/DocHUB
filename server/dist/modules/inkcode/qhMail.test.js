@@ -21,5 +21,8 @@ const qhMail_1 = require("./qhMail");
     strict_1.default.ok(m.html.includes('Tuna &lt;fresh&gt;'));
     strict_1.default.ok(m.html.includes('ระวัง<br>สี'));
     strict_1.default.ok(!m.html.includes('ZZ-9'));
+    strict_1.default.ok(m.text.includes('Doc No ab-1'));
+    strict_1.default.ok(m.text.includes('ระวัง / สี'));
+    strict_1.default.ok(!m.text.includes('ZZ-9'));
 });
 //# sourceMappingURL=qhMail.test.js.map

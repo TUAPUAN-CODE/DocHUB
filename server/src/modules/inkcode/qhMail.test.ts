@@ -18,4 +18,7 @@ test('buildMail: only plan lines whose Doc No is in Quality Highlight, subject p
   assert.ok(m.html.includes('Tuna &lt;fresh&gt;'));
   assert.ok(m.html.includes('ระวัง<br>สี'));
   assert.ok(!m.html.includes('ZZ-9'));
+  assert.ok(m.text.includes('Doc No ab-1'));
+  assert.ok(m.text.includes('ระวัง / สี'));
+  assert.ok(!m.text.includes('ZZ-9'));
 });

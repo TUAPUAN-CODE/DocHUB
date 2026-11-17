@@ -52,9 +52,9 @@ export function QhMailCard() {
         <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
           <p className="font-medium">อีเมลแจ้ง Quality Highlight</p>
-          <p className="text-sm text-muted">เมื่อนำเข้าแผนผลิตแล้วมี Doc No ตรงกับ Sub Doc No. ใน Quality Highlight ระบบส่งอีเมลหา To / CC ด้านล่าง พร้อมตารางรายการในแผนและรายละเอียดจาก Quality Highlight (Material, Short Code, Note, วันที่อัปเดต) · แผนเดิมไม่ส่งซ้ำ</p>
+          <p className="text-sm text-muted">เมื่อนำเข้าแผนผลิตแล้วมี Doc No ตรงกับ Sub Doc No. ใน Quality Highlight ระบบทำอีเมลให้ (To / CC / หัวข้อ ด้านล่าง + ตารางรายการในแผนและรายละเอียดจาก Quality Highlight): ใต้ผลนำเข้ามีปุ่ม “เปิดร่างอีเมล” ให้กดส่งเองได้เลยโดยไม่ต้องตั้งเซิร์ฟเวอร์เมล · หรือเปิดสวิตช์ด้านขวาให้ส่งอัตโนมัติ (ต้องตั้งช่องทางส่งด้านล่าง) · ส่งอัตโนมัติไม่ส่งซ้ำแผนเดิม</p>
         </div>
-        <Toggle checked={cfg.enabled} onChange={(v) => setCfg({ ...cfg, enabled: v })} label={cfg.enabled ? 'เปิด' : 'ปิด'} />
+        <Toggle checked={cfg.enabled} onChange={(v) => setCfg({ ...cfg, enabled: v })} label={cfg.enabled ? 'ส่งอัตโนมัติ: เปิด' : 'ส่งอัตโนมัติ: ปิด'} />
       </div>
 
       <div className="space-y-3 rounded-xl border border-line p-3 text-sm">

@@ -26,7 +26,8 @@ export interface AutoPreview { date: string; sheetName: string; warnings: string
 export interface AutoTarget { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: { created: number; duplicate: number; skippedNotInDb: number; skippedOtherPlant: number; failed: { doc: string; line: string; reason: string }[] } }
 export interface PlanAlert { kind: string; time: string | null; line: string; doc: string; country: string; detail: string }
 export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string; alerts?: PlanAlert[]; newsPostId?: string | null; qhMail?: QhMailResult | null }
-export interface QhMailResult { matched: number; sent: boolean; to?: number; skipped?: string; error?: string }
+export interface QhMailDraft { to: string[]; cc: string[]; subject: string; html: string; text: string }
+export interface QhMailResult { matched: number; sent: boolean; to?: number; skipped?: string; error?: string; draft?: QhMailDraft }
 
 type Vals = Record<string, string | number | null>;
 export interface TraceResult {
