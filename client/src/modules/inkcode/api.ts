@@ -51,10 +51,13 @@ export const inkcodeAutoApi = {
     post<AutoResult>('/inkcode/plan/auto/import', form(file, '', { ...(o.date ? { date: o.date } : {}), onlyMatched: o.onlyMatched ? '1' : '0', lineMap: JSON.stringify(o.lineMap), plantMap: JSON.stringify(o.plantMap) }), { timeout: 300_000 }),
 };
 
-export interface QhMailConfig { enabled: boolean; to: string[]; cc: string[]; subject: string; intro: string }
+export interface QhMailConfig { enabled: boolean; channel: 'smtp' | 'outlook'; to: string[]; cc: string[]; subject: string; intro: string }
 export interface OutlookStatus { configured: boolean; connected: boolean; account: string | null; name: string | null }
+export interface SmtpPublic { host: string; port: number; secure: boolean; user: string; from: string; allowSelfSigned: boolean; hasPassword: boolean; configured: boolean }
+export type SmtpInput = Omit<SmtpPublic, 'hasPassword' | 'configured'> & { password?: string };
 export const qhMailApi = {
-  get: () => get<{ config: QhMailConfig; outlook: OutlookStatus }>('/inkcode/qh-mail'),
+  get: () => get<{ config: QhMailConfig; outlook: OutlookStatus; smtp: SmtpPublic }>('/inkcode/qh-mail'),
+  saveSmtp: (s: SmtpInput) => put<{ smtp: SmtpPublic }>('/inkcode/qh-mail/smtp', s),
   save: (c: QhMailConfig) => put<{ config: QhMailConfig }>('/inkcode/qh-mail', c),
   test: () => post<{ sentTo: string }>('/inkcode/qh-mail/test', {}, { timeout: 60_000 }),
   disconnect: () => del<{ outlook: OutlookStatus }>('/inkcode/qh-mail/outlook'),

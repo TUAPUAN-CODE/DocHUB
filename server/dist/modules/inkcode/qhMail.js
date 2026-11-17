@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanEmails = exports.DEFAULT_CONFIG = void 0;
+exports.sendMail = exports.cleanEmails = exports.DEFAULT_CONFIG = void 0;
 exports.getConfig = getConfig;
 exports.saveConfig = saveConfig;
 exports.qhRowsFor = qhRowsFor;
@@ -16,6 +16,7 @@ const env_1 = require("../../config/env");
 const cellWriter_1 = require("../../services/cellWriter");
 const rowQuery_1 = require("../../services/rowQuery");
 const outlook_1 = require("../connectors/outlook");
+const smtp_1 = require("../connectors/smtp");
 const core_1 = require("./core");
 /**
  * E-mail when an imported plan has a Doc No that is in Quality Highlight: one mail per plan to the people typed on the plan page
@@ -25,7 +26,7 @@ const core_1 = require("./core");
 const KEY = 'inkcode.qhMail';
 const SENT_KEY = 'inkcode.qhMail.sent';
 exports.DEFAULT_CONFIG = {
-    enabled: false, to: [], cc: [],
+    enabled: false, channel: 'smtp', to: [], cc: [],
     subject: 'Quality Highlight · แผนผลิตวันที่ {date} มี {count} รายการที่ต้องแจ้ง',
     intro: 'แผนผลิตวันที่ {date} (ไฟล์ {file}) มีสินค้าที่ Doc No ตรงกับ Quality Highlight — รายละเอียดด้านล่าง',
 };
@@ -46,7 +47,7 @@ async function getConfig() {
     return { ...exports.DEFAULT_CONFIG };
 }
 async function saveConfig(c, userId) {
-    const v = { enabled: !!c.enabled, to: (0, exports.cleanEmails)(c.to), cc: (0, exports.cleanEmails)(c.cc), subject: c.subject.trim().slice(0, 200) || exports.DEFAULT_CONFIG.subject, intro: c.intro.trim().slice(0, 2000) };
+    const v = { enabled: !!c.enabled, channel: c.channel === 'outlook' ? 'outlook' : 'smtp', to: (0, exports.cleanEmails)(c.to), cc: (0, exports.cleanEmails)(c.cc), subject: c.subject.trim().slice(0, 200) || exports.DEFAULT_CONFIG.subject, intro: c.intro.trim().slice(0, 2000) };
     await setSetting(KEY, JSON.stringify(v), userId);
     return v;
 }
@@ -84,6 +85,9 @@ async function qhRowsFor(docs) {
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const fill = (t, v) => t.replace(/\{(date|count|file)\}/g, (_, k) => v[k] ?? '');
 const dmy = (d) => { const [y, m, dd] = d.split('-'); return dd ? `${dd}/${m}/${y}` : d; };
+/** One message through the channel picked on the plan page */
+const sendMail = (channel, m) => (channel === 'outlook' ? (0, outlook_1.sendOutlookMail)(m) : (0, smtp_1.sendSmtpMail)(m));
+exports.sendMail = sendMail;
 function buildMail(cfg, date, file, lines, qh) {
     const hit = lines.filter((l) => qh.byDoc.has((0, core_1.norm)(l.doc)));
     const vars = { date: dmy(date), count: String(new Set(hit.map((l) => (0, core_1.norm)(l.doc))).size), file };
@@ -122,7 +126,7 @@ async function notifyQhMail(userId, date, lines, fileName) {
         catch { /* none yet */ }
         if (sent.includes(hash))
             return { matched: mail.matched, sent: false, skipped: 'แผนนี้ส่งอีเมลไปแล้ว' };
-        await (0, outlook_1.sendOutlookMail)({ to: cfg.to, cc: cfg.cc, subject: mail.subject, html: mail.html });
+        await (0, exports.sendMail)(cfg.channel, { to: cfg.to, cc: cfg.cc, subject: mail.subject, html: mail.html });
         await setSetting(SENT_KEY, JSON.stringify([...sent, hash].slice(-300)), userId);
         return { matched: mail.matched, sent: true, to: cfg.to.length + cfg.cc.length };
     }
@@ -132,7 +136,7 @@ async function notifyQhMail(userId, date, lines, fileName) {
     }
 }
 /** A test mail to the connected mailbox itself, with the first Quality Highlight rows as sample lines */
-async function sendTestMail(to) {
+async function sendTestMail(channel, to) {
     const cfg = await getConfig();
     const m = await qhMaster();
     if (!m)
@@ -146,6 +150,6 @@ async function sendTestMail(to) {
         throw new Error('Quality Highlight ยังไม่มีข้อมูลให้ทดสอบ');
     const lines = docs.map((d, i) => ({ time: `0${7 + i}:00`, line: `Line ${i + 1}`, product: '(ตัวอย่าง)', country: '-', doc: d }));
     const mail = buildMail(cfg, new Date().toISOString().slice(0, 10), 'ตัวอย่าง.xlsx', lines, qh);
-    await (0, outlook_1.sendOutlookMail)({ to: [to], subject: `[ทดสอบ] ${mail.subject}`, html: mail.html });
+    await (0, exports.sendMail)(channel, { to: [to], subject: `[ทดสอบ] ${mail.subject}`, html: mail.html });
 }
 //# sourceMappingURL=qhMail.js.map
