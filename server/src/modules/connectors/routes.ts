@@ -11,7 +11,8 @@ import { LV, requireSheet } from '../../shared/permissions';
 import { sheetNamesOf } from './parse';
 import { runConnector } from './runner';
 import { decryptJson, encryptJson } from './secret';
-import { fetchSource, HttpConfig, msAuthorizeUrl, msConfigured, msExchangeCode, NeedsAuth, Secret } from './source';
+import { fetchSource, HttpConfig, MS_MAIL_SCOPE, msAuthorizeUrl, msConfigured, msExchangeCode, NeedsAuth, Secret } from './source';
+import { saveOutlookSignIn } from './outlook';
 import { parseRecords } from './parse';
 
 const router = Router();
@@ -124,6 +125,14 @@ router.post('/connectors/:id/run', manage, ah(async (req, res) => {
 
 /* ---------- Microsoft sign-in popup (SharePoint / OneDrive links) ---------- */
 const baseUrl = (req: any) => env.publicUrl || `${req.protocol}://${req.get('host')}`;
+// sign-in of the Outlook mailbox that sends the plan e-mails (scope Mail.Send) — same popup / callback, state kind "mail"
+router.get('/connectors/mail/ms/start', manage, ah(async (req, res) => {
+  if (!msConfigured()) throw badRequest('ยังไม่ได้ตั้งค่า MS_CLIENT_ID / MS_CLIENT_SECRET บนเซิร์ฟเวอร์');
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const st = jwt.sign({ k: 'mail', u: req.user!.id, n: nonce }, env.jwt.secret, { expiresIn: '10m' });
+  res.cookie(MS_STATE, st, { httpOnly: true, sameSite: 'lax', secure: env.cookieSecure, maxAge: 600_000, path: '/api/connectors/ms' });
+  ok(res, { url: msAuthorizeUrl(baseUrl(req), nonce, MS_MAIL_SCOPE) });
+}));
 router.get('/connectors/:id/ms/start', manage, ah(async (req, res) => {
   const cur = await owned(req);
   if (!msConfigured()) throw badRequest('ยังไม่ได้ตั้งค่า MS_CLIENT_ID / MS_CLIENT_SECRET บนเซิร์ฟเวอร์');
@@ -137,9 +146,16 @@ router.get('/connectors/ms/callback', ah(async (req, res) => {
   const done = (okFlag: boolean, msg: string) => res.type('html').send(`<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:24px"><p>${okFlag ? '✅' : '❌'} ${msg.replace(/[<>&]/g, '')}</p><script>try{window.opener&&window.opener.postMessage({type:'ms-connector',ok:${okFlag}},window.location.origin)}catch(e){};setTimeout(()=>window.close(),okFlag?800:4000)</script>`);
   try {
     if (req.query.error) return done(false, String(req.query.error_description || req.query.error).slice(0, 200));
-    const st = jwt.verify(String(req.cookies?.[MS_STATE] ?? ''), env.jwt.secret) as { c: string; u: string; n: string };
+    const st = jwt.verify(String(req.cookies?.[MS_STATE] ?? ''), env.jwt.secret) as { c: string; u: string; n: string; k?: string };
     res.clearCookie(MS_STATE, { path: '/api/connectors/ms' });
     if (st.n !== req.query.state || !req.query.code) return done(false, 'ข้อมูลยืนยันไม่ถูกต้อง');
+    if (st.k === 'mail') {
+      const mt = await msExchangeCode(baseUrl(req), String(req.query.code), MS_MAIL_SCOPE);
+      if (!mt.refresh_token) return done(false, 'Microsoft ไม่ได้ส่ง refresh token (ตรวจสิทธิ์ offline_access ของแอป)');
+      await saveOutlookSignIn(mt.refresh_token, mt.access_token, st.u);
+      await audit({ userId: st.u, action: 'outlook_signin', entityType: 'mail', entityId: st.u }, req);
+      return done(true, 'เชื่อม Outlook สำหรับส่งอีเมลสำเร็จ — กลับไปที่หน้าเดิมได้เลย');
+    }
     const tok = await msExchangeCode(baseUrl(req), String(req.query.code));
     if (!tok.refresh_token) return done(false, 'Microsoft ไม่ได้ส่ง refresh token (ตรวจสิทธิ์ offline_access ของแอป)');
     await q(`UPDATE Connectors SET secret_enc = @s WHERE connector_id = @i AND is_deleted = 0`, { s: T.text(encryptJson({ type: 'none', msRefresh: tok.refresh_token })), i: T.uuid(st.c) });

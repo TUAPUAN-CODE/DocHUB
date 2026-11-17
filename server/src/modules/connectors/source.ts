@@ -19,24 +19,26 @@ const FORBIDDEN_HEADERS = /^(host|content-length|connection|transfer-encoding|co
 export const msConfigured = () => !!(env.oauth.microsoft.clientId && env.oauth.microsoft.clientSecret);
 export const msRedirect = (base: string) => `${base}/api/connectors/ms/callback`;
 const MS_SCOPE = 'offline_access Files.Read.All Sites.Read.All';
+/** Sign-in used only to send the plan e-mails from Outlook (needs the delegated permission Mail.Send on the Azure app) */
+export const MS_MAIL_SCOPE = 'offline_access Mail.Send User.Read';
 
-export function msAuthorizeUrl(base: string, state: string) {
+export function msAuthorizeUrl(base: string, state: string, scope = MS_SCOPE) {
   const t = encodeURIComponent(env.oauth.microsoft.tenant);
   return `https://login.microsoftonline.com/${t}/oauth2/v2.0/authorize?` + new URLSearchParams({
-    client_id: env.oauth.microsoft.clientId, response_type: 'code', redirect_uri: msRedirect(base), response_mode: 'query', scope: MS_SCOPE, state, prompt: 'select_account',
+    client_id: env.oauth.microsoft.clientId, response_type: 'code', redirect_uri: msRedirect(base), response_mode: 'query', scope, state, prompt: 'select_account',
   });
 }
-async function msToken(params: Record<string, string>) {
+export async function msToken(params: Record<string, string>, scope = MS_SCOPE) {
   const t = encodeURIComponent(env.oauth.microsoft.tenant);
   const r = await fetch(`https://login.microsoftonline.com/${t}/oauth2/v2.0/token`, {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: env.oauth.microsoft.clientId, client_secret: env.oauth.microsoft.clientSecret, scope: MS_SCOPE, ...params }), signal: AbortSignal.timeout(30_000),
+    body: new URLSearchParams({ client_id: env.oauth.microsoft.clientId, client_secret: env.oauth.microsoft.clientSecret, scope, ...params }), signal: AbortSignal.timeout(30_000),
   });
   const j: any = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error_description || j.error || `Microsoft ${r.status}`);
   return j as { access_token: string; refresh_token?: string };
 }
-export const msExchangeCode = (base: string, code: string) => msToken({ grant_type: 'authorization_code', code, redirect_uri: msRedirect(base) });
+export const msExchangeCode = (base: string, code: string, scope = MS_SCOPE) => msToken({ grant_type: 'authorization_code', code, redirect_uri: msRedirect(base) }, scope);
 
 /** Returns the bytes of the source. `saveSecret` is called when a refreshed Microsoft token must be stored. */
 export async function fetchSource(kind: 'http' | 'sharepoint', cfg: HttpConfig, secretEnc: string | null, saveSecret?: (enc: string) => Promise<void>) {

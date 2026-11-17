@@ -1,4 +1,4 @@
-import { get, post, put } from '@/api/client';
+import { del, get, post, put } from '@/api/client';
 
 export interface PlanItem {
   time: string | null; product: string; lineRaw: string; line: string; size: string | null; customer: string | null; country: string; doc: string; rev: string | null; qty: number | null; shift: 'DS' | 'NS'; sourceRow: number;
@@ -25,7 +25,8 @@ export interface AutoItem extends PlanItem { plant: string | null; area: string;
 export interface AutoPreview { date: string; sheetName: string; warnings: string[]; knownLines: string[]; plants: string[]; areas: string[]; items: AutoItem[]; files: { plant: string; folderPath: string; fileName: string; exists: boolean; fileId: string | null }[] }
 export interface AutoTarget { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: { created: number; duplicate: number; skippedNotInDb: number; skippedOtherPlant: number; failed: { doc: string; line: string; reason: string }[] } }
 export interface PlanAlert { kind: string; time: string | null; line: string; doc: string; country: string; detail: string }
-export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string; alerts?: PlanAlert[]; newsPostId?: string | null }
+export interface AutoResult { date: string; total: number; skippedNoPlant: number; targets: AutoTarget[]; items?: { status: string }[]; recordFileId?: string; alerts?: PlanAlert[]; newsPostId?: string | null; qhMail?: QhMailResult | null }
+export interface QhMailResult { matched: number; sent: boolean; to?: number; skipped?: string; error?: string }
 
 type Vals = Record<string, string | number | null>;
 export interface TraceResult {
@@ -40,6 +41,7 @@ export const inkTraceApi = { trace: (q: string) => get<TraceResult>('/inkcode/tr
 
 export type DropResult = AutoResult | { needsMicrosoft: { connectorId: string; configured: boolean; message: string } };
 export const inkcodeAutoApi = {
+  planFolder: () => get<{ folderId: string }>('/inkcode/plan/folder'),
   dropUrl: (url: string, folderId: string) => post<DropResult>('/inkcode/plan/drop-url', { url, folderId }, { timeout: 300_000 }),
   msConnector: () => post<{ id: string; configured: boolean }>('/inkcode/plan/ms-connector', {}),
   drop: (file: File, folderId: string) => post<AutoResult>('/inkcode/plan/drop', form(file, '', { folderId }), { timeout: 300_000 }),
@@ -47,4 +49,14 @@ export const inkcodeAutoApi = {
     post<AutoPreview>('/inkcode/plan/auto/preview', form(file, '', { ...(o.date ? { date: o.date } : {}), lineMap: JSON.stringify(o.lineMap), plantMap: JSON.stringify(o.plantMap) }), { timeout: 120_000 }),
   import: (file: File, o: { date?: string; onlyMatched: boolean; lineMap: Record<string, string>; plantMap: Record<string, string> }) =>
     post<AutoResult>('/inkcode/plan/auto/import', form(file, '', { ...(o.date ? { date: o.date } : {}), onlyMatched: o.onlyMatched ? '1' : '0', lineMap: JSON.stringify(o.lineMap), plantMap: JSON.stringify(o.plantMap) }), { timeout: 300_000 }),
+};
+
+export interface QhMailConfig { enabled: boolean; to: string[]; cc: string[]; subject: string; intro: string }
+export interface OutlookStatus { configured: boolean; connected: boolean; account: string | null; name: string | null }
+export const qhMailApi = {
+  get: () => get<{ config: QhMailConfig; outlook: OutlookStatus }>('/inkcode/qh-mail'),
+  save: (c: QhMailConfig) => put<{ config: QhMailConfig }>('/inkcode/qh-mail', c),
+  test: () => post<{ sentTo: string }>('/inkcode/qh-mail/test', {}, { timeout: 60_000 }),
+  disconnect: () => del<{ outlook: OutlookStatus }>('/inkcode/qh-mail/outlook'),
+  start: () => get<{ url: string }>('/connectors/mail/ms/start'),
 };

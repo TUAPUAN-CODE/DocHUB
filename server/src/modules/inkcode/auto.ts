@@ -12,6 +12,7 @@ import { LV, requireFolder } from '../../shared/permissions';
 import { parsePlan } from './plan';
 import { Alert, findAlerts, lastRevs, masterRemarks, writeRecord } from './record';
 import { postNewCodeNews } from './news';
+import { notifyQhMail, type QhMailResult } from './qhMail';
 
 /**
  * A plan file → the right place by itself: the production date picks the day file (created from the template when it is the first plan
@@ -153,7 +154,7 @@ async function ensureSheet(user: AuthUser, fileId: string, name: string, sheets:
 
 export interface AutoResult { date: string; total: number; skippedNoPlant: number; items?: { time: string | null; line: string; plant: string | null; area: string; doc: string; country: string; qty: number | null; status: string }[]; targets: { plant: string; area: string; fileId: string; fileName: string; folderPath: string; fileCreated: boolean; result: InsertResult }[] }
 
-export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, req?: Request): Promise<AutoResult & { newsPostId?: string | null }> {
+export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, req?: Request): Promise<AutoResult & { newsPostId?: string | null; qhMail?: QhMailResult | null }> {
   const p = await prepare(user, buf, o);
   const r = await importPrepared(user, p, o, req);
   // the page "นำเข้าแผนผลิต" and the disk folder make no record file, but QC is still told about New Code products
@@ -161,7 +162,8 @@ export async function importAuto(user: AuthUser, buf: Buffer, o: AutoOptions, re
   const alerts = findAlerts(items, await masterRemarks(p.ctx.docLookup?.sheetId ?? null, items.map((i) => i.doc)), new Map(), []);
   const first = r.targets.find((t) => t.fileId);
   const newsPostId = await postNewCodeNews(user, p.date, alerts, first ? `/files/${first.fileId}` : null).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
-  return { ...r, newsPostId };
+  const qhMail = await notifyQhMail(user.id, p.date, p.items, 'แผนผลิต');
+  return { ...r, newsPostId, qhMail };
 }
 async function importPrepared(user: AuthUser, p: Awaited<ReturnType<typeof prepare>>, o: AutoOptions, req?: Request): Promise<AutoResult> {
   const out: AutoResult = {
@@ -208,12 +210,22 @@ async function inPlanFolder(folderId: string): Promise<boolean> {
   return at >= 0 && names[names.length - 1] === TREE.root && !cur;
 }
 
+/** The folder "แผนผลิต" under InkCode where plan files are dropped (the shallowest one; made under InkCode when it is missing) */
+export async function planFolderId(user: AuthUser): Promise<string> {
+  const t = await inkFolders();
+  if (!t) throw badRequest(`ไม่พบโฟลเดอร์ ${TREE.root} — รัน seedInkCodeTree.ts ถ้ายังไม่เคยสร้าง`);
+  const have = t.list.filter((f) => f.name === TREE.plans).sort((x, y) => x.depth - y.depth)[0];
+  const id = have?.id ?? await ensureFolder(user, t.root, TREE.plans);
+  await requireFolder(user, id, LV.write);
+  return String(id).toLowerCase();
+}
+
 /**
  * A plan file dropped into a plan folder of DocHUB: imported like the "นำเข้าแผนผลิต" page does (nothing to confirm — lines without a
  * plant or not in the database are skipped and listed), and a record file is left in that folder with everything the plan says
  * (runs, raw-material rows, the text above the table) and the alerts found (record.ts).
  */
-export async function dropPlan(user: AuthUser, buf: Buffer, originalName: string, folderId: string, req?: Request): Promise<AutoResult & { recordFileId: string; alerts: Alert[]; newsPostId: string | null }> {
+export async function dropPlan(user: AuthUser, buf: Buffer, originalName: string, folderId: string, req?: Request): Promise<AutoResult & { recordFileId: string; alerts: Alert[]; newsPostId: string | null; qhMail: QhMailResult | null }> {
   await requireFolder(user, folderId, LV.write);
   if (!(await inPlanFolder(folderId))) throw badRequest(`วางแผนผลิตได้เฉพาะในโฟลเดอร์ ${TREE.plans} / ปี / เดือน ภายใต้ ${TREE.root}`);
   const p = await prepare(user, buf, { onlyMatched: true });
@@ -223,5 +235,6 @@ export async function dropPlan(user: AuthUser, buf: Buffer, originalName: string
   const alerts = findAlerts(items, await masterRemarks(p.ctx.docLookup?.sheetId ?? null, docs), await lastRevs(p.date, docs), p.plan.warnings);
   const recordFileId = await writeRecord(user, folderId, originalName, p.date, p.plan, items, alerts, req);
   const newsPostId = await postNewCodeNews(user, p.date, alerts, `/files/${recordFileId}`).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
-  return { ...r, recordFileId, alerts, newsPostId };
+  const qhMail = await notifyQhMail(user.id, p.date, p.items, originalName);
+  return { ...r, recordFileId, alerts, newsPostId, qhMail };
 }

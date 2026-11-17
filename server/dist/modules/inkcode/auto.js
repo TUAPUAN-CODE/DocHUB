@@ -4,6 +4,7 @@ exports.sheetsOf = void 0;
 exports.dayFile = dayFile;
 exports.previewAuto = previewAuto;
 exports.importAuto = importAuto;
+exports.planFolderId = planFolderId;
 exports.dropPlan = dropPlan;
 const db_1 = require("../../config/db");
 const http_1 = require("../../shared/http");
@@ -18,6 +19,7 @@ const permissions_2 = require("../../shared/permissions");
 const plan_1 = require("./plan");
 const record_1 = require("./record");
 const news_1 = require("./news");
+const qhMail_1 = require("./qhMail");
 const folderChild = async (parentId, name) => (await (0, db_1.q1)(`SELECT folder_id FROM Folders WHERE is_deleted = 0 AND folder_name = @n AND ((@p IS NULL AND parent_id IS NULL) OR parent_id = @p)`, { n: name, p: db_1.T.uuid(parentId) }))?.folder_id ?? null;
 const fileIn = async (folderId, name) => (await (0, db_1.q1)(`SELECT file_id FROM Files WHERE is_deleted = 0 AND folder_id = @f AND file_name = @n`, { f: db_1.T.uuid(folderId), n: name }))?.file_id ?? null;
 async function ensureFolder(user, parentId, name) {
@@ -179,7 +181,8 @@ async function importAuto(user, buf, o, req) {
     const alerts = (0, record_1.findAlerts)(items, await (0, record_1.masterRemarks)(p.ctx.docLookup?.sheetId ?? null, items.map((i) => i.doc)), new Map(), []);
     const first = r.targets.find((t) => t.fileId);
     const newsPostId = await (0, news_1.postNewCodeNews)(user, p.date, alerts, first ? `/files/${first.fileId}` : null).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
-    return { ...r, newsPostId };
+    const qhMail = await (0, qhMail_1.notifyQhMail)(user.id, p.date, p.items, 'แผนผลิต');
+    return { ...r, newsPostId, qhMail };
 }
 async function importPrepared(user, p, o, req) {
     const out = {
@@ -236,6 +239,16 @@ async function inPlanFolder(folderId) {
     const at = names.indexOf(model_1.TREE.plans);
     return at >= 0 && names[names.length - 1] === model_1.TREE.root && !cur;
 }
+/** The folder "แผนผลิต" under InkCode where plan files are dropped (the shallowest one; made under InkCode when it is missing) */
+async function planFolderId(user) {
+    const t = await inkFolders();
+    if (!t)
+        throw (0, http_1.badRequest)(`ไม่พบโฟลเดอร์ ${model_1.TREE.root} — รัน seedInkCodeTree.ts ถ้ายังไม่เคยสร้าง`);
+    const have = t.list.filter((f) => f.name === model_1.TREE.plans).sort((x, y) => x.depth - y.depth)[0];
+    const id = have?.id ?? await ensureFolder(user, t.root, model_1.TREE.plans);
+    await (0, permissions_2.requireFolder)(user, id, permissions_2.LV.write);
+    return String(id).toLowerCase();
+}
 /**
  * A plan file dropped into a plan folder of DocHUB: imported like the "นำเข้าแผนผลิต" page does (nothing to confirm — lines without a
  * plant or not in the database are skipped and listed), and a record file is left in that folder with everything the plan says
@@ -252,6 +265,7 @@ async function dropPlan(user, buf, originalName, folderId, req) {
     const alerts = (0, record_1.findAlerts)(items, await (0, record_1.masterRemarks)(p.ctx.docLookup?.sheetId ?? null, docs), await (0, record_1.lastRevs)(p.date, docs), p.plan.warnings);
     const recordFileId = await (0, record_1.writeRecord)(user, folderId, originalName, p.date, p.plan, items, alerts, req);
     const newsPostId = await (0, news_1.postNewCodeNews)(user, p.date, alerts, `/files/${recordFileId}`).catch((e) => { console.error('[inkcode] news post failed', e); return null; });
-    return { ...r, recordFileId, alerts, newsPostId };
+    const qhMail = await (0, qhMail_1.notifyQhMail)(user.id, p.date, p.items, originalName);
+    return { ...r, recordFileId, alerts, newsPostId, qhMail };
 }
 //# sourceMappingURL=auto.js.map

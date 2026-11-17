@@ -15,6 +15,8 @@ const auto_1 = require("./auto");
 const planLink_1 = require("./planLink");
 const trace_1 = require("./trace");
 const news_1 = require("./news");
+const qhMail_1 = require("./qhMail");
+const outlook_1 = require("../connectors/outlook");
 const db_1 = require("../../config/db");
 const service_1 = require("../pageAccess/service");
 const router = (0, express_1.Router)();
@@ -35,6 +37,29 @@ router.put('/inkcode/news-tags', (0, http_1.ah)(async (req, res) => {
     await (0, news_1.setNewsTagIds)(tagIds, req.user);
     (0, http_1.ok)(res, { tagIds });
 }));
+/** E-mail to the people typed here when a plan has Doc No that are in Quality Highlight (master / admin) */
+const masterOnly = (req) => { if ((0, auth_1.isBasicRole)(req.user.role))
+    throw (0, http_1.badRequest)('เฉพาะ Master หรือ Admin'); };
+router.get('/inkcode/qh-mail', (0, http_1.ah)(async (req, res) => { masterOnly(req); (0, http_1.ok)(res, { config: await (0, qhMail_1.getConfig)(), outlook: await (0, outlook_1.outlookStatus)() }); }));
+router.put('/inkcode/qh-mail', (0, http_1.ah)(async (req, res) => {
+    masterOnly(req);
+    const b = (0, http_1.parse)(zod_1.z.object({ enabled: zod_1.z.boolean(), to: zod_1.z.array(zod_1.z.string().max(200)).max(50), cc: zod_1.z.array(zod_1.z.string().max(200)).max(50), subject: zod_1.z.string().max(200), intro: zod_1.z.string().max(2000) }), req.body);
+    (0, http_1.ok)(res, { config: await (0, qhMail_1.saveConfig)(b, req.user.id) });
+}));
+router.post('/inkcode/qh-mail/test', (0, http_1.ah)(async (req, res) => {
+    masterOnly(req);
+    const o = await (0, outlook_1.outlookStatus)();
+    if (!o.connected || !o.account)
+        throw (0, http_1.badRequest)('ยังไม่ได้เชื่อม Outlook สำหรับส่งอีเมล');
+    try {
+        await (0, qhMail_1.sendTestMail)(o.account);
+    }
+    catch (e) {
+        throw (0, http_1.badRequest)(e.message);
+    }
+    (0, http_1.ok)(res, { sentTo: o.account });
+}));
+router.delete('/inkcode/qh-mail/outlook', (0, http_1.ah)(async (req, res) => { masterOnly(req); await (0, outlook_1.outlookDisconnect)(req.user.id); (0, http_1.ok)(res, { outlook: await (0, outlook_1.outlookStatus)() }); }));
 router.get('/inkcode/trace', (0, service_1.requirePage)('search'), (0, http_1.ah)(async (req, res) => (0, http_1.ok)(res, await (0, trace_1.traceCode)(req.user, String(req.query.q ?? '')))));
 const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1 } });
 router.post('/inkcode/plan/preview', upload.single('file'), (0, http_1.ah)(async (req, res) => {
@@ -105,6 +130,8 @@ router.post('/inkcode/plan/auto/import', upload.single('file'), (0, http_1.ah)(a
         throw (0, http_1.badRequest)('ไม่พบไฟล์ที่อัปโหลด');
     (0, http_1.ok)(res, await (0, auto_1.importAuto)(req.user, req.file.buffer, { date: b.date, onlyMatched: b.onlyMatched === '1', lineMap: (0, http_1.safeJson)(b.lineMap, {}), plantMap: (0, http_1.safeJson)(b.plantMap, {}) }, req));
 }));
+/** Where the Application tile "แผนผลิต" drops plan files: the folder InkCode / แผนผลิต */
+router.get('/inkcode/plan/folder', (0, http_1.ah)(async (req, res) => (0, http_1.ok)(res, { folderId: await (0, auto_1.planFolderId)(req.user) })));
 /** A plan file dropped into a plan folder (… / แผนผลิต / ปี / เดือน) in the file browser */
 router.post('/inkcode/plan/drop', upload.single('file'), (0, http_1.ah)(async (req, res) => {
     const b = (0, http_1.parse)(zod_1.z.object({ folderId: zod_1.z.string().min(30).max(40) }), req.body);
