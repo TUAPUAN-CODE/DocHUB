@@ -1,7 +1,7 @@
 /**
  * Creates the InkCode folder in a running DocHUB and fills it from the Excel files.
  *
- *   1) python3 ../scripts/inkcode/extract.py "<Master_Database.xlsx>" [password]     (once; the JSON is already in the repo)
+ *   1) python3 ../scripts/inkcode/extract.py "<Master_Database.xlsx>" [password]     (once, on the machine that has the master Excel; the JSON is NOT in the repo — it is company data and is git-ignored)
  *   2) npx ts-node --transpile-only scripts/seedInkCode.ts
  *        env: DOCHUB_URL=http://172.48.0.116:4000/api  DOCHUB_USER=<admin or master>  DOCHUB_PASSWORD=...
  *        add  --dry   to only print what would be created
@@ -97,7 +97,7 @@ async function addFormulas(sheetId: string, defs: ColDef[], ids: Map<string, str
 }
 
 async function main() {
-  if (!fs.existsSync(path.join(DATA, 'products.json'))) throw new Error('ไม่พบ scripts/inkcode/data/products.json — รัน extract.py ก่อน');
+  if (!fs.existsSync(path.join(DATA, 'products.json'))) throw new Error('ไม่พบ scripts/inkcode/data/products.json — รัน extract.py กับไฟล์ Excel ของบริษัทก่อน (ไฟล์ JSON ไม่อยู่ใน repo)');
   const ref = read('ref.json'); const products: Record<string, any>[] = read('products.json'); const tokens = Object.keys(read('tokens.json').tokens);
   if (!DRY) {
     const user = process.env.DOCHUB_USER, password = process.env.DOCHUB_PASSWORD;
