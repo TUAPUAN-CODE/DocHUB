@@ -88,7 +88,9 @@ const pt = (mm: number) => mm * MM;
  */
 export function qrCanvas(payload: string, sizePt: number) {
   const enc: any = (qrEncModule as any).default ?? qrEncModule;
-  const node = enc.measure({ qr: payload, eccLevel: 'L' });
+  // error correction M, and L only when the text does not fit — same as the plant's QR tool (QR_Code_Ink_Code_HUB)
+  let node: any;
+  try { node = enc.measure({ qr: payload, eccLevel: 'M' }); } catch { node = enc.measure({ qr: payload, eccLevel: 'L' }); }
   const base: number = node._width;
   const f = sizePt / base;
   const cells = (node._canvas as { x: number; y: number; w: number; h: number }[]).slice(1);   // [0] is the white background
