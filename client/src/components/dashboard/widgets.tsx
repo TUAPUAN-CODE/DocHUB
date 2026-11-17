@@ -211,7 +211,7 @@ export function WidgetView({ w: given, refreshKey, editing, phone }: { w: Widget
   // a chart opens full screen when tapped (view mode): every label of the x axis, scroll sideways when there are many
   const canExpand = !editing && isData && !!data && CHART_TYPES.includes(w.type);
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden" style={w.type === 'shape' ? { opacity: s.opacity ?? 1 } : frame}>
+    <div className={`flex h-full w-full flex-col overflow-hidden${w.type !== 'shape' && s.bg === undefined ? ' ds-widget' : ''}`} style={w.type === 'shape' ? { opacity: s.opacity ?? 1 } : frame}>
       {showTitle && (
         <div className="mb-2 shrink-0" style={{ textAlign: s.titleAlign ?? 'left' }}>
           <div className="flex items-center gap-2" style={{ justifyContent: s.titleAlign === 'center' ? 'center' : s.titleAlign === 'right' ? 'flex-end' : 'flex-start' }}>

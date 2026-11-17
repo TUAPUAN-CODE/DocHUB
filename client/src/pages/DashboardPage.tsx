@@ -210,7 +210,7 @@ export default function DashboardPage() {
   const flow = narrow && !edit && !full;
   return (
     <DashCtx.Provider value={{ slicers, setSlicer, widgets, dashboardId: dashId }}>
-    <div ref={page} className={cn('flex flex-col', !plain && 'bg-app', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
+    <div ref={page} className={cn('dash-page flex flex-col', !plain && 'bg-app', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
       {full && <button onClick={() => void toggleFull()} className="absolute right-3 top-3 z-[60] inline-flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity hover:opacity-100 focus:opacity-100"><Shrink className="h-3.5 w-3.5" />ออกจากเต็มจอ (Esc)</button>}
       <div className={cn('shrink-0 flex-wrap items-center gap-2 px-4 pb-3 sm:px-6', full ? 'hidden' : 'flex')}>
         <Link to={fromApps ? '/apps' : `/files/${fileId}`} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-ink/5" aria-label={fromApps ? 'กลับไปที่ Application' : 'กลับไปที่ไฟล์'}><ArrowLeft className="h-5 w-5" /></Link>
