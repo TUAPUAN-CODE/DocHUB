@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.callModel = exports.PROVIDERS = void 0;
 const safeFetch_1 = require("../connectors/safeFetch");
 exports.PROVIDERS = {
-    gemini: { label: 'Google Gemini (มีโควตาฟรี)', model: 'gemini-2.0-flash' },
+    gemini: { label: 'Google Gemini (มีโควตาฟรี)', model: 'gemini-3.8-flash' },
     anthropic: { label: 'Anthropic Claude', model: 'claude-sonnet-5-5' },
     openai: { label: 'OpenAI / เข้ากันได้กับ OpenAI (Groq, OpenRouter, Ollama…)', model: 'gpt-4o-mini', baseUrl: 'https://api.openai.com/v1' },
 };
