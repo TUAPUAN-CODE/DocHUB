@@ -339,3 +339,10 @@ html[data-shell='glass'] .shell-root::after { width: 130px; height: 130px; left:
   html[data-shell='glass'] .app-tile:hover { transform: translateY(-4px); border-color: #fff; box-shadow: inset 2px 2px 5px #fff, 0 26px 40px -24px rgb(110 100 230 / .7); }
   html[data-shell='glass'] .app-tile:hover::after { left: 120%; width: 40%; opacity: 1; }
 }
+
+/* glass shell: pop-up menus, cell editors and dialogs stay glossy but are nearly opaque with a strong blur, so what is behind never shows through */
+html[data-shell='glass'] [data-popover-keep], html[data-shell='glass'] .ds-modal {
+  background: linear-gradient(145deg, rgb(255 255 255 / .97), rgb(242 244 255 / .95));
+  -webkit-backdrop-filter: blur(30px) saturate(1.4); backdrop-filter: blur(30px) saturate(1.4);
+  border: 1px solid rgb(255 255 255 / .95);
+  box-shadow: inset 2px 2px 5px #fff, inset -2px -3px 9px rgb(130 150 255 / .14), 0 24px 48px -16px rgb(60 70 170 / .45); }
