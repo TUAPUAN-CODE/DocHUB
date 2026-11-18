@@ -197,7 +197,7 @@ export function CatAssistant() {
           s.sendText(`[ระบบ] อ่านออกเสียงข้อความนี้ตามที่เขียน ไม่ต้องเพิ่มหรือเปลี่ยนคำ และไม่ต้องถามต่อ: ${text}`);
         })
       : undefined;
-    void runPresentation({ fileId: a.fileId, dashboardId: a.dashboardId, model: m.id, thinking: thinking as 'low' | 'medium' | 'high', navigate: nav, speak, signal: ac.signal })
+    void runPresentation({ fileId: a.fileId, dashboardId: a.dashboardId, filters: a.filters, model: m.id, thinking: thinking as 'low' | 'medium' | 'high', navigate: nav, speak, signal: ac.signal })
       .catch((e) => { feel('sad', apiError(e).message.slice(0, 160)); setMsgs((cur) => [...cur, { role: 'assistant', content: `⚠ นำเสนอไม่สำเร็จ: ${apiError(e).message}` }]); })
       .finally(() => { if (presentAbort.current === ac) { presentAbort.current = null; presentingRef.current = false; setPresenting(null); feel('happy'); } });
   }, [feel, models, modelKey, nav, stopPresent, thinking]);

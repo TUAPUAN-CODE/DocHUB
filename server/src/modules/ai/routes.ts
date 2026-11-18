@@ -7,7 +7,7 @@ import { decryptJson, encryptJson } from '../connectors/secret';
 import { callModel, Conn, Msg, Provider, PROVIDERS } from './providers';
 import { mapWidget } from '../../shared/mappers';
 import { computeWidgetData } from '../../services/widgetData';
-import { Ctx, describeItem, runTool, TOOLS, type CatAction } from './tools';
+import { Ctx, describeItem, runTool, slicerPlan, TOOLS, withPlan, type CatAction, type PresentFilters } from './tools';
 import { requirePage } from '../pageAccess/service';
 import { issueTicket, LIVE_MODEL, VOICES } from './live';
 
@@ -118,13 +118,16 @@ router.post('/ai/chat', ah(async (req, res) => {
  * The browser walks through the widgets and the cat says each line (voice or caption). Numbers come only from the widget data.
  */
 router.post('/ai/present', ah(async (req, res) => {
-  const b = parse(z.object({ dashboardId: z.string().uuid(), model: z.string().trim().max(100).regex(/^[\w./:-]+$/).optional(), thinking: z.enum(['low', 'medium', 'high']).optional() }), req.body);
+  const b = parse(z.object({ dashboardId: z.string().uuid(), model: z.string().trim().max(100).regex(/^[\w./:-]+$/).optional(), thinking: z.enum(['low', 'medium', 'high']).optional(), filters: z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), label: z.string().max(200).optional(), slicers: z.array(z.object({ name: z.string().max(80), values: z.array(z.string().max(200)).max(50) })).max(5).optional() }).optional() }), req.body);
   const d = await describeItem(req.user!, 'dashboard', b.dashboardId) as any;
   const row = await q1(`SELECT key_enc, model FROM AiKeys WHERE user_id = @u AND provider = N'gemini'`, { u: T.uuid(req.user!.id) });
   const key = decryptJson<{ key: string }>(row?.key_enc)?.key;
   if (!key) throw badRequest('ยังไม่ได้ตั้งค่า API key ของ Gemini');
   const rows = await q(`SELECT * FROM DashboardWidgets WHERE dashboard_id = @d ORDER BY pos_y, pos_x`, { d: T.uuid(b.dashboardId) });
-  const ws = rows.map(mapWidget).filter((w) => w.type !== 'shape' && w.type !== 'slicer' && !(w.style as any)?.hidden).sort((a, c) => Math.round(a.y / 60) - Math.round(c.y / 60) || a.x - c.x);
+  const all = rows.map(mapWidget);
+  const pf: PresentFilters = b.filters ?? {};
+  const plan = slicerPlan(all, pf).filters;
+  const ws = all.filter((w) => w.type !== 'shape' && w.type !== 'slicer' && !(w.style as any)?.hidden).sort((a, c) => Math.round(a.y / 60) - Math.round(c.y / 60) || a.x - c.x);
   type Fact = { widgetId: string; type: string; title: string; data?: unknown; text?: string; top?: { name: string; value: number; pct: number }[]; total?: number };
   const facts: Fact[] = [];
   for (const w of ws.slice(0, 30)) {
@@ -132,7 +135,7 @@ router.post('/ai/present', ah(async (req, res) => {
     if (w.type === 'text') f.text = String((w.config as any)?.text ?? '').slice(0, 300);
     else if (w.dataSource && ['kpi', 'bar', 'line', 'area', 'pie', 'donut', 'pareto', 'pct', 'table', 'histogram'].includes(w.type)) {
       try {
-        const dd = await computeWidgetData(req.user!, w.dataSource as any);
+        const dd = await computeWidgetData(req.user!, withPlan(all, plan, w.id, w.dataSource) as any);
         f.data = { totalRows: dd.totalRows, categories: dd.categories?.slice(0, 12), series: dd.series?.map((s: any) => ({ name: s.name, values: s.values.slice(0, 12) })) };
         // the arithmetic is done here, not by the model: total, biggest items and their share
         const s0: any = dd.series?.[0];
@@ -153,7 +156,7 @@ router.post('/ai/present', ah(async (req, res) => {
     if (sv !== undefined && sv !== null) return `${f.title} อยู่ที่ ${Number(sv).toLocaleString('th-TH')}`;
     return f.title ? `ส่วนนี้คือ ${f.title}` : '';
   };
-  const prompt = `คุณเป็นนักวิเคราะห์ที่ต้องสรุปแดชบอร์ด "${d.name}" ให้ผู้บริหารฟังแบบสั้น กระชับ ตรงประเด็น เป็นภาษาพูดไทยที่เป็นกลาง (ห้ามเดาเพศผู้ฟัง ห้ามใช้ ครับ/ค่ะ/คะ ลงท้ายด้วย "นะ" หรือ "เหมียว" ได้บ้าง)
+  const prompt = `คุณเป็นนักวิเคราะห์ที่ต้องสรุปแดชบอร์ด "${d.name}" ให้ผู้บริหารฟังแบบสั้น${plan.size ? ` เฉพาะข้อมูล ${pf.label ?? [pf.from, pf.to].filter(Boolean).join(' ถึง ')}${pf.slicers?.length ? ' ' + pf.slicers.map((s) => `${s.name}=${s.values.join(',')}`).join(' ') : ''} (ข้อมูลที่ให้ถูกกรองมาแล้ว ให้บอกช่วงนี้ตอนเปิดและตอนสรุป ห้ามเรียกว่า "วันนี้" ถ้าไม่ใช่วันนี้)` : ''} กระชับ ตรงประเด็น เป็นภาษาพูดไทยที่เป็นกลาง (ห้ามเดาเพศผู้ฟัง ห้ามใช้ ครับ/ค่ะ/คะ ลงท้ายด้วย "นะ" หรือ "เหมียว" ได้บ้าง)
 รูปแบบที่ต้องการ (ตัวอย่างน้ำเสียง): "วันนี้พบก้างรวม 40,620 ชิ้น จาก 14,179 แถว ส่วนใหญ่เป็นก้างข้างลำตัวถึง 62% ซึ่งสูงที่สุด ตามด้วย …"
 - intro: ประโยคเดียวที่บอกภาพรวมที่สำคัญที่สุดของวันนี้ (ตัวเลขหลัก)
 - script: ทีละวิดเจ็ตตามลำดับที่ให้ 1-2 ประโยค ไม่เกิน 220 ตัวอักษร เล่า "ตัวเลข → ข้อสังเกต" เช่น ค่าสูงสุด สัดส่วน (ใช้ค่า top/pct/total ที่ให้ไว้ ห้ามคำนวณเอง) ความต่างระหว่างกะหรือรายการ ถ้ามี ไม่ต้องบอกว่า "ส่วนนี้คือ …" ถ้าเป็นข้อความ/ปุ่มกรอง ให้บอกสั้นๆ ว่าใช้ทำอะไรหรืออ่านข้ามไปได้ (say เป็น "" เพื่อข้าม)

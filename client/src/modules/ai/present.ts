@@ -1,11 +1,11 @@
-import { aiApi, PresentScript } from './api';
+import { aiApi, PresentFilters, PresentScript } from './api';
 
 /**
  * Presents a dashboard: opens it full screen, walks through its widgets (scroll + highlight) while the cat says one line per widget.
  * The page itself (pages/DashboardPage.tsx) listens to the window events dash:ready / dash:focus / dash:caption.
  */
 export interface PresentOptions {
-  fileId: string; dashboardId: string; model?: string; thinking?: 'low' | 'medium' | 'high';
+  fileId: string; dashboardId: string; filters?: PresentFilters; model?: string; thinking?: 'low' | 'medium' | 'high';
   navigate: (to: string) => void;
   /** say a line aloud and resolve when it is finished (the voice session); without it the line is shown as a caption for a time that fits its length */
   speak?: (text: string) => Promise<void>;
@@ -18,14 +18,14 @@ const emit = (name: string, detail: unknown) => window.dispatchEvent(new CustomE
 
 export async function runPresentation(o: PresentOptions): Promise<void> {
   o.onStatus?.('กำลังเตรียมบทนำเสนอ…');
-  const script: PresentScript = await aiApi.present(o.dashboardId, { model: o.model, thinking: o.thinking });
+  const script: PresentScript = await aiApi.present(o.dashboardId, { model: o.model, thinking: o.thinking, filters: o.filters });
   if (o.signal.aborted) return;
   const ready = new Promise<void>((ok) => {
     const h = (e: Event) => { if ((e as CustomEvent<{ dashboardId: string }>).detail?.dashboardId === o.dashboardId) { window.removeEventListener('dash:ready', h); ok(); } };
     window.addEventListener('dash:ready', h);
     window.setTimeout(() => { window.removeEventListener('dash:ready', h); ok(); }, 20_000);
   });
-  o.navigate(`/files/${o.fileId}/dashboards/${o.dashboardId}?present=1`);
+  o.navigate(`/files/${o.fileId}/dashboards/${o.dashboardId}?present=1${o.filters ? `&pf=${encodeURIComponent(JSON.stringify(o.filters))}` : ''}`);
   await ready;
   const lines = script.script.filter((x) => x.say.trim());
   const n = lines.length;

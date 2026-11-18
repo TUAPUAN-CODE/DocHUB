@@ -13,7 +13,9 @@ import { z } from 'zod';
 import type { ToolDef } from './providers';
 
 /** `actions` are things the browser must do (open a page, start a presentation): they travel back with the reply */
-export type CatAction = { type: 'open'; to: string; label: string } | { type: 'present'; fileId: string; dashboardId: string; fullscreen: boolean; label: string };
+/** what the user wants to see in a presentation: a date range and/or values of the dashboard's slicers (e.g. shift DS) */
+export interface PresentFilters { from?: string; to?: string; label?: string; slicers?: { name: string; values: string[] }[] }
+export type CatAction = { type: 'open'; to: string; label: string } | { type: 'present'; fileId: string; dashboardId: string; fullscreen: boolean; label: string; filters?: PresentFilters };
 export interface Ctx { user: AuthUser; fileId?: string; sheetId?: string; dashboardId?: string; changed: Set<string>; actions?: CatAction[] }
 
 const dsParams = {
@@ -40,13 +42,57 @@ export const TOOLS: ToolDef[] = [
   { name: 'find_items', description: 'Find folders, files or dashboards by NAME (also approximate: the name may have been mis-heard from speech, e.g. "Let\'s Meat Bone" for "Red Meat Bone"). Returns kind, id, name, path and a match score; if the best score is low, ask the user to confirm the name.', parameters: { type: 'object', properties: { query: { type: 'string' }, kind: { type: 'string', enum: ['any', 'folder', 'file', 'dashboard'] } }, required: ['query'] } },
   { name: 'describe_item', description: 'What is inside a folder (its files and sheets), a file (sheets + dashboards) or a dashboard (its widgets). Use for items the user attached or found with find_items.', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['folder', 'file', 'dashboard'] }, id: { type: 'string' } }, required: ['kind', 'id'] } },
   { name: 'open_page', description: 'Take the user to a folder, file or dashboard in the web app (the browser navigates). Use when the user says "open …".', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['folder', 'file', 'dashboard'] }, id: { type: 'string' } }, required: ['kind', 'id'] } },
-  { name: 'present_dashboard', description: 'Present a dashboard: the browser opens it (full screen by default), scrolls through its widgets one by one and the cat explains each. Use when the user says "present" / "นำเสนอ" / "พรีเซนต์". The dashboard must be known (attached, current page, or found with find_items).', parameters: { type: 'object', properties: { dashboardId: { type: 'string' }, fullscreen: { type: 'boolean' } }, required: ['dashboardId'] } },
+  { name: 'present_dashboard', description: 'Present a dashboard: the browser opens it (full screen by default), scrolls through its widgets one by one and the cat explains each. Use when the user says "present" / "นำเสนอ" / "พรีเซนต์". The dashboard must be known (attached, current page, or found with find_items).', parameters: { type: 'object', properties: { dashboardId: { type: 'string' }, fullscreen: { type: 'boolean' }, when: { type: 'string', enum: ['today', 'yesterday', 'last7days', 'last30days', 'thismonth', 'lastmonth'], description: 'date range to show (yesterday = เมื่อวาน). The dashboard date filter is set to it BEFORE presenting, so only that period is presented' }, dateFrom: { type: 'string', description: 'YYYY-MM-DD (instead of when)' }, dateTo: { type: 'string', description: 'YYYY-MM-DD' }, slicers: { type: 'array', description: 'other filters to set, e.g. shift DS: [{name:"กะ", values:["DS"]}]', items: { type: 'object', properties: { name: { type: 'string' }, values: { type: 'array', items: { type: 'string' } } }, required: ['name', 'values'] } } }, required: ['dashboardId'] } },
   { name: 'create_dashboard', description: 'Create an empty dashboard in a file (needs manage permission). Returns dashboardId.', parameters: { type: 'object', properties: { fileId: { type: 'string' }, name: { type: 'string' } }, required: ['fileId', 'name'] } },
   {
     name: 'add_widgets', description: 'Add widgets (charts / KPI cards / tables / text) to a dashboard. They are laid out automatically in a grid. Widget types: bar, line, area, pie, doughnut, scatter, pareto, histogram, kpi, table, text. For kpi use no xColumnId and one series. For text put the text in "text".',
     parameters: { type: 'object', properties: { dashboardId: { type: 'string' }, widgets: { type: 'array', items: { type: 'object', properties: { type: { type: 'string', enum: ['bar', 'line', 'area', 'pie', 'doughnut', 'scatter', 'pareto', 'histogram', 'kpi', 'table', 'text'] }, title: { type: 'string' }, text: { type: 'string' }, dataSource: dsParams }, required: ['type', 'title'] } } }, required: ['dashboardId', 'widgets'] },
   },
 ];
+
+
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const isYmd = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+/** "yesterday" etc. (or explicit dates) → a date range in the server's local time */
+export function resolveWhen(when?: unknown, from?: unknown, to?: unknown, now = new Date()): { from: string; to: string; label: string } | null {
+  if (isYmd(from) || isYmd(to)) { const f = isYmd(from) ? from : (to as string), e = isYmd(to) ? to : f; return { from: f, to: e, label: f === e ? f : `${f} ถึง ${e}` }; }
+  const day = (back: number) => { const d = new Date(now); d.setDate(d.getDate() - back); return d; };
+  switch (String(when ?? '')) {
+    case 'today': return { from: ymd(now), to: ymd(now), label: `วันนี้ (${ymd(now)})` };
+    case 'yesterday': return { from: ymd(day(1)), to: ymd(day(1)), label: `เมื่อวาน (${ymd(day(1))})` };
+    case 'last7days': return { from: ymd(day(6)), to: ymd(now), label: `7 วันล่าสุด (${ymd(day(6))} ถึง ${ymd(now)})` };
+    case 'last30days': return { from: ymd(day(29)), to: ymd(now), label: `30 วันล่าสุด (${ymd(day(29))} ถึง ${ymd(now)})` };
+    case 'thismonth': { const a = new Date(now.getFullYear(), now.getMonth(), 1); return { from: ymd(a), to: ymd(now), label: `เดือนนี้ (${ymd(a)} ถึง ${ymd(now)})` }; }
+    case 'lastmonth': { const a = new Date(now.getFullYear(), now.getMonth() - 1, 1), e = new Date(now.getFullYear(), now.getMonth(), 0); return { from: ymd(a), to: ymd(e), label: `เดือนที่แล้ว (${ymd(a)} ถึง ${ymd(e)})` }; }
+    default: return null;
+  }
+}
+const slicerName = (w: any) => String(w.config?.label || w.title || '').trim();
+const isSlicer = (w: any) => w.type === 'slicer' && !w.style?.hidden && w.dataSource?.sheetId && w.dataSource?.xColumnId;
+/** the slicer widgets of a dashboard that these filters would set, and what could not be matched */
+export function slicerPlan(widgets: any[], pf: PresentFilters) {
+  const filters = new Map<string, any>();
+  const unmatched: string[] = [];
+  const all = widgets.filter(isSlicer);
+  if (pf.from || pf.to) {
+    const dates = all.filter((s) => ['date', 'range'].includes(s.config?.mode ?? ''));
+    if (!dates.length) unmatched.push('วันที่');
+    for (const s of dates) filters.set(s.id, { columnId: s.dataSource.xColumnId, op: 'between', value: pf.from ?? pf.to, value2: pf.to ?? pf.from });
+  }
+  for (const want of pf.slicers ?? []) {
+    const n = want.name.trim().toLowerCase();
+    const hit = all.find((s) => { const sn = slicerName(s).toLowerCase(); return !['date', 'range', 'search'].includes(s.config?.mode ?? '') && sn && n && (sn.includes(n) || n.includes(sn)); });
+    if (hit && want.values.length) filters.set(hit.id, { columnId: hit.dataSource.xColumnId, mode: 'include', values: want.values });
+    else unmatched.push(want.name);
+  }
+  return { filters, unmatched, available: all.map((s) => ({ name: slicerName(s), mode: s.config?.mode ?? 'dropdown_search' })) };
+}
+/** same rule as the web page's withSlicers: a slicer filters the widgets on its own sheet (or the ones it targets) */
+export function withPlan(widgets: any[], plan: Map<string, any>, widgetId: string, ds: any) {
+  const extra: any[] = [];
+  for (const s of widgets) { const f = plan.get(s.id); if (!f || s.dataSource?.sheetId !== ds.sheetId) continue; const targets: string[] = s.config?.targets ?? []; if (targets.length && !targets.includes(widgetId)) continue; extra.push(f); }
+  return extra.length ? { ...ds, filters: [...(ds.filters ?? []), ...extra] } : ds;
+}
 
 const clip = (v: unknown, n = 120) => (typeof v === 'string' && v.length > n ? v.slice(0, n) + '…' : v);
 const out = (v: unknown) => JSON.stringify(v).slice(0, 12000);
@@ -188,8 +234,13 @@ export async function runTool(name: string, a: Record<string, any>, ctx: Ctx): P
     case 'present_dashboard': {
       const id = needStr(a, 'dashboardId');
       const d = await describeItem(u, 'dashboard', id) as any;
-      (ctx.actions ??= []).push({ type: 'present', fileId: d.fileId, dashboardId: id, fullscreen: a.fullscreen !== false, label: d.name });
-      return out({ ok: true, presenting: d.name, widgets: d.widgets.length, note: 'the browser now opens the dashboard and the cat explains each widget; do not read the widgets yourself, just confirm briefly' });
+      const range = resolveWhen(a.when, a.dateFrom, a.dateTo);
+      const pf: PresentFilters = { ...(range ? { from: range.from, to: range.to, label: range.label } : {}), slicers: Array.isArray(a.slicers) ? a.slicers.slice(0, 5).map((s: any) => ({ name: String(s?.name ?? '').slice(0, 80), values: (Array.isArray(s?.values) ? s.values : []).slice(0, 50).map((v: unknown) => String(v)) })).filter((s: any) => s.name && s.values.length) : [] };
+      const wrows = await q(`SELECT * FROM DashboardWidgets WHERE dashboard_id = @d`, { d: T.uuid(id) });
+      const plan = slicerPlan(wrows.map(mapWidget), pf);
+      if (plan.unmatched.length) return out({ ok: false, error: `this dashboard has no filter for: ${plan.unmatched.join(', ')}. Tell the user, and ask whether to present all data instead`, availableFilters: plan.available });
+      (ctx.actions ??= []).push({ type: 'present', fileId: d.fileId, dashboardId: id, fullscreen: a.fullscreen !== false, label: d.name, ...(plan.filters.size ? { filters: pf } : {}) });
+      return out({ ok: true, presenting: d.name, widgets: d.widgets.length, filteredTo: plan.filters.size ? { date: range?.label ?? null, slicers: pf.slicers } : 'all data', note: 'the browser now filters the dashboard first, opens it and the cat explains each widget; do not read the widgets yourself, just confirm briefly (say which period/filter is presented)' });
     }
     case 'list_dashboards': {
       const id = needStr(a, 'fileId');
