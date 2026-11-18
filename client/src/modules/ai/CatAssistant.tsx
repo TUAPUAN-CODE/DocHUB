@@ -1,5 +1,5 @@
 import { Component, ReactNode, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eraser, FileText, Folder, LayoutDashboard, Mic, Send, Settings2, Square, X } from 'lucide-react';
 import { apiError } from '@/api/client';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -7,7 +7,8 @@ import { TextInput } from '@/components/ui/Inputs';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useUi } from '@/store/ui';
-import { aiApi, ChatMsg } from './api';
+import { aiApi, CatAction, ChatMsg } from './api';
+import { runPresentation } from './present';
 import type { CatEmotion } from './CatScene';
 import { AI_DASH_EVENT, useAiPanel } from './useAiPanel';
 import { AI_DRAG_MIME, AiItem, readAiItem } from './dragItem';
@@ -67,6 +68,7 @@ export function CatAssistant() {
   const panelOpen = useAiPanel((s) => s.open);
   const setPanel = useAiPanel((s) => s.setOpen);
   const { pathname } = useLocation();
+  const nav = useNavigate();
   const [sp] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [emotion, setEmotion] = useState<CatEmotion>('happy');
@@ -89,6 +91,10 @@ export function CatAssistant() {
   const changeScale = (v: number) => { const n = Math.min(2.2, Math.max(0.6, Math.round(v * 10) / 10)); setScale(n); try { localStorage.setItem('cat:scale', String(n)); } catch { /* private mode */ } };
   const session = useRef<Awaited<ReturnType<typeof startLive>> | null>(null);
   const turn = useRef({ user: '', cat: '' });
+  const [presenting, setPresenting] = useState<string | null>(null);
+  const presentAbort = useRef<AbortController | null>(null);
+  const turnWaiter = useRef<(() => void) | null>(null);
+  const presentingRef = useRef(false);
   const end = useRef<HTMLDivElement>(null);
   const idle = useRef<number[]>([]);
   const histKey = `cat:chat:${user?.id}`;
@@ -144,6 +150,7 @@ export function CatAssistant() {
       const reply = r.reply || '(ไม่มีข้อความตอบกลับ)';
       setMsgs([...next, { role: 'assistant', content: reply, steps: r.steps }]);
       for (const id of r.changedDashboards) window.dispatchEvent(new CustomEvent(AI_DASH_EVENT, { detail: { dashboardId: id } }));
+      for (const a of r.actions ?? []) doAction(a);
       const allFailed = r.steps.length > 0 && r.steps.every((s) => !s.ok);
       if (allFailed) feel('surprised', reply.slice(0, 160));
       else if (r.changedDashboards.length) feel('excited', reply.slice(0, 160));
@@ -155,6 +162,31 @@ export function CatAssistant() {
       feel(/429|503|หนาแน่น|ถี่เกินไป/.test(m) ? 'sleepy' : 'sad', m.slice(0, 160));
     } finally { setBusy(false); }
   };
+
+  const stopPresent = useCallback(() => { presentAbort.current?.abort(); presentAbort.current = null; presentingRef.current = false; setPresenting(null); turnWaiter.current?.(); }, []);
+  useEffect(() => { window.addEventListener('cat:present-stop', stopPresent); return () => window.removeEventListener('cat:present-stop', stopPresent); }, [stopPresent]);
+  // Esc stops a presentation too
+  useEffect(() => { if (!presenting) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') stopPresent(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [presenting, stopPresent]);
+
+  /** things the AI asked the browser to do: open a page, present a dashboard */
+  const doAction = useCallback((a: CatAction) => {
+    if (a.type === 'open') { nav(a.to); feel('happy', `เปิด “${a.label}” ให้แล้วนะ`); return; }
+    if (a.type !== 'present') return;
+    stopPresent();
+    const ac = new AbortController(); presentAbort.current = ac; presentingRef.current = true; setPresenting(a.label); feel('excited', `เริ่มนำเสนอ “${a.label}” นะ`);
+    const m = models.find((x) => x.key === modelKey) ?? models[0];
+    const speak = session.current
+      ? (text: string) => new Promise<void>((ok) => {
+          const t = window.setTimeout(() => { turnWaiter.current = null; ok(); }, 45_000);
+          turnWaiter.current = () => { window.clearTimeout(t); turnWaiter.current = null; ok(); };
+          ac.signal.addEventListener('abort', () => turnWaiter.current?.(), { once: true });
+          session.current?.sendText(`[ระบบ] อ่านออกเสียงข้อความนี้ตามที่เขียน ไม่ต้องเพิ่มหรือเปลี่ยนคำ และไม่ต้องถามต่อ: ${text}`);
+        })
+      : undefined;
+    void runPresentation({ fileId: a.fileId, dashboardId: a.dashboardId, model: m.id, thinking: thinking as 'low' | 'medium' | 'high', navigate: nav, speak, signal: ac.signal })
+      .catch((e) => { feel('sad', apiError(e).message.slice(0, 160)); setMsgs((cur) => [...cur, { role: 'assistant', content: `⚠ นำเสนอไม่สำเร็จ: ${apiError(e).message}` }]); })
+      .finally(() => { if (presentAbort.current === ac) { presentAbort.current = null; presentingRef.current = false; setPresenting(null); feel('happy'); } });
+  }, [feel, models, modelKey, nav, stopPresent, thinking]);
 
   const stopLive = useCallback(() => { session.current?.stop(); session.current = null; setLive('off'); setEmotion((e) => (e === 'talking' || e === 'thinking' ? 'happy' : e)); }, []);
   useEffect(() => () => session.current?.stop(), []);
@@ -168,9 +200,13 @@ export function CatAssistant() {
         onState: (st) => { if (st === 'idle') { setLive('off'); session.current = null; feel('happy', SAY.happy); } else { setLive(st); if (st === 'listening') feel('happy', 'ฟังอยู่ครับ พูดได้เลย 🎤'); if (st === 'speaking') feel('talking'); } },
         onUserText: (t) => { turn.current.user = t; feel('thinking', t.slice(0, 160)); },
         onCatText: (t) => { turn.current.cat = t; setSaid(t.slice(-160)); },
-        onTurn: () => { const { user, cat } = turn.current; turn.current = { user: '', cat: '' }; if (user || cat) setMsgs((cur) => [...cur, ...(user ? [{ role: 'user' as const, content: user }] : []), ...(cat ? [{ role: 'assistant' as const, content: cat }] : [])]); },
+        onAction: (a) => doAction(a as CatAction),
+        onTurn: () => { const { user, cat } = turn.current; turn.current = { user: '', cat: '' }; turnWaiter.current?.(); if (presentingRef.current) return; if (user || cat) setMsgs((cur) => [...cur, ...(user ? [{ role: 'user' as const, content: user }] : []), ...(cat ? [{ role: 'assistant' as const, content: cat }] : [])]); },
         onError: (m) => { setLiveErr(m); feel('sad', m.slice(0, 160)); },
       }, { model: liveId, voice, thinking });
+      // what is already attached / the page the user is on is told to the voice session
+      if (items.length) session.current.attach(items);
+      if (ctx.dashboardId) session.current.sendText('[ระบบ] ผู้ใช้กำลังเปิดหน้าแดชบอร์ด id=' + ctx.dashboardId + ' ของไฟล์ id=' + ctx.fileId + ' (ถ้าสั่งให้นำเสนอ/พรีเซนต์ "อันนี้" ให้ใช้ id นี้)');
     } catch (e) {
       session.current = null; setLive('off');
       const m = apiError(e).message || (e as Error).message; setLiveErr(m); feel('sad', m.slice(0, 160));
@@ -182,6 +218,7 @@ export function CatAssistant() {
     const it = readAiItem(e.dataTransfer);
     if (!it) return feel('surprised', 'แมวรับเฉพาะไฟล์ โฟลเดอร์ หรือแดชบอร์ดจากในเว็บนี้ครับ');
     setItems((cur) => (cur.some((x) => x.id === it.id) ? cur : [...cur.slice(-4), it]));
+    session.current?.attach([it]);
     setOpen(true); feel('love', `รับ “${it.name}” แล้วครับ อยากรู้อะไรเกี่ยวกับสิ่งนี้ ถามได้เลย 😻`);
   };
   const dropProps = {
@@ -247,6 +284,7 @@ export function CatAssistant() {
               </div>
             )}
             {live !== 'off' && <p className="flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-1.5 text-xs text-violet-700"><span className="h-2 w-2 animate-pulse rounded-full bg-violet-500" />{live === 'connecting' ? 'กำลังเชื่อมต่อ…' : live === 'speaking' ? 'แมวกำลังพูด… (พูดแทรกได้)' : 'ฟังอยู่ — พูดได้เลย'}</p>}
+            {presenting && <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /><span className="min-w-0 flex-1 truncate">กำลังนำเสนอ: {presenting}</span><button type="button" className="rounded-full bg-ink/80 px-2 py-0.5 text-white" onClick={stopPresent}>หยุด</button></p>}
             {liveErr && <p className="rounded-xl bg-red-50 px-3 py-1.5 text-xs text-red-700">{liveErr}</p>}
             <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="flex gap-2">
               <TextInput value={text} onChange={(e) => { setText(e.target.value); touch(); }} placeholder="พิมพ์คำถาม / คำสั่ง…" />

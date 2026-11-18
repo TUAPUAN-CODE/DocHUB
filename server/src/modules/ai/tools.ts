@@ -4,6 +4,7 @@ import type { AuthUser } from '../../middleware/auth';
 import { audit } from '../../shared/audit';
 import { badRequest } from '../../shared/http';
 import { LV, PermCtx, requireFile, requireSheet } from '../../shared/permissions';
+import { mapWidget } from '../../shared/mappers';
 import { loadColumns } from '../../services/cellWriter';
 import { queryRows } from '../../services/rowQuery';
 import { computeWidgetData, DataSource } from '../../services/widgetData';
@@ -11,7 +12,9 @@ import { filterSchema } from '../../shared/schemas';
 import { z } from 'zod';
 import type { ToolDef } from './providers';
 
-export interface Ctx { user: AuthUser; fileId?: string; sheetId?: string; dashboardId?: string; changed: Set<string> }
+/** `actions` are things the browser must do (open a page, start a presentation): they travel back with the reply */
+export type CatAction = { type: 'open'; to: string; label: string } | { type: 'present'; fileId: string; dashboardId: string; fullscreen: boolean; label: string };
+export interface Ctx { user: AuthUser; fileId?: string; sheetId?: string; dashboardId?: string; changed: Set<string>; actions?: CatAction[] }
 
 const dsParams = {
   type: 'object',
@@ -34,6 +37,10 @@ export const TOOLS: ToolDef[] = [
   { name: 'query_rows', description: 'Read up to 30 rows of a sheet (to look at samples). For totals use aggregate instead of reading rows.', parameters: { type: 'object', properties: { sheetId: { type: 'string' }, limit: { type: 'integer' }, search: { type: 'string' } }, required: ['sheetId'] } },
   { name: 'aggregate', description: 'Compute grouped numbers (same engine the dashboard charts use): sums/counts/averages by category or date bucket. Use this to summarise data.', parameters: dsParams },
   { name: 'list_dashboards', description: 'Dashboards of a file.', parameters: { type: 'object', properties: { fileId: { type: 'string' } }, required: ['fileId'] } },
+  { name: 'find_items', description: 'Find folders, files or dashboards by NAME (also approximate: the name may have been mis-heard from speech, e.g. "Let\'s Meat Bone" for "Red Meat Bone"). Returns kind, id, name, path and a match score; if the best score is low, ask the user to confirm the name.', parameters: { type: 'object', properties: { query: { type: 'string' }, kind: { type: 'string', enum: ['any', 'folder', 'file', 'dashboard'] } }, required: ['query'] } },
+  { name: 'describe_item', description: 'What is inside a folder (its files and sheets), a file (sheets + dashboards) or a dashboard (its widgets). Use for items the user attached or found with find_items.', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['folder', 'file', 'dashboard'] }, id: { type: 'string' } }, required: ['kind', 'id'] } },
+  { name: 'open_page', description: 'Take the user to a folder, file or dashboard in the web app (the browser navigates). Use when the user says "open …".', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['folder', 'file', 'dashboard'] }, id: { type: 'string' } }, required: ['kind', 'id'] } },
+  { name: 'present_dashboard', description: 'Present a dashboard: the browser opens it (full screen by default), scrolls through its widgets one by one and the cat explains each. Use when the user says "present" / "นำเสนอ" / "พรีเซนต์". The dashboard must be known (attached, current page, or found with find_items).', parameters: { type: 'object', properties: { dashboardId: { type: 'string' }, fullscreen: { type: 'boolean' } }, required: ['dashboardId'] } },
   { name: 'create_dashboard', description: 'Create an empty dashboard in a file (needs manage permission). Returns dashboardId.', parameters: { type: 'object', properties: { fileId: { type: 'string' }, name: { type: 'string' } }, required: ['fileId', 'name'] } },
   {
     name: 'add_widgets', description: 'Add widgets (charts / KPI cards / tables / text) to a dashboard. They are laid out automatically in a grid. Widget types: bar, line, area, pie, doughnut, scatter, pareto, histogram, kpi, table, text. For kpi use no xColumnId and one series. For text put the text in "text".',
@@ -81,6 +88,62 @@ function buildWidget(spec: any, x: number, y: number, z: number) {
   return base;
 }
 
+const norm = (x: string) => x.toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const bigrams = (x: string) => { const c = x.replace(/ /g, ''); const m = new Map<string, number>(); for (let i = 0; i < c.length - 1; i++) { const g = c.slice(i, i + 2); m.set(g, (m.get(g) ?? 0) + 1); } return m; };
+/** 0..1: contains → high; otherwise Dice coefficient of letter pairs (survives a mis-heard word such as "Red" → "Let's") */
+export function nameScore(query: string, name: string): number {
+  const a = norm(query), b = norm(name);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (b.includes(a) || a.includes(b)) return 0.9 - Math.min(0.3, Math.abs(a.length - b.length) / 100);
+  const A = bigrams(a), B = bigrams(b); let inter = 0, na = 0, nb = 0;
+  for (const [g, n] of A) { na += n; inter += Math.min(n, B.get(g) ?? 0); } for (const n of B.values()) nb += n;
+  const dice = na + nb ? (2 * inter) / (na + nb) : 0;
+  // a name that has most of the query's words
+  const tb = new Set(b.split(' ')), ta = a.split(' '); const tok = ta.filter((t) => tb.has(t)).length / ta.length;
+  return Math.max(dice, tok * 0.8);
+}
+
+async function findItems(u: AuthUser, query: string, kind: string) {
+  const pc = await PermCtx.load(u);
+  const res: { kind: string; id: string; name: string; path: string; score: number }[] = [];
+  const pathOf = (folderId: string | null) => { const parts: string[] = []; let cur = folderId ? pc.index.map.get(folderId) : undefined; for (let i = 0; cur && i < 12; i++) { parts.unshift(cur.name); cur = cur.parentId ? pc.index.map.get(cur.parentId) : undefined; } return parts.join(' / '); };
+  if (kind === 'any' || kind === 'folder') for (const f of pc.index.map.values()) if (pc.folderLevel(f.id) >= LV.read) res.push({ kind: 'folder', id: f.id, name: f.name, path: pathOf(f.parentId), score: nameScore(query, f.name) });
+  if (kind === 'any' || kind === 'file') {
+    for (const f of await q(`SELECT file_id, file_name, folder_id, created_by FROM Files WHERE is_deleted = 0`)) if (pc.fileLevel({ file_id: f.file_id, folder_id: f.folder_id, created_by: f.created_by }) >= LV.read) res.push({ kind: 'file', id: f.file_id, name: f.file_name, path: pathOf(f.folder_id), score: nameScore(query, f.file_name) });
+  }
+  if (kind === 'any' || kind === 'dashboard') {
+    for (const d of await q(`SELECT d.dashboard_id, d.dashboard_name, f.file_id, f.file_name, f.folder_id, f.created_by FROM Dashboards d JOIN Files f ON f.file_id = d.file_id WHERE f.is_deleted = 0`))
+      if (pc.fileLevel({ file_id: d.file_id, folder_id: d.folder_id, created_by: d.created_by }) >= LV.read) res.push({ kind: 'dashboard', id: d.dashboard_id, name: d.dashboard_name, path: `${pathOf(d.folder_id)} / ${d.file_name}`, score: Math.max(nameScore(query, d.dashboard_name), nameScore(query, d.file_name) * 0.85) });
+  }
+  return res.filter((r) => r.score >= 0.3).sort((a, b) => b.score - a.score).slice(0, 8).map((r) => ({ ...r, score: Math.round(r.score * 100) / 100 }));
+}
+
+async function describeItem(u: AuthUser, kind: string, id: string) {
+  const pc = await PermCtx.load(u);
+  if (kind === 'folder') {
+    const f = pc.index.map.get(id);
+    if (!f || pc.folderLevel(id) < LV.read) throw badRequest('ไม่พบโฟลเดอร์หรือไม่มีสิทธิ์');
+    const files = (await q(`SELECT file_id, file_name, folder_id, created_by FROM Files WHERE is_deleted = 0 AND folder_id = @f ORDER BY file_name`, { f: T.uuid(id) })).filter((x) => pc.fileLevel({ file_id: x.file_id, folder_id: x.folder_id, created_by: x.created_by }) >= LV.read).slice(0, 40);
+    const sheets = files.length ? await q(`SELECT sheet_id, file_id, sheet_name FROM Sheets WHERE is_deleted = 0 AND file_id IN (SELECT TRY_CAST([value] AS UNIQUEIDENTIFIER) FROM OPENJSON(@ids))`, { ids: T.text(JSON.stringify(files.map((x) => x.file_id))) }) : [];
+    const subs = [...pc.index.map.values()].filter((x) => x.parentId === id && pc.folderLevel(x.id) >= LV.read).map((x) => ({ folderId: x.id, name: x.name }));
+    return { kind, id, name: f.name, folders: subs, files: files.map((x) => ({ fileId: x.file_id, name: x.file_name, sheets: sheets.filter((s) => s.file_id === x.file_id).map((s) => ({ sheetId: s.sheet_id, name: s.sheet_name })) })) };
+  }
+  if (kind === 'file') {
+    await requireFile(u, id, LV.read);
+    const f = await q1(`SELECT file_name FROM Files WHERE file_id = @f AND is_deleted = 0`, { f: T.uuid(id) });
+    const sheets = await q(`SELECT sheet_id, sheet_name FROM Sheets WHERE file_id = @f AND is_deleted = 0 ORDER BY sort_order`, { f: T.uuid(id) });
+    const dashes = await q(`SELECT dashboard_id, dashboard_name FROM Dashboards WHERE file_id = @f ORDER BY sort_order`, { f: T.uuid(id) });
+    return { kind, id, name: f?.file_name, sheets: sheets.map((s) => ({ sheetId: s.sheet_id, name: s.sheet_name })), dashboards: dashes.map((d) => ({ dashboardId: d.dashboard_id, name: d.dashboard_name })) };
+  }
+  const d = await q1(`SELECT dashboard_id, dashboard_name, file_id FROM Dashboards WHERE dashboard_id = @d`, { d: T.uuid(id) });
+  if (!d) throw badRequest('ไม่พบแดชบอร์ด');
+  await requireFile(u, d.file_id, LV.read);
+  const ws = (await q(`SELECT * FROM DashboardWidgets WHERE dashboard_id = @d ORDER BY pos_y, pos_x`, { d: T.uuid(id) })).map(mapWidget);
+  return { kind: 'dashboard', id, fileId: d.file_id, name: d.dashboard_name, widgets: ws.filter((w) => w.type !== 'shape').map((w) => ({ id: w.id, type: w.type, title: w.title })) };
+}
+export { describeItem };
+
 export async function runTool(name: string, a: Record<string, any>, ctx: Ctx): Promise<string> {
   const u = ctx.user;
   switch (name) {
@@ -112,6 +175,21 @@ export async function runTool(name: string, a: Record<string, any>, ctx: Ctx): P
       await requireSheet(u, ds.sheetId, LV.read);
       const d = await computeWidgetData(u, ds);
       return out({ totalRows: d.totalRows, categories: d.categories?.slice(0, 60), series: d.series?.map((s: any) => ({ name: s.name, values: s.values.slice(0, 60) })), points: d.points?.slice(0, 60) });
+    }
+    case 'find_items': return out(await findItems(u, needStr(a, 'query'), ['folder', 'file', 'dashboard'].includes(a.kind) ? a.kind : 'any'));
+    case 'describe_item': return out(await describeItem(u, String(a.kind), needStr(a, 'id')));
+    case 'open_page': {
+      const kind = String(a.kind), id = needStr(a, 'id');
+      const d = await describeItem(u, kind, id) as any;
+      const to = kind === 'folder' ? `/folders/${id}` : kind === 'file' ? `/files/${id}` : `/files/${d.fileId}/dashboards/${id}`;
+      (ctx.actions ??= []).push({ type: 'open', to, label: d.name });
+      return out({ ok: true, opened: d.name });
+    }
+    case 'present_dashboard': {
+      const id = needStr(a, 'dashboardId');
+      const d = await describeItem(u, 'dashboard', id) as any;
+      (ctx.actions ??= []).push({ type: 'present', fileId: d.fileId, dashboardId: id, fullscreen: a.fullscreen !== false, label: d.name });
+      return out({ ok: true, presenting: d.name, widgets: d.widgets.length, note: 'the browser now opens the dashboard and the cat explains each widget; do not read the widgets yourself, just confirm briefly' });
     }
     case 'list_dashboards': {
       const id = needStr(a, 'fileId');

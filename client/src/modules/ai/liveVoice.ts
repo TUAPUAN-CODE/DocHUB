@@ -10,6 +10,7 @@ export interface LiveHandlers {
   onCatText: (t: string) => void;        // what the cat says (transcript, grows)
   onTurn: () => void;                    // the cat finished a turn
   onError: (m: string) => void;
+  onAction?: (a: unknown) => void;       // the model asked the browser to do something (open a page / present a dashboard)
   onLevel?: (v: number) => void;         // output loudness 0..1 (mouth)
 }
 export interface LiveOptions { model?: string; voice?: string; thinking?: string }
@@ -65,6 +66,8 @@ export async function startLive(h: LiveHandlers, opt: LiveOptions = {}) {
   ws.onmessage = (ev) => {
     let m: any; try { m = JSON.parse(String(ev.data)); } catch { return; }
     if (m.proxyError) { h.onError(m.proxyError); stop(); return; }
+    if (m.action) { h.onAction?.(m.action); return; }
+    if (m.tool) return;
     if (m.setupComplete) { ready = true; h.onState('listening'); return; }
     const sc = m.serverContent; if (!sc) return;
     if (sc.interrupted) { sources.forEach((s) => { try { s.stop(); } catch { /* ended */ } }); sources.clear(); playAt = 0; h.onState('listening'); }
@@ -75,5 +78,5 @@ export async function startLive(h: LiveHandlers, opt: LiveOptions = {}) {
   };
   ws.onerror = () => { h.onError('เชื่อมต่อเสียงไม่สำเร็จ'); stop(); };
   ws.onclose = () => stop();
-  return { stop, sendText: (text: string) => { if (ready && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ realtimeInput: { text } })); } };
+  return { stop, attach: (items: { kind: string; id: string }[]) => { if (ready && ws.readyState === WebSocket.OPEN && items.length) ws.send(JSON.stringify({ attach: items.map(({ kind, id }) => ({ kind, id })) })); }, sendText: (text: string) => { if (ready && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ realtimeInput: { text } })); } };
 }
