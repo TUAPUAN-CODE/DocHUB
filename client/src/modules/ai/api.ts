@@ -9,6 +9,6 @@ export const aiApi = {
   settings: () => get<{ providers: ProviderInfo[] }>('/ai/settings'),
   save: (p: Provider, b: { apiKey?: string; model?: string | null; baseUrl?: string | null }) => put(`/ai/settings/${p}`, b),
   remove: (p: Provider) => del(`/ai/settings/${p}`),
-  chat: (provider: Provider, messages: ChatMsg[], context: ChatContext) =>
-    post<{ reply: string; steps: { tool: string; ok: boolean }[]; changedDashboards: string[] }>('/ai/chat', { provider, messages: messages.map(({ role, content }) => ({ role, content })), context }, { timeout: 180_000 }),
+  chat: (provider: Provider, messages: ChatMsg[], context: ChatContext, extra: { model?: string; attachments?: { kind: 'file' | 'folder' | 'dashboard'; id: string; name: string }[] } = {}) =>
+    post<{ reply: string; steps: { tool: string; ok: boolean }[]; changedDashboards: string[] }>('/ai/chat', { provider, messages: messages.map(({ role, content }) => ({ role, content })), context, ...(extra.model ? { model: extra.model } : {}), attachments: extra.attachments ?? [] }, { timeout: 180_000 }),
 };

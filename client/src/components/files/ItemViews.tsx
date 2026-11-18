@@ -9,6 +9,7 @@ import { playOpenFile } from '../layout/OpenFileOverlay';
 import { Avatar, PermBadge, StarButton } from '../ui/misc';
 import { FileGlyph, FileThumb, FolderGlyph } from './icons';
 import { DocTypeBadge } from '@/modules/revisions/docTypes';
+import { setAiItem } from '@/modules/ai/dragItem';
 
 export type Item = { kind: 'folder'; data: FolderItem } | { kind: 'file'; data: FileItem };
 
@@ -18,13 +19,15 @@ interface Common {
 
 function useDnD(item: Item, canDrag: boolean) {
   const [over, setOver] = useState(false);
-  const drag = canDrag ? {
+  // every card can be dragged onto the AI cat (read-only: the AI reads it with the user's own permissions); moving needs manage rights
+  const drag = {
     draggable: true,
     onDragStart: (e: DragEvent) => {
-      e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: item.kind, id: item.data.id, name: item.data.name }));
-      e.dataTransfer.effectAllowed = 'move';
+      setAiItem(e, { kind: item.kind, id: item.data.id, name: item.data.name });
+      if (canDrag) e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ type: item.kind, id: item.data.id, name: item.data.name }));
+      e.dataTransfer.effectAllowed = canDrag ? 'copyMove' : 'copy';
     },
-  } : {};
+  };
   const drop = item.kind === 'folder' ? {
     onDragOver: (e: DragEvent) => { if (e.dataTransfer.types.includes(DRAG_MIME)) { e.preventDefault(); setOver(true); } },
     onDragLeave: () => setOver(false),

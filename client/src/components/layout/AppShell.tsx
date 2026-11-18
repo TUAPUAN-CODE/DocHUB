@@ -6,6 +6,7 @@ import { useAuth } from '@/store/auth';
 import { useUi } from '@/store/ui';
 import { Spinner } from '../ui/misc';
 import { AiPanel } from '@/modules/ai/AiPanel';
+import { CatAssistant } from '@/modules/ai/CatAssistant';
 import { OpenFileOverlay } from './OpenFileOverlay';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -30,6 +31,7 @@ export function AppShell() {
         </div>
       </main>
       {aiAllowed && <AiPanel />}
+      {aiAllowed && <CatAssistant />}
       <OpenFileOverlay />
     </div>
   );
