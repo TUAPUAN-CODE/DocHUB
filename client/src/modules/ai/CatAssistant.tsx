@@ -97,6 +97,12 @@ export function CatAssistant() {
   }, [pathname, sp]);
 
   const feel = useCallback((e: CatEmotion, say?: string) => { setEmotion(e); setSaid(say ?? SAY[e]); }, []);
+  // other parts of the app can make the cat react: window.dispatchEvent(new CustomEvent('cat:emotion', { detail: { emotion: 'excited', say: '…' } }))
+  useEffect(() => {
+    const h = (e: Event) => { const d = (e as CustomEvent<{ emotion: CatEmotion; say?: string }>).detail; if (d?.emotion && d.emotion in SAY) feel(d.emotion, d.say); };
+    window.addEventListener('cat:emotion', h);
+    return () => window.removeEventListener('cat:emotion', h);
+  }, [feel]);
   // no activity for a while: sleepy, then asleep (any interaction wakes the cat)
   const touch = useCallback(() => {
     idle.current.forEach((t) => window.clearTimeout(t));
