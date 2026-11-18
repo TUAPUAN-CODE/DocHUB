@@ -31,7 +31,7 @@ export async function startLive(h: LiveHandlers, opt: LiveOptions = {}) {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}${path}?ticket=${encodeURIComponent(ticket)}`);
 
-  let closed = false, ready = false, playAt = 0, userText = '', catText = '';
+  let played = 0, lastAudio = 0, closed = false, ready = false, playAt = 0, userText = '', catText = '';
   const sources = new Set<AudioBufferSourceNode>();
   const analyser = outCtx.createAnalyser(); analyser.fftSize = 256; analyser.connect(outCtx.destination);
   const lvl = new Uint8Array(analyser.frequencyBinCount);
@@ -57,6 +57,7 @@ export async function startLive(h: LiveHandlers, opt: LiveOptions = {}) {
     const view = new DataView(pcm.buffer, pcm.byteOffset, n * 2);
     const buf = outCtx.createBuffer(1, n, 24000), ch = buf.getChannelData(0);
     for (let i = 0; i < n; i++) ch[i] = view.getInt16(i * 2, true) / 32768;
+    played++; lastAudio = Date.now(); void outCtx.resume().catch(() => undefined);
     const src = outCtx.createBufferSource(); src.buffer = buf; src.connect(analyser);
     const at = Math.max(outCtx.currentTime + 0.03, playAt); src.start(at); playAt = at + buf.duration;
     sources.add(src); src.onended = () => { sources.delete(src); if (!sources.size && !closed) h.onState('listening'); };
@@ -78,5 +79,5 @@ export async function startLive(h: LiveHandlers, opt: LiveOptions = {}) {
   };
   ws.onerror = () => { h.onError('เชื่อมต่อเสียงไม่สำเร็จ'); stop(); };
   ws.onclose = () => stop();
-  return { stop, attach: (items: { kind: string; id: string }[]) => { if (ready && ws.readyState === WebSocket.OPEN && items.length) ws.send(JSON.stringify({ attach: items.map(({ kind, id }) => ({ kind, id })) })); }, sendText: (text: string) => { if (ready && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ realtimeInput: { text } })); } };
+  return { stop, played: () => played, quiet: () => !sources.size && Date.now() - lastAudio > 1200, attach: (items: { kind: string; id: string }[]) => { if (ready && ws.readyState === WebSocket.OPEN && items.length) ws.send(JSON.stringify({ attach: items.map(({ kind, id }) => ({ kind, id })) })); }, sendText: (text: string) => { if (ready && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ realtimeInput: { text } })); } };
 }

@@ -177,10 +177,24 @@ export function CatAssistant() {
     const m = models.find((x) => x.key === modelKey) ?? models[0];
     const speak = session.current
       ? (text: string) => new Promise<void>((ok) => {
-          const t = window.setTimeout(() => { turnWaiter.current = null; ok(); }, 45_000);
-          turnWaiter.current = () => { window.clearTimeout(t); turnWaiter.current = null; ok(); };
-          ac.signal.addEventListener('abort', () => turnWaiter.current?.(), { once: true });
-          session.current?.sendText(`[ระบบ] อ่านออกเสียงข้อความนี้ตามที่เขียน ไม่ต้องเพิ่มหรือเปลี่ยนคำ และไม่ต้องถามต่อ: ${text}`);
+          const s = session.current; if (!s) { ok(); return; }
+          const before = s.played(), t0 = Date.now();
+          let fell = false;
+          const finish = () => { window.clearInterval(iv); ok(); };
+          const iv = window.setInterval(() => {
+            if (ac.signal.aborted) { window.speechSynthesis?.cancel(); finish(); return; }
+            const started = s.played() > before;
+            if (started && s.quiet()) { finish(); return; }
+            if (!started && !fell && Date.now() - t0 > 8000) { // the voice model stayed silent: read the line with the browser's own voice
+              fell = true;
+              try {
+                const u = new SpeechSynthesisUtterance(text); u.lang = 'th-TH'; u.onend = finish; u.onerror = finish;
+                window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+              } catch (e) { console.error('speechSynthesis error:', e); finish(); }
+            }
+            if (Date.now() - t0 > 60_000) finish();
+          }, 250);
+          s.sendText(`[ระบบ] อ่านออกเสียงข้อความนี้ตามที่เขียน ไม่ต้องเพิ่มหรือเปลี่ยนคำ และไม่ต้องถามต่อ: ${text}`);
         })
       : undefined;
     void runPresentation({ fileId: a.fileId, dashboardId: a.dashboardId, model: m.id, thinking: thinking as 'low' | 'medium' | 'high', navigate: nav, speak, signal: ac.signal })
