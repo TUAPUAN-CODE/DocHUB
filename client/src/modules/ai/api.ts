@@ -5,10 +5,14 @@ export interface ProviderInfo { provider: Provider; label: string; defaultModel:
 export interface ChatMsg { role: 'user' | 'assistant'; content: string; steps?: { tool: string; ok: boolean }[] }
 export interface ChatContext { fileId?: string | null; sheetId?: string | null; dashboardId?: string | null }
 
+export type CatAction = { type: 'open'; to: string; label: string } | { type: 'present'; fileId: string; dashboardId: string; fullscreen: boolean; label: string };
+export interface PresentScript { name: string; intro: string; outro: string; script: { widgetId: string; say: string }[] }
+
 export const aiApi = {
+  present: (dashboardId: string, extra: { model?: string; thinking?: 'low' | 'medium' | 'high' } = {}) => post<PresentScript>('/ai/present', { dashboardId, ...extra }, { timeout: 180_000 }),
   settings: () => get<{ providers: ProviderInfo[] }>('/ai/settings'),
   save: (p: Provider, b: { apiKey?: string; model?: string | null; baseUrl?: string | null }) => put(`/ai/settings/${p}`, b),
   remove: (p: Provider) => del(`/ai/settings/${p}`),
   chat: (provider: Provider, messages: ChatMsg[], context: ChatContext, extra: { model?: string; thinking?: 'low' | 'medium' | 'high'; attachments?: { kind: 'file' | 'folder' | 'dashboard'; id: string; name: string }[] } = {}) =>
-    post<{ reply: string; steps: { tool: string; ok: boolean }[]; changedDashboards: string[] }>('/ai/chat', { provider, messages: messages.map(({ role, content }) => ({ role, content })), context, ...(extra.model ? { model: extra.model } : {}), ...(extra.thinking ? { thinking: extra.thinking } : {}), attachments: extra.attachments ?? [] }, { timeout: 180_000 }),
+    post<{ reply: string; steps: { tool: string; ok: boolean }[]; changedDashboards: string[]; actions?: CatAction[] }>('/ai/chat', { provider, messages: messages.map(({ role, content }) => ({ role, content })), context, ...(extra.model ? { model: extra.model } : {}), ...(extra.thinking ? { thinking: extra.thinking } : {}), attachments: extra.attachments ?? [] }, { timeout: 180_000 }),
 };

@@ -408,3 +408,12 @@ html[data-shell='glass'] .cat-bubble { background: linear-gradient(145deg, rgb(2
 html[data-shell='glass'] .cat-chat { background: linear-gradient(145deg, rgb(255 255 255 / .96), rgb(242 244 255 / .94)); border-color: rgb(255 255 255 / .95);
   -webkit-backdrop-filter: blur(28px) saturate(1.4); backdrop-filter: blur(28px) saturate(1.4); box-shadow: inset 2px 2px 5px #fff, 0 26px 52px -18px rgb(80 90 190 / .5); }
 @media (prefers-reduced-motion: reduce) { .cat-bubble { animation: none; } }
+
+/* presenting a dashboard: the widget the cat is talking about stands out, the others step back (the wrapper has an inline opacity from the entrance animation, so the dimming is on its content) */
+.dash-presenting [data-wid] > * { transition: opacity .45s ease, filter .45s ease; opacity: .32 !important; filter: saturate(.7); }
+.dash-presenting [data-wid].present-focus > * { opacity: 1 !important; filter: none; }
+.dash-presenting [data-wid].present-focus { z-index: 40; filter: drop-shadow(0 18px 40px rgb(80 90 190 / .5)); }
+.dash-presenting [data-wid].present-focus > * { outline: 3px solid rgb(var(--c-primary) / .75); outline-offset: 3px; border-radius: 16px; }
+@media (prefers-reduced-motion: reduce) { .dash-presenting [data-wid] > * { transition: none; } }
+/* immersive presentation: the glass full-screen background must not turn the fixed page back into a relative one */
+html[data-shell='glass'] .dash-full.fixed { position: fixed; }

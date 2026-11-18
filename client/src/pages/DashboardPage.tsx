@@ -1,6 +1,7 @@
 import { DragEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Rnd } from 'react-rnd';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Eye, Expand, Grid3x3, Layers, LayoutDashboard, Maximize, Pencil, RefreshCw, Save, Settings2, Shrink, SlidersHorizontal, Trash2, Upload, ZoomIn, ZoomOut } from 'lucide-react';
 import { dashboardsApi, uploadsApi } from '@/api/endpoints';
@@ -45,6 +46,11 @@ const flowHeight = (w: Widget): number | string | undefined => {
 
 const WMIME = 'application/x-dsp-widget';
 
+/** immersive full screen: the page is moved to <body> so it covers the whole window (the app's own bars sit in transformed parents, where "fixed" is not the window) */
+function MaybePortal({ on, children }: { on: boolean; children: React.ReactNode }) {
+  return on ? createPortal(children, document.body) : <>{children}</>;
+}
+
 export default function DashboardPage() {
   const { fileId = '', dashId = '' } = useParams();
   const nav = useNavigate();
@@ -54,17 +60,26 @@ export default function DashboardPage() {
   const { data, loading, error, reload } = useLoad(() => dashboardsApi.get(dashId), [dashId]);
   const [meta, setMeta] = useState<DashboardMeta | null>(null);
   const [widgets, setWidgets] = useState<Widget[]>([]);
+  const widgetsRef = useRef<Widget[]>([]);
+  widgetsRef.current = widgets;
   const [selected, setSelected] = useState<string | null>(null);
   const [edit, setEdit] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  zoomRef.current = zoom;
   const [fit, setFit] = useState(true);
   const narrow = useNarrow();
   const [refreshKey, setRefreshKey] = useState(0);
   const [settings, setSettings] = useState(false);
   const [slicers, setSlicers] = useState<Record<string, ColumnFilter | null>>({});
-  const [full, setFull] = useState(false);
+  const [fullReal, setFull] = useState(false);
+  // "immersive": the same full-screen layout made with CSS — used when the browser refuses real full screen (it needs a click, a voice command is not one)
+  const [immersive, setImmersive] = useState(false);
+  const full = fullReal || immersive;
+  const [caption, setCaption] = useState<{ text: string; i: number; n: number } | null>(null);
+  const presenting = caption !== null;
   const [panel, setPanel] = useState<'props' | 'layers'>('props');
   const page = useRef<HTMLDivElement>(null);
   const settingsBtn = useRef<HTMLButtonElement>(null);
@@ -117,12 +132,44 @@ export default function DashboardPage() {
   }, [dirty]);
 
   useEffect(() => {
-    const on = () => { const f = document.fullscreenElement === page.current; setFull(f); if (f) { setFit(true); setSelected(null); } };
+    const on = () => { const f = document.fullscreenElement === page.current; setFull(f); if (f) { setFit(true); setSelected(null); setImmersive(false); } };
     document.addEventListener('fullscreenchange', on);
     return () => document.removeEventListener('fullscreenchange', on);
   }, []);
   useEffect(() => { if (selected) setPanel('props'); }, [selected]);
+  // ---- presentation (the AI cat): ?present=1 opens the dashboard full screen; events from the cat focus a widget / show a caption ----
+  const presentWanted = sp.get('present') === '1';
+  const started = useRef('');
+  useEffect(() => {
+    if (!presentWanted || !meta || started.current === dashId) return;
+    started.current = dashId;
+    setEdit(false);
+    void (async () => {
+      let real = false;
+      try { await page.current?.requestFullscreen(); real = document.fullscreenElement === page.current; } catch { real = false; }
+      if (!real) setImmersive(true);
+      setFit(true);
+      window.setTimeout(() => window.dispatchEvent(new CustomEvent('dash:ready', { detail: { dashboardId: dashId, widgetIds: widgets.map((x) => x.id), realFullscreen: real } })), 900);
+    })();
+  }, [presentWanted, meta, dashId, widgets]);
+  useEffect(() => {
+    const clear = () => { document.querySelectorAll('.present-focus').forEach((e) => e.classList.remove('present-focus')); };
+    const focus = (e: Event) => {
+      const id = (e as CustomEvent<{ widgetId: string }>).detail?.widgetId; if (!id) return;
+      clear();
+      const w = widgetsRef.current.find((x) => x.id === id);
+      const el = document.querySelector(`[data-wid="${id}"]`);
+      el?.classList.add('present-focus');
+      const vp = viewport.current;
+      if (w && vp && !el?.closest('[data-flow]')) vp.scrollTo({ top: Math.max(0, w.y * zoomRef.current - (vp.clientHeight - w.h * zoomRef.current) / 2), behavior: 'smooth' });
+      else el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    const cap = (e: Event) => { const d = (e as CustomEvent<{ text: string; i: number; n: number } | null>).detail; setCaption(d ?? null); if (!d) clear(); };
+    window.addEventListener('dash:focus', focus); window.addEventListener('dash:caption', cap);
+    return () => { window.removeEventListener('dash:focus', focus); window.removeEventListener('dash:caption', cap); clear(); };
+  }, []);
   const toggleFull = async () => {
+    if (immersive && !document.fullscreenElement) { setImmersive(false); return; }
     try { if (document.fullscreenElement) await document.exitFullscreen(); else { setEdit(false); await page.current?.requestFullscreen(); } }
     catch { toast.info('เบราว์เซอร์ไม่รองรับโหมดเต็มจอ'); }
   };
@@ -213,8 +260,19 @@ export default function DashboardPage() {
   const flow = narrow && !edit && !full;
   return (
     <DashCtx.Provider value={{ slicers, setSlicer, widgets, dashboardId: dashId }}>
-    <div ref={page} className={cn('dash-page flex flex-col', !plain && !glassFull && 'bg-app', glassFull && 'dash-full', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
+    <MaybePortal on={immersive && !fullReal}>
+    <div ref={page} className={cn('dash-page flex flex-col', presenting && 'dash-presenting', immersive && !fullReal && 'fixed inset-0 z-[950]', !plain && !glassFull && 'bg-app', glassFull && 'dash-full', full ? 'h-screen' : 'h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]')}>
       {full && <button onClick={() => void toggleFull()} className="absolute right-3 top-3 z-[60] inline-flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition-opacity hover:opacity-100 focus:opacity-100"><Shrink className="h-3.5 w-3.5" />ออกจากเต็มจอ (Esc)</button>}
+      {caption && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 z-[70] flex justify-center px-4" role="status" aria-live="polite">
+          <div className="pointer-events-auto flex max-w-3xl items-center gap-3 rounded-2xl border border-white/80 bg-white/90 px-5 py-3 shadow-[0_20px_50px_-20px_rgb(80_90_190/.6)] backdrop-blur-xl">
+            <span className="text-2xl" aria-hidden>🐱</span>
+            <p className="text-base leading-snug text-ink sm:text-lg">{caption.text}</p>
+            <span className="shrink-0 text-xs tabular-nums text-muted">{caption.i}/{caption.n}</span>
+            <button onClick={() => window.dispatchEvent(new CustomEvent('cat:present-stop'))} className="shrink-0 rounded-full bg-ink/80 px-3 py-1 text-xs font-medium text-white hover:bg-ink" aria-label="หยุดนำเสนอ">หยุด</button>
+          </div>
+        </div>
+      )}
       <div className={cn('shrink-0 flex-wrap items-center gap-2 px-4 pb-3 sm:px-6', full ? 'hidden' : 'flex')}>
         <Link to={fromApps ? '/apps' : `/files/${fileId}`} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-ink/5" aria-label={fromApps ? 'กลับไปที่ Application' : 'กลับไปที่ไฟล์'}><ArrowLeft className="h-5 w-5" /></Link>
         {edit ? (
@@ -283,7 +341,7 @@ export default function DashboardPage() {
         {flow ? (
           <div className="min-w-0 flex-1 space-y-3 overflow-y-auto rounded-theme p-2" style={{ backgroundColor: bg.color ?? '#F4F6FB' }}>
             {[...widgets].filter((w) => !w.style?.hidden && w.type !== 'shape').sort((a, b) => a.y - b.y || a.x - b.x).map((w) => (
-              <div key={w.id} style={{ height: flowHeight(w) }}><WidgetView w={w} refreshKey={refreshKey} phone /></div>
+              <div key={w.id} data-wid={w.id} data-flow style={{ height: flowHeight(w) }}><WidgetView w={w} refreshKey={refreshKey} phone /></div>
             ))}
             {!widgets.length && <p className="py-16 text-center text-sm text-muted">ยังไม่มีวิดเจ็ต</p>}
           </div>
@@ -318,7 +376,7 @@ export default function DashboardPage() {
                       <div className={cn('h-full w-full', w.locked ? 'cursor-default' : 'cursor-move')}><WidgetView w={w} refreshKey={refreshKey} editing /></div>
                     </Rnd>
                   ) : (
-                    <motion.div key={w.id} className="absolute" style={{ left: w.x, top: w.y, width: w.w, height: w.h, zIndex: w.z }}
+                    <motion.div key={w.id} data-wid={w.id} className="absolute" style={{ left: w.x, top: w.y, width: w.w, height: w.h, zIndex: w.z }}
                       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(0.4, w.z * 0.03) }}>
                       <WidgetView w={w} refreshKey={refreshKey} />
                     </motion.div>
@@ -387,6 +445,7 @@ export default function DashboardPage() {
         </div>
       </Popover>
     </div>
+    </MaybePortal>
     </DashCtx.Provider>
   );
 }
