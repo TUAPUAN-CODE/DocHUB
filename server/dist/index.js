@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
+const live_1 = require("./modules/ai/live");
 const path_1 = __importDefault(require("path"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
@@ -151,6 +152,7 @@ if (env_1.env.serveClientDir) {
 }
 const server = http_1.default.createServer(app);
 (0, socket_1.initSocket)(server);
+(0, live_1.attachLive)(server);
 (0, db_1.getPool)()
     .then(() => (0, migrate_1.applyMigrations)())
     .then(() => (0, migrate_1.applySeeds)().catch((e) => logger_1.logger.error(`Seeds skipped: ${e?.message}`)))

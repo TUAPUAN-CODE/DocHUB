@@ -17,6 +17,7 @@ import { useAuth } from '@/store/auth';
 import { confirmDialog, toast } from '@/store/ui';
 import { LV, type TagRef } from '@/types';
 import { AppDetails, AppEdit, AppItem, appsApi } from './api';
+import { aiItemFromPath, setAiItem } from '@/modules/ai/dragItem';
 
 const KIND_ICON = { dashboard: LayoutDashboard, page: FileSpreadsheet, file: FileSpreadsheet, folder: Folder, url: Globe } as const;
 const KIND_LABEL = { dashboard: 'แดชบอร์ด', page: 'หน้าในระบบ', file: 'ไฟล์', folder: 'โฟลเดอร์', url: 'ลิงก์เว็บ' } as const;
@@ -97,7 +98,7 @@ export default function AppsPage() {
           <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${size + 70}px, calc(50% - 8px)), 1fr))` }}>
             {list.map((a) => (
               <div key={a.key} className={cn('group relative flex flex-col items-center', a.hidden && 'opacity-50')}>
-                <button type="button" onClick={() => open(a)} className="app-tile flex w-full flex-col items-center gap-2.5 rounded-3xl px-2 pb-4 pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={a.description ?? a.source}>
+                <button type="button" onClick={() => open(a)} draggable onDragStart={(e) => { const it = aiItemFromPath(a.to, a.name); if (it) setAiItem(e, it); }} className="app-tile flex w-full flex-col items-center gap-2.5 rounded-3xl px-2 pb-4 pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={a.description ?? a.source}>
                   <AppIcon app={a} size={size} />
                   <span className="line-clamp-2 w-full break-words text-center font-medium leading-tight" style={{ fontSize: size >= 88 ? 15 : size <= 48 ? 12 : 13 }}>{a.name}</span>
                 </button>
