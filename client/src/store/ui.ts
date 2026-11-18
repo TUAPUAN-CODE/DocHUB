@@ -15,6 +15,9 @@ interface UiState {
   focusMode: boolean;
   /** desktop left bar: full · icons only · hidden (remembered in this browser) */
   navMode: NavMode;
+  /** the floating AI cat (bottom right): shown / hidden with the header button */
+  catVisible: boolean;
+  setCatVisible: (v: boolean) => void;
   /** whole-app zoom in % (remembered in this browser) */
   uiZoom: number;
   setNavMode: (m: NavMode) => void;
@@ -42,6 +45,8 @@ export const useUi = create<UiState>((set, get) => ({
   openTransition: null,
   mobileNav: false,
   focusMode: false,
+  catVisible: read('dsp.catVisible') !== '0',
+  setCatVisible: (catVisible) => { write('dsp.catVisible', catVisible ? '1' : '0'); set({ catVisible }); },
   navMode: savedNav === 'icons' || savedNav === 'hidden' ? savedNav : 'full',
   uiZoom: savedZoom,
   setNavMode: (navMode) => { write('dsp.navMode', navMode); set({ navMode }); },

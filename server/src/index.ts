@@ -1,5 +1,6 @@
 import fs from 'fs';
 import http from 'http';
+import { attachLive } from './modules/ai/live';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -115,6 +116,7 @@ if (env.serveClientDir) {
 
 const server = http.createServer(app);
 initSocket(server);
+attachLive(server);
 
 getPool()
   .then(() => applyMigrations())

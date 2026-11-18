@@ -1,15 +1,17 @@
 import { Component, ReactNode, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { Eraser, FileText, Folder, LayoutDashboard, Send, Settings2, X } from 'lucide-react';
+import { Eraser, FileText, Folder, LayoutDashboard, Mic, Send, Settings2, Square, X } from 'lucide-react';
 import { apiError } from '@/api/client';
 import { Button, IconButton } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Inputs';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
+import { useUi } from '@/store/ui';
 import { aiApi, ChatMsg } from './api';
 import type { CatEmotion } from './CatScene';
 import { AI_DASH_EVENT, useAiPanel } from './useAiPanel';
 import { AI_DRAG_MIME, AiItem, readAiItem } from './dragItem';
+import { startLive } from './liveVoice';
 
 const CatScene = lazy(() => import('./CatScene'));
 
@@ -38,16 +40,20 @@ const SAY: Record<CatEmotion, string> = {
 const DOT: Record<CatEmotion, string> = { happy: '#10b981', talking: '#38bdf8', thinking: '#f59e0b', excited: '#10b981', love: '#ec4899', playful: '#8b5cf6', surprised: '#eab308', sleepy: '#818cf8', sleeping: '#a78bfa', sad: '#60a5fa', angry: '#f97316', furious: '#ef4444' };
 
 /** The models the user can pick; each has a model id the user can change (ids are Google's, they change with releases) */
-interface ModelDef { key: 'think' | 'carbon' | 'embed'; label: string; id: string; chat: boolean; hint: string }
+interface ModelDef { key: 'think' | 'carbon' | 'embed'; label: string; id: string; liveId?: string; chat: boolean; hint: string }
 const DEFAULT_MODELS: ModelDef[] = [
-  { key: 'think', label: 'Gemini 3.8 Live Extended Thinking', id: 'gemini-3.8-flash', chat: true, hint: 'คิดละเอียด ฉลาดที่สุด' },
-  { key: 'carbon', label: 'Gemini 4 Carbon', id: '', chat: true, hint: 'ต้องใส่ Model ID ก่อนใช้' },
-  { key: 'embed', label: 'Embedding 2', id: '', chat: false, hint: 'ใช้ช่วยค้นหา/จับความหมาย — ยังไม่เปิดใช้ในแชต' },
+  { key: 'think', label: 'Gemini 3.8 Live Extended Thinking', id: 'gemini-3.8-flash', liveId: 'gemini-3.8-live-extended-thinking', chat: true, hint: 'คิดละเอียด ฉลาดที่สุด — พิมพ์คุยใช้ ID แรก, คุยด้วยเสียงใช้ Live ID' },
+  { key: 'carbon', label: 'Gemini 4 Carbon', id: 'gemini-4-carbon', chat: true, hint: 'รุ่นใหม่ (พิมพ์คุย)' },
+  { key: 'embed', label: 'Embedding 2', id: 'gemini-embedding-2', chat: false, hint: 'ใช้ช่วยค้นหา/จับความหมาย — ยังไม่เปิดใช้ในแชต' },
 ];
 const MODELS_KEY = 'cat:models';
 const loadModels = (): ModelDef[] => {
-  try { const saved = JSON.parse(localStorage.getItem(MODELS_KEY) || '{}') as Record<string, string>; return DEFAULT_MODELS.map((m) => ({ ...m, id: typeof saved[m.key] === 'string' ? saved[m.key] : m.id })); } catch { return DEFAULT_MODELS; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(MODELS_KEY) || '{}') as Record<string, string>;
+    return DEFAULT_MODELS.map((m) => ({ ...m, id: typeof saved[m.key] === 'string' && saved[m.key] ? saved[m.key] : m.id, liveId: m.liveId ? (saved[`${m.key}:live`] || m.liveId) : undefined }));
+  } catch { return DEFAULT_MODELS; }
 };
+const VOICES = [['Aoede', 'Aoede (หญิง นุ่ม)'], ['Kore', 'Kore (หญิง)'], ['Leda', 'Leda (หญิง สดใส)'], ['Zephyr', 'Zephyr (สดใส)'], ['Puck', 'Puck (ชาย ร่าเริง)'], ['Charon', 'Charon (ชาย นุ่ม)'], ['Fenrir', 'Fenrir (ชาย)'], ['Orus', 'Orus (ชาย)']] as const;
 
 const KIND_ICON = { file: FileText, folder: Folder, dashboard: LayoutDashboard } as const;
 const IDLE_SLEEPY_MS = 90_000, IDLE_SLEEP_MS = 240_000;
@@ -74,6 +80,13 @@ export function CatAssistant() {
   const [items, setItems] = useState<AiItem[]>([]);
   const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [over, setOver] = useState(false);
+  const catVisible = useUi((s) => s.catVisible);
+  const [voice, setVoice] = useState(() => localStorage.getItem('cat:voice') || 'Aoede');
+  const [thinking, setThinking] = useState(() => localStorage.getItem('cat:thinking') || 'low');
+  const [live, setLive] = useState<'off' | 'connecting' | 'listening' | 'speaking'>('off');
+  const [liveErr, setLiveErr] = useState('');
+  const session = useRef<Awaited<ReturnType<typeof startLive>> | null>(null);
+  const turn = useRef({ user: '', cat: '' });
   const end = useRef<HTMLDivElement>(null);
   const idle = useRef<number[]>([]);
   const histKey = `cat:chat:${user?.id}`;
@@ -96,10 +109,10 @@ export function CatAssistant() {
   useEffect(() => { if (open) aiApi.settings().then((r) => setHasKey(!!r.providers.find((p) => p.provider === 'gemini')?.hasKey)).catch(() => setHasKey(null)); }, [open]);
 
   const model = models.find((m) => m.key === modelKey) ?? models[0];
-  const saveModelId = (key: ModelDef['key'], id: string) => {
-    const next = models.map((m) => (m.key === key ? { ...m, id: id.trim() } : m));
+  const saveModelId = (key: ModelDef['key'], id: string, live = false) => {
+    const next = models.map((m) => (m.key === key ? (live ? { ...m, liveId: id.trim() } : { ...m, id: id.trim() }) : m));
     setModels(next);
-    try { localStorage.setItem(MODELS_KEY, JSON.stringify(Object.fromEntries(next.map((m) => [m.key, m.id])))); } catch { /* private mode */ }
+    try { localStorage.setItem(MODELS_KEY, JSON.stringify(Object.fromEntries(next.flatMap((m) => [[m.key, m.id], ...(m.liveId ? [[`${m.key}:live`, m.liveId]] : [])])))); } catch { /* private mode */ }
   };
 
   const send = async (t = text) => {
@@ -111,7 +124,7 @@ export function CatAssistant() {
     const next: ChatMsg[] = [...msgs, { role: 'user', content }];
     setMsgs(next); setText(''); setBusy(true); feel('thinking');
     try {
-      const r = await aiApi.chat('gemini', next.slice(-20), ctx, { model: model.id, attachments: items });
+      const r = await aiApi.chat('gemini', next.slice(-20), ctx, { model: model.id, thinking: thinking as 'low' | 'medium' | 'high', attachments: items });
       const reply = r.reply || '(ไม่มีข้อความตอบกลับ)';
       setMsgs([...next, { role: 'assistant', content: reply, steps: r.steps }]);
       for (const id of r.changedDashboards) window.dispatchEvent(new CustomEvent(AI_DASH_EVENT, { detail: { dashboardId: id } }));
@@ -127,6 +140,27 @@ export function CatAssistant() {
     } finally { setBusy(false); }
   };
 
+  const stopLive = useCallback(() => { session.current?.stop(); session.current = null; setLive('off'); setEmotion((e) => (e === 'talking' || e === 'thinking' ? 'happy' : e)); }, []);
+  useEffect(() => () => session.current?.stop(), []);
+  const toggleLive = async () => {
+    if (session.current) return stopLive();
+    const liveId = (models.find((m) => m.liveId) ?? models[0]).liveId;
+    setLiveErr(''); setOpen(true); touch();
+    try {
+      setLive('connecting'); feel('thinking', 'กำลังต่อสัญญาณเสียง...');
+      session.current = await startLive({
+        onState: (st) => { if (st === 'idle') { setLive('off'); session.current = null; feel('happy', SAY.happy); } else { setLive(st); if (st === 'listening') feel('happy', 'ฟังอยู่ครับ พูดได้เลย 🎤'); if (st === 'speaking') feel('talking'); } },
+        onUserText: (t) => { turn.current.user = t; feel('thinking', t.slice(0, 160)); },
+        onCatText: (t) => { turn.current.cat = t; setSaid(t.slice(-160)); },
+        onTurn: () => { const { user, cat } = turn.current; turn.current = { user: '', cat: '' }; if (user || cat) setMsgs((cur) => [...cur, ...(user ? [{ role: 'user' as const, content: user }] : []), ...(cat ? [{ role: 'assistant' as const, content: cat }] : [])]); },
+        onError: (m) => { setLiveErr(m); feel('sad', m.slice(0, 160)); },
+      }, { model: liveId, voice, thinking });
+    } catch (e) {
+      session.current = null; setLive('off');
+      const m = apiError(e).message || (e as Error).message; setLiveErr(m); feel('sad', m.slice(0, 160));
+    }
+  };
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault(); setOver(false); touch();
     const it = readAiItem(e.dataTransfer);
@@ -140,7 +174,7 @@ export function CatAssistant() {
     onDrop,
   };
 
-  if (!user || panelOpen) return null;
+  if (!user || panelOpen || !catVisible) return null;
   return (
     <div className="fixed bottom-2 right-2 z-[60] flex flex-col items-end gap-2 print:hidden sm:bottom-4 sm:right-4" {...dropProps}>
       {open && (
@@ -151,6 +185,7 @@ export function CatAssistant() {
               className="min-w-0 flex-1 truncate rounded-lg border border-line bg-surface/70 px-2 py-1 text-xs" aria-label="เลือกโมเดล">
               {models.map((m) => <option key={m.key} value={m.key} disabled={!m.chat}>{m.label}{!m.chat ? ' (ยังไม่เปิดใช้)' : !m.id ? ' (ใส่ ID)' : ''}</option>)}
             </select>
+            <IconButton label={live === 'off' ? 'คุยด้วยเสียง' : 'หยุดคุยด้วยเสียง'} onClick={() => void toggleLive()}>{live === 'off' ? <Mic className="h-4 w-4" /> : <Square className="h-4 w-4 text-danger" />}</IconButton>
             <IconButton label="ตั้งค่าโมเดลและ API key" onClick={() => setCfg((v) => !v)}><Settings2 className="h-4 w-4" /></IconButton>
             <IconButton label="ล้างแชต" onClick={() => setMsgs([])}><Eraser className="h-4 w-4" /></IconButton>
             <IconButton label="ปิดแชต" onClick={() => setOpen(false)}><X className="h-4 w-4" /></IconButton>
@@ -162,8 +197,15 @@ export function CatAssistant() {
                 <label key={m.key} className="block">
                   <span className="text-muted">{m.label} — {m.hint}</span>
                   <TextInput value={m.id} onChange={(e) => saveModelId(m.key, e.target.value)} placeholder="เช่น gemini-3.8-flash" className="!h-8 !text-xs" />
+                  {m.liveId !== undefined && <><span className="mt-1 block text-muted">Live ID (คุยด้วยเสียง)</span><TextInput value={m.liveId} onChange={(e) => saveModelId(m.key, e.target.value, true)} className="!h-8 !text-xs" /></>}
                 </label>
               ))}
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block"><span className="text-muted">เสียงของแมว</span>
+                  <select value={voice} onChange={(e) => { setVoice(e.target.value); localStorage.setItem('cat:voice', e.target.value); }} className="h-8 w-full rounded-lg border border-line bg-surface/70 px-2 text-xs">{VOICES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+                <label className="block"><span className="text-muted">ระดับการคิด (ยิ่งลึกยิ่งช้า)</span>
+                  <select value={thinking} onChange={(e) => { setThinking(e.target.value); localStorage.setItem('cat:thinking', e.target.value); }} className="h-8 w-full rounded-lg border border-line bg-surface/70 px-2 text-xs"><option value="low">เร็ว</option><option value="medium">ปานกลาง</option><option value="high">ลึกที่สุด (ช้ากว่า)</option></select></label>
+              </div>
               <button type="button" className="text-primary hover:underline" onClick={() => setPanel(true)}>ตั้งค่า API key ของ Gemini (เปิดแผง AI)</button>
             </div>
           )}
@@ -186,6 +228,8 @@ export function CatAssistant() {
                   </span>); })}
               </div>
             )}
+            {live !== 'off' && <p className="flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-1.5 text-xs text-violet-700"><span className="h-2 w-2 animate-pulse rounded-full bg-violet-500" />{live === 'connecting' ? 'กำลังเชื่อมต่อ…' : live === 'speaking' ? 'แมวกำลังพูด… (พูดแทรกได้)' : 'ฟังอยู่ — พูดได้เลย'}</p>}
+            {liveErr && <p className="rounded-xl bg-red-50 px-3 py-1.5 text-xs text-red-700">{liveErr}</p>}
             <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="flex gap-2">
               <TextInput value={text} onChange={(e) => { setText(e.target.value); touch(); }} placeholder="พิมพ์คำถาม / คำสั่ง…" />
               <Button type="submit" disabled={!text.trim()} loading={busy} aria-label="ส่ง"><Send className="h-4 w-4" /></Button>

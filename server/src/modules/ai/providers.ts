@@ -15,7 +15,7 @@ export type Msg =
   | { role: 'assistant'; text: string; calls?: ToolCall[]; raw?: unknown }
   | { role: 'tool'; results: { id: string; name: string; content: string }[] };
 export interface Turn { text: string; calls: ToolCall[]; raw?: unknown }
-export interface Conn { provider: Provider; key: string; model: string; baseUrl?: string }
+export interface Conn { provider: Provider; key: string; model: string; baseUrl?: string; thinking?: 'low' | 'medium' | 'high' }
 
 /** "busy / rate limited" answers are usually gone a few seconds later: try again (3 tries in all) before showing the error */
 const RETRY_STATUS = new Set([429, 500, 502, 503, 504]);
@@ -47,7 +47,9 @@ async function gemini(c: Conn, system: string, msgs: Msg[], tools: ToolDef[]): P
     else contents.push({ role: 'user', parts: m.results.map((r) => ({ functionResponse: { name: r.name, response: { result: r.content } } })) });
   }
   const j = await post(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:generateContent`, { 'x-goog-api-key': c.key },
-    { systemInstruction: { parts: [{ text: system }] }, contents, tools: tools.length ? [{ functionDeclarations: tools }] : undefined });
+    { systemInstruction: { parts: [{ text: system }] }, contents, tools: tools.length ? [{ functionDeclarations: tools }] : undefined,
+      // Gemini 3.x / 4 think by default and can take 10 s+ per step: the user picks how much (low = 4x faster)
+      ...(c.thinking && /gemini-[34]/.test(c.model) ? { generationConfig: { thinkingConfig: { thinkingLevel: c.thinking } } } : {}) });
   const cand = j.candidates?.[0];
   if (!cand?.content) throw new Error(j.promptFeedback?.blockReason ? `Gemini ปฏิเสธคำขอ (${j.promptFeedback.blockReason})` : 'Gemini ไม่ส่งคำตอบกลับมา');
   const parts: any[] = cand.content.parts ?? [];

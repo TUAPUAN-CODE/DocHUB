@@ -7,11 +7,20 @@ import { decryptJson, encryptJson } from '../connectors/secret';
 import { callModel, Conn, Msg, Provider, PROVIDERS } from './providers';
 import { Ctx, runTool, TOOLS } from './tools';
 import { requirePage } from '../pageAccess/service';
+import { issueTicket, LIVE_MODEL, VOICES } from './live';
 
 const router = Router();
 router.use('/ai', requirePage('ai')); // AI button: admin + root by default (จัดการสิทธิ์)
 const provSchema = z.enum(['gemini', 'anthropic', 'openai']);
 const MAX_STEPS = 8;
+
+/** Voice chat: a short-lived ticket for the WebSocket (live.ts); the API key stays on the server */
+router.post('/ai/live/ticket', ah(async (req, res) => {
+  const b = parse(z.object({ model: z.string().trim().max(100).regex(/^[\w./-]+$/).optional(), voice: z.enum(VOICES).optional(), thinking: z.enum(['minimal', 'low', 'medium', 'high']).optional() }), req.body);
+  const row = await q1(`SELECT 1 AS ok FROM AiKeys WHERE user_id = @u AND provider = N'gemini'`, { u: T.uuid(req.user!.id) });
+  if (!row) throw badRequest('ยังไม่ได้ตั้งค่า API key ของ Gemini (ปุ่มตั้งค่าในแชต)');
+  ok(res, { ticket: issueTicket({ userId: req.user!.id, name: req.user!.displayName, model: b.model ?? LIVE_MODEL, voice: b.voice, thinking: b.thinking }), path: '/api/ai/live-ws', voices: VOICES });
+}));
 
 router.get('/ai/settings', ah(async (req, res) => {
   const rows = await q(`SELECT provider, model, base_url FROM AiKeys WHERE user_id = @u`, { u: T.uuid(req.user!.id) });
@@ -61,13 +70,14 @@ router.post('/ai/chat', ah(async (req, res) => {
     context: z.object({ fileId: z.string().max(40).nullish(), sheetId: z.string().max(40).nullish(), dashboardId: z.string().max(40).nullish() }).default({}),
     // chosen in the chat window (the cat): overrides the model saved with the key; items dragged onto the cat
     model: z.string().trim().max(100).regex(/^[\w./:-]+$/).optional(),
+    thinking: z.enum(['low', 'medium', 'high']).optional(),
     attachments: z.array(z.object({ kind: z.enum(['file', 'folder', 'dashboard']), id: z.string().uuid(), name: z.string().max(200) })).max(5).default([]),
   }), req.body);
   if (!rateOk(req.user!.id)) throw badRequest('ส่งข้อความถี่เกินไป กรุณารอสักครู่');
   const row = await q1(`SELECT key_enc, model, base_url FROM AiKeys WHERE user_id = @u AND provider = @p`, { u: T.uuid(req.user!.id), p: b.provider });
   const key = decryptJson<{ key: string }>(row?.key_enc)?.key;
   if (!key) throw badRequest('ยังไม่ได้ตั้งค่า API key ของผู้ให้บริการนี้ (ปุ่มตั้งค่าในแชต)');
-  const conn: Conn = { provider: b.provider, key, model: b.model || row.model || PROVIDERS[b.provider].model, baseUrl: row.base_url || undefined };
+  const conn: Conn = { provider: b.provider, key, model: b.model || row.model || PROVIDERS[b.provider].model, baseUrl: row.base_url || undefined, thinking: b.thinking };
   const ctx: Ctx = { user: req.user!, fileId: b.context.fileId ?? undefined, sheetId: b.context.sheetId ?? undefined, dashboardId: b.context.dashboardId ?? undefined, changed: new Set() };
   // what was dropped on the cat becomes the "current" file / dashboard when the page itself gives none
   for (const a of b.attachments) { if (a.kind === 'file' && !ctx.fileId) ctx.fileId = a.id; if (a.kind === 'dashboard' && !ctx.dashboardId) ctx.dashboardId = a.id; }

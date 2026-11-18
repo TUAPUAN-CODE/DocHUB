@@ -156,6 +156,18 @@ function AiButton() {
   );
 }
 
+/** shows / hides the floating AI cat (bottom right) — separate from the AI side panel */
+function CatButton() {
+  const visible = useUi((s) => s.catVisible);
+  const setVisible = useUi((s) => s.setCatVisible);
+  return (
+    <button onClick={() => setVisible(!visible)} className={cn('flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-sm font-medium hover:bg-ink/5 sm:px-3', visible && 'bg-primary/10 text-primary')}
+      aria-pressed={visible} aria-label="แสดง / ซ่อนน้องแมว AI ผู้ช่วย" title={visible ? 'ซ่อนน้องแมว' : 'แสดงน้องแมว'}>
+      <span className="text-lg leading-none" aria-hidden>🐱</span><span className="hidden lg:inline">ผู้ช่วย AI</span>
+    </button>
+  );
+}
+
 /** desktop: left bar full / icons only / hidden */
 function NavModeButton() {
   const mode = useUi((s) => s.navMode);
@@ -231,6 +243,7 @@ export function TopBar() {
         <LangSwitcher />
         <ZoomButton />
         {aiAllowed && <AiButton />}
+        {aiAllowed && <CatButton />}
         <NotificationBell />
         <UserMenu />
       </div>
