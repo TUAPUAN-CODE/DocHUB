@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Inputs';
 import { connectorsApi } from '@/modules/connectors/api';
 import { cn } from '@/lib/cn';
+import { catReact } from '@/lib/catReact';
 import { toast } from '@/store/ui';
 import { AutoResult, inkcodeAutoApi, PlanAlert } from './api';
 
@@ -30,7 +31,13 @@ export function PlanDropZone({ folderId, onDone }: { folderId: string; onDone: (
   const [needMs, setNeedMs] = useState<{ url: string; connectorId: string; configured: boolean; message: string } | null>(null);
   const [done, setDone] = useState<{ name: string; r: AutoResult } | null>(null);
 
-  const finish = (name: string, r: AutoResult) => { setDone({ name, r }); toast.success(`นำเข้าแผนวันที่ ${r.date} แล้ว`, name); };
+  const finish = (name: string, r: AutoResult) => {
+    setDone({ name, r }); toast.success(`นำเข้าแผนวันที่ ${r.date} แล้ว`, name);
+    // the cat reacts to what the plan contains: Quality Highlight hits / New Code → surprised, otherwise happy
+    const hits = r.qhMail?.matched ?? 0, nc = (r.alerts ?? []).filter((a) => a.kind === 'New Code').length;
+    if (hits || nc) catReact('surprised', `นำเข้าแผนวันที่ ${r.date} แล้ว — ${hits ? `มี ${hits} Doc No ตรงกับ Quality Highlight ` : ''}${nc ? `และ New Code ${nc} รายการ ` : ''}ดูรายละเอียดด้านล่างนะครับ!`);
+    else catReact('excited', `นำเข้าแผนวันที่ ${r.date} เรียบร้อยแล้วครับ! 🎉`);
+  };
   const sendFiles = async (files: FileList | File[] | null | undefined) => {
     const list = Array.from(files ?? []).filter((f) => /\.xlsx?$/i.test(f.name));
     if (!list.length) return void toast.error('ต้องเป็นไฟล์ Excel (.xlsx)', 'ถ้าลากมาจาก OneDrive บนเว็บ ให้คัดลอกลิงก์ของไฟล์แล้ววางในช่อง “วางลิงก์” ด้านล่าง');

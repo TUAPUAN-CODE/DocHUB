@@ -42,7 +42,7 @@ const DOT: Record<CatEmotion, string> = { happy: '#10b981', talking: '#38bdf8', 
 /** The models the user can pick; each has a model id the user can change (ids are Google's, they change with releases) */
 interface ModelDef { key: 'think' | 'carbon' | 'embed'; label: string; id: string; liveId?: string; chat: boolean; hint: string }
 const DEFAULT_MODELS: ModelDef[] = [
-  { key: 'think', label: 'Gemini 3.8 Live Extended Thinking', id: 'gemini-3.8-flash', liveId: 'gemini-3.8-live-extended-thinking', chat: true, hint: 'คิดละเอียด ฉลาดที่สุด — พิมพ์คุยใช้ ID แรก, คุยด้วยเสียงใช้ Live ID' },
+  { key: 'think', label: 'Gemini 3.8 Live Extended Thinking', id: 'gemini-3.8-flash', liveId: 'gemini-3.8-live', chat: true, hint: 'พิมพ์คุยใช้ ID แรก, คุยด้วยเสียงใช้ Live ID (gemini-3.8-live = อ่านข้อมูลระบบได้ / gemini-3.8-live-extended-thinking = คิดลึกที่สุด แต่ยังอ่านข้อมูลระบบด้วยเสียงไม่ได้)' },
   { key: 'carbon', label: 'Gemini 4 Carbon', id: 'gemini-4-carbon', chat: true, hint: 'รุ่นใหม่ (พิมพ์คุย)' },
   { key: 'embed', label: 'Embedding 2', id: 'gemini-embedding-2', chat: false, hint: 'ใช้ช่วยค้นหา/จับความหมาย — ยังไม่เปิดใช้ในแชต' },
 ];
@@ -85,6 +85,8 @@ export function CatAssistant() {
   const [thinking, setThinking] = useState(() => localStorage.getItem('cat:thinking') || 'low');
   const [live, setLive] = useState<'off' | 'connecting' | 'listening' | 'speaking'>('off');
   const [liveErr, setLiveErr] = useState('');
+  const [scale, setScale] = useState(() => { const v = Number(localStorage.getItem('cat:scale')); return v >= 0.6 && v <= 2.2 ? v : 1; });
+  const changeScale = (v: number) => { const n = Math.min(2.2, Math.max(0.6, Math.round(v * 10) / 10)); setScale(n); try { localStorage.setItem('cat:scale', String(n)); } catch { /* private mode */ } };
   const session = useRef<Awaited<ReturnType<typeof startLive>> | null>(null);
   const turn = useRef({ user: '', cat: '' });
   const end = useRef<HTMLDivElement>(null);
@@ -99,15 +101,23 @@ export function CatAssistant() {
   const feel = useCallback((e: CatEmotion, say?: string) => { setEmotion(e); setSaid(say ?? SAY[e]); }, []);
   // other parts of the app can make the cat react: window.dispatchEvent(new CustomEvent('cat:emotion', { detail: { emotion: 'excited', say: '…' } }))
   useEffect(() => {
-    const h = (e: Event) => { const d = (e as CustomEvent<{ emotion: CatEmotion; say?: string }>).detail; if (d?.emotion && d.emotion in SAY) feel(d.emotion, d.say); };
+    let back = 0;
+    const h = (e: Event) => {
+      const d = (e as CustomEvent<{ emotion: CatEmotion; say?: string }>).detail;
+      if (!d?.emotion || !(d.emotion in SAY)) return;
+      feel(d.emotion, d.say); touchRef.current();
+      window.clearTimeout(back); back = window.setTimeout(() => setEmotion((c) => (c === d.emotion ? 'happy' : c)), 7000);
+    };
     window.addEventListener('cat:emotion', h);
-    return () => window.removeEventListener('cat:emotion', h);
+    return () => { window.removeEventListener('cat:emotion', h); window.clearTimeout(back); };
   }, [feel]);
   // no activity for a while: sleepy, then asleep (any interaction wakes the cat)
+  const touchRef = useRef<() => void>(() => undefined);
   const touch = useCallback(() => {
     idle.current.forEach((t) => window.clearTimeout(t));
     idle.current = [window.setTimeout(() => feel('sleepy'), IDLE_SLEEPY_MS), window.setTimeout(() => feel('sleeping'), IDLE_SLEEP_MS)];
   }, [feel]);
+  touchRef.current = touch;
   useEffect(() => { touch(); return () => idle.current.forEach((t) => window.clearTimeout(t)); }, [touch]);
 
   useEffect(() => { try { setMsgs(JSON.parse(localStorage.getItem(histKey) || '[]')); } catch { setMsgs([]); } }, [histKey]);
@@ -206,6 +216,8 @@ export function CatAssistant() {
                   {m.liveId !== undefined && <><span className="mt-1 block text-muted">Live ID (คุยด้วยเสียง)</span><TextInput value={m.liveId} onChange={(e) => saveModelId(m.key, e.target.value, true)} className="!h-8 !text-xs" /></>}
                 </label>
               ))}
+              <label className="block"><span className="flex items-center justify-between text-muted"><span>ขนาดน้องแมว</span><span className="tabular-nums">{Math.round(scale * 100)}%</span></span>
+                <input type="range" min={0.6} max={2.2} step={0.1} value={scale} onChange={(e) => changeScale(Number(e.target.value))} className="w-full accent-[rgb(var(--c-primary))]" aria-label="ขนาดน้องแมว" /></label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block"><span className="text-muted">เสียงของแมว</span>
                   <select value={voice} onChange={(e) => { setVoice(e.target.value); localStorage.setItem('cat:voice', e.target.value); }} className="h-8 w-full rounded-lg border border-line bg-surface/70 px-2 text-xs">{VOICES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
@@ -252,7 +264,8 @@ export function CatAssistant() {
       )}
 
       <button type="button" onClick={() => { touch(); if (emotion === 'sleeping' || emotion === 'sleepy') feel('surprised', 'เมี๊ยวว!! ตื่นแล้วครับ! มีอะไรให้ช่วยไหมครับ? 🙀'); else if (!open) feel('love', 'เหมียว~ ว่าไงครับ? 😻'); setOpen((v) => !v); }}
-        className={cn('relative h-[150px] w-[130px] shrink-0 cursor-pointer rounded-3xl transition-shadow sm:h-[210px] sm:w-[180px]', over && 'ring-4 ring-violet-300/70')} aria-label="น้องแมว AI">
+        style={{ '--cs': scale } as React.CSSProperties}
+        className={cn('relative h-[calc(var(--cs)*150px)] w-[calc(var(--cs)*130px)] max-h-[70vh] max-w-[80vw] shrink-0 cursor-pointer rounded-3xl transition-shadow sm:h-[calc(var(--cs)*210px)] sm:w-[calc(var(--cs)*180px)]', over && 'ring-4 ring-violet-300/70')} aria-label="น้องแมว AI">
         <Safe fallback={<span className="grid h-full place-items-center text-6xl">🐱</span>}>
           <Suspense fallback={<span className="grid h-full place-items-center text-5xl opacity-60">🐱</span>}><CatScene emotion={emotion} /></Suspense>
         </Safe>

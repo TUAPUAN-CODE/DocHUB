@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { SearchSelect } from '@/components/ui/SearchSelect';
 import { cn } from '@/lib/cn';
 import { displayValue, fmtDateTime } from '@/lib/format';
+import { catReact } from '@/lib/catReact';
 import { toast } from '@/store/ui';
 import type { Column, Row } from '@/types';
 import { ImageGallery } from '../sheet/ImageCell';
@@ -130,6 +131,7 @@ export function RecordDetail({ m, r, onClose, dashId, widgetId, ack }: { m: Card
       const a = await acksApi.add(dashId, widgetId, { rowId: r.id, rowLabel: rowLabelOf(m, r), employeeId: emp });
       try { localStorage.setItem('ack.employee', emp); } catch { /* private mode */ }
       toast.success(`${a.employeeName} รับทราบแล้ว`);
+      catReact('love', `ขอบคุณที่รับทราบนะครับ ${a.employeeName} 💕`);
       setList(await acksApi.ofRow(dashId, widgetId, r.id));
     } catch (e) { toast.error(e, 'บันทึกไม่สำเร็จ'); } finally { setBusy(false); }
   };

@@ -1,3 +1,4 @@
+import { catReact } from '@/lib/catReact';
 import { create } from 'zustand';
 import { apiError } from '@/api/client';
 import { isStaleBuildError, reloadForNewBuild } from '@/lib/staleBuild';
@@ -63,12 +64,14 @@ export const useUi = create<UiState>((set, get) => ({
 }));
 
 export const toast = {
-  success: (title: string, message?: string) => useUi.getState().pushToast({ type: 'success', title, message }),
+  success: (title: string, message?: string) => { catReact('excited', message ? `${title} — ${message}` : title); return useUi.getState().pushToast({ type: 'success', title, message }); },
   info: (title: string, message?: string) => useUi.getState().pushToast({ type: 'info', title, message }),
   error: (e: unknown, title = 'ทำรายการไม่สำเร็จ') => {
     // the app was updated while this page was open: say so and load the new version instead of a technical error
     if (isStaleBuildError(e) && reloadForNewBuild()) return useUi.getState().pushToast({ type: 'info', title: 'มีเวอร์ชันใหม่', message: 'กำลังโหลดหน้าใหม่… แล้วลองอีกครั้ง' });
-    return useUi.getState().pushToast({ type: 'error', title, message: typeof e === 'string' ? e : apiError(e).message });
+    const msg = typeof e === 'string' ? e : apiError(e).message;
+    catReact('sad', `${title}: ${msg}`.slice(0, 160));
+    return useUi.getState().pushToast({ type: 'error', title, message: msg });
   },
 };
 
