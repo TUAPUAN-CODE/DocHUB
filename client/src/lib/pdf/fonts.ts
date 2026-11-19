@@ -20,6 +20,9 @@ async function b64(file: string): Promise<string> {
   return cache.get(file)!;
 }
 
+/** a font of public/fonts as base64 (also for jsPDF: the Delay report F3PFPF67, modules/delayReport) */
+export const loadFontB64 = (file: string) => b64(file);
+
 /** ✓ ✗ ☐ ★ … are not in the Thai fonts (they print as empty boxes): those characters are written with a small
  *  subset of DejaVu Sans (public/fonts/DejaVuSans-Symbols.ttf, ~7 KB; regenerate with pyftsubset for more characters). */
 export const SYMBOL_FONT = 'Symbols';

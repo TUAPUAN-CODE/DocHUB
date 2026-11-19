@@ -34,11 +34,12 @@ const mappingSchema = z.array(z.object({ source: z.string().min(1).max(300), col
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(200), kind: z.enum(['http', 'sharepoint']), config: cfgSchema,
   targetSheetId: zId.nullish(), mapping: mappingSchema.default([]), keyColumnId: zId.nullish(), scheduleMin: z.number().int().min(0).max(10080).default(0),
+  runAt: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullish(),
 });
 
 const map = (r: any) => ({
   id: r.connector_id, name: r.name, kind: r.kind, config: safeJson(r.config_json, {}), targetSheetId: r.target_sheet_id, mapping: safeJson(r.mapping_json, []), keyColumnId: r.key_column_id,
-  scheduleMin: r.schedule_min, lastRunAt: r.last_run_at, lastStatus: r.last_status, lastMessage: r.last_message, running: !!r.running_since, createdBy: r.created_by,
+  scheduleMin: r.schedule_min, runAt: r.run_at ?? null, lastRunAt: r.last_run_at, lastStatus: r.last_status, lastMessage: r.last_message, running: !!r.running_since, createdBy: r.created_by,
   hasCredentials: !!decryptJson<Secret>(r.secret_enc) && (r.kind === 'sharepoint' ? !!decryptJson<Secret>(r.secret_enc)?.msRefresh : decryptJson<Secret>(r.secret_enc)?.type !== 'none'),
 });
 
@@ -59,9 +60,9 @@ router.post('/connectors', manage, ah(async (req, res) => {
   const b = parse(bodySchema, req.body);
   if (b.targetSheetId) await requireSheet(req.user!, b.targetSheetId, LV.write);
   const r = await q1(
-    `INSERT INTO Connectors (name, kind, config_json, target_sheet_id, mapping_json, key_column_id, schedule_min, created_by)
-     OUTPUT inserted.connector_id VALUES (@n, @k, @c, @t, @m, @kc, @s, @u)`,
-    { n: b.name, k: b.kind, c: T.text(JSON.stringify(b.config)), t: T.uuid(b.targetSheetId ?? null), m: T.text(JSON.stringify(b.mapping)), kc: T.uuid(b.keyColumnId ?? null), s: T.int(b.scheduleMin), u: T.uuid(req.user!.id) });
+    `INSERT INTO Connectors (name, kind, config_json, target_sheet_id, mapping_json, key_column_id, schedule_min, run_at, created_by)
+     OUTPUT inserted.connector_id VALUES (@n, @k, @c, @t, @m, @kc, @s, @ra, @u)`,
+    { n: b.name, k: b.kind, c: T.text(JSON.stringify(b.config)), t: T.uuid(b.targetSheetId ?? null), m: T.text(JSON.stringify(b.mapping)), kc: T.uuid(b.keyColumnId ?? null), s: T.int(b.scheduleMin), ra: b.scheduleMin === 1440 ? (b.runAt ?? null) : null, u: T.uuid(req.user!.id) });
   await audit({ userId: req.user!.id, action: 'connector_create', entityType: 'connector', entityId: r!.connector_id, newValue: { name: b.name, kind: b.kind, host: safeHost(b.config.url) } }, req);
   ok(res, { id: r!.connector_id }, 201);
 }));
@@ -71,9 +72,9 @@ router.put('/connectors/:id', manage, ah(async (req, res) => {
   const b = parse(bodySchema, req.body);
   if (b.targetSheetId) await requireSheet(req.user!, b.targetSheetId, LV.write);
   const urlChanged = safeJson<HttpConfig>(cur.config_json, { url: '' } as HttpConfig).url !== b.config.url;
-  await q(`UPDATE Connectors SET name = @n, kind = @k, config_json = @c, target_sheet_id = @t, mapping_json = @m, key_column_id = @kc, schedule_min = @s,
+  await q(`UPDATE Connectors SET name = @n, kind = @k, config_json = @c, target_sheet_id = @t, mapping_json = @m, key_column_id = @kc, schedule_min = @s, run_at = @ra,
            secret_enc = CASE WHEN @reset = 1 THEN NULL ELSE secret_enc END WHERE connector_id = @i`,
-    { n: b.name, k: b.kind, c: T.text(JSON.stringify(b.config)), t: T.uuid(b.targetSheetId ?? null), m: T.text(JSON.stringify(b.mapping)), kc: T.uuid(b.keyColumnId ?? null), s: T.int(b.scheduleMin), reset: T.int(urlChanged || cur.kind !== b.kind ? 1 : 0), i: T.uuid(cur.connector_id) });
+    { n: b.name, k: b.kind, c: T.text(JSON.stringify(b.config)), t: T.uuid(b.targetSheetId ?? null), m: T.text(JSON.stringify(b.mapping)), kc: T.uuid(b.keyColumnId ?? null), s: T.int(b.scheduleMin), ra: b.scheduleMin === 1440 ? (b.runAt ?? null) : null, reset: T.int(urlChanged || cur.kind !== b.kind ? 1 : 0), i: T.uuid(cur.connector_id) });
   await audit({ userId: req.user!.id, action: 'connector_update', entityType: 'connector', entityId: cur.connector_id, newValue: { name: b.name } }, req);
   ok(res, { saved: true, credentialsReset: urlChanged });
 }));

@@ -27,7 +27,8 @@ Exceptions, decided by the owner: the Quality Highlight master data (`database/s
 are published as start-up seeds, and so is the Metal Detector problem log F3QCPP28 (`metal_detector_record_problem.sql`, owner's
 request 2026-11), and the bone check log F3QCPF51 (`bone_f3qcpf51.sql` + `bone_f3qcpf51_data.sql`, a compact data seed written by
 `server/scripts/buildBone.ts --data-sql`). The empty Quality Highlight - Incoming file + dashboard (`quality_highlight_incoming.sql`)
-is a structure-only seed (no data). Do not add other company data there without the owner asking for it.
+is a structure-only seed (no data). So is DelayHUB's Delay report `delay_report_f3pfpf67.sql` (its rows come every day from
+DelayHUB through the connector set up from `.env`, docs/DELAY_REPORT.md). Do not add other company data there without the owner asking for it.
 
 - `database/seed/*.sql` run at start-up after the migrations, once per database (`AppliedSeeds`), each in its own
   transaction; a failing seed is logged and the server still starts (`applySeeds` in `server/src/scripts/migrate.ts`).

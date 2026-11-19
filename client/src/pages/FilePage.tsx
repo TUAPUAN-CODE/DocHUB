@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -51,6 +51,8 @@ import { displayValue, fmtDateTime, levelToPerm } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { confirmDialog, toast, useUi } from '@/store/ui';
+import { isDelaySheet, toDelayLines } from '@/modules/delayReport/lines';
+const DelayExportDialog = lazy(() => import('@/modules/delayReport/DelayExportDialog').then((m) => ({ default: m.DelayExportDialog })));
 import { CellValue, Column, LV, Row, isAdminRole, isBasicRole } from '@/types';
 import { isReadOnlyCol } from '@/lib/columnTypes';
 
@@ -249,6 +251,20 @@ export default function FilePage() {
     } catch (e) { toast.error(e); }
   };
   const exportCsv = () => exportRows('csv');
+  /** "รายงาน Delay F3PFPF67" (from DelayHUB): PDF F3PFPF67 / Excel F3PFPV04 like DelayHUB's Done page, of the rows shown (or the selected ones) */
+  const [delayKind, setDelayKind] = useState<'pdf' | 'excel' | null>(null);
+  const delaySheet = isDelaySheet(view.columns);
+  const loadDelayLines = async () => {
+    if (!sheetId) return [];
+    const all: Row[] = [];
+    for (let p = 1; p <= 100; p++) {
+      const r = await rowsApi.query(sheetId, { page: p, pageSize: 1000, sorts: view.query.sorts, filters: view.query.filters, search: view.query.search || undefined });
+      all.push(...r.rows);
+      if (all.length >= r.total) break;
+    }
+    const picked = selRows.length ? all.filter((r) => selRows.includes(r.id)) : all;
+    return toDelayLines(picked, view.columns);
+  };
   const [pdfTpls, setPdfTpls] = useState<PdfTemplate[] | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
   useEffect(() => { if (exportMenu && !pdfTpls) pdfApi.get(id).then((r) => setPdfTpls(r.templates as PdfTemplate[])).catch(() => setPdfTpls([])); }, [exportMenu]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -420,6 +436,7 @@ export default function FilePage() {
                   <MenuList onClose={() => setExportMenu(false)} items={[
                     { label: 'Excel (.xlsx)', icon: <Download />, onClick: () => void exportRows('xlsx') },
                     { label: 'CSV (.csv)', icon: <Download />, onClick: () => void exportRows('csv') },
+                    ...(delaySheet ? [{ divider: true }, { label: 'PDF — F3PFPF67 รายงาน Delay (แบบ DelayHUB)', icon: <Download />, onClick: () => setDelayKind('pdf') }, { label: 'Excel — F3PFPV04 รายงาน Delay (แบบ DelayHUB)', icon: <Download />, onClick: () => setDelayKind('excel') }] : []),
                     { divider: true },
                     ...(pdfTpls === null ? [{ label: 'กำลังโหลดรูปแบบ PDF…', disabled: true }] : [
                       { label: 'PDF — รายงานมาตรฐาน', icon: <Download />, disabled: pdfBusy, onClick: () => startPdf(null) },
@@ -510,6 +527,11 @@ export default function FilePage() {
           <ImportModal open={modal === 'import'} onClose={() => setModal(null)} sheetId={sheetId} sheetName={view.detail.sheet.name} fileName={f.name} columns={view.detail.columns}
             onDone={() => void view.loadRows(true)} />
           <SheetTrashModal open={modal === 'trash'} onClose={() => setModal(null)} sheetId={sheetId} columns={view.allColumns} onRestored={() => void view.loadRows(true)} />
+          {delayKind && (
+            <Suspense fallback={null}>
+              <DelayExportDialog open kind={delayKind} user={useAuth.getState().user?.displayName ?? ''} loadLines={loadDelayLines} onClose={() => setDelayKind(null)} />
+            </Suspense>
+          )}
           {exportDlg && (
             <ExportDialog open onClose={() => setExportDlg(null)} template={exportDlg} user={useAuth.getState().user?.displayName ?? ''} memoryKey={`${id}:${exportDlg.id}`} busy={pdfBusy}
               extra={<ArchiveOption value={archiveOpt} onChange={setArchiveOpt} />}

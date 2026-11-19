@@ -24,3 +24,15 @@ test('blocks loopback, metadata and credentials in URL', async () => {
     await assert.rejects(assertAllowedUrl('https://user:pw@example.com'));
     await assert.rejects(assertAllowedUrl('ftp://example.com'));
   });
+
+test('daily connector: due once after its clock time (Thai time)', async () => {
+  const { dailyDue } = await import('./runner');
+  const th = (d: number, h: number, mi: number) => new Date(Date.UTC(2026, 10, d, h - 7, mi)); // Thai wall clock → instant
+  const now = th(19, 5, 1);
+  assert.equal(dailyDue('05:00', null, now, 420), true);
+  assert.equal(dailyDue('05:00', th(18, 5, 0), now, 420), true);    // ran yesterday
+  assert.equal(dailyDue('05:00', th(19, 5, 0), now, 420), false);   // already ran today
+  assert.equal(dailyDue('05:00', null, th(19, 4, 59), 420), false); // not yet
+  assert.equal(dailyDue('05:00', th(18, 23, 0), th(19, 0, 30), 420), false); // just after midnight: today's 05:00 has not come yet
+  assert.equal(dailyDue('bad', null, now, 420), false);
+});
