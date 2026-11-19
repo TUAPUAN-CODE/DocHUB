@@ -45,6 +45,16 @@ exports.TOOLS = [
     { name: 'describe_item', description: 'What is inside a folder (its files and sheets), a file (sheets + dashboards) or a dashboard (its widgets). Use for items the user attached or found with find_items.', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['folder', 'file', 'dashboard'] }, id: { type: 'string' } }, required: ['kind', 'id'] } },
     { name: 'open_page', description: 'Take the user to a folder, file or dashboard in the web app (the browser navigates). Use when the user says "open …".', parameters: { type: 'object', properties: { kind: { type: 'string', enum: ['folder', 'file', 'dashboard'] }, id: { type: 'string' } }, required: ['kind', 'id'] } },
     { name: 'present_dashboard', description: 'Present a dashboard: the browser opens it (full screen by default), scrolls through its widgets one by one and the cat explains each. Use when the user says "present" / "นำเสนอ" / "พรีเซนต์". The dashboard must be known (attached, current page, or found with find_items).', parameters: { type: 'object', properties: { dashboardId: { type: 'string' }, fullscreen: { type: 'boolean' }, when: { type: 'string', enum: ['today', 'yesterday', 'last7days', 'last30days', 'thismonth', 'lastmonth'], description: 'date range to show (yesterday = เมื่อวาน). The dashboard date filter is set to it BEFORE presenting, so only that period is presented' }, dateFrom: { type: 'string', description: 'YYYY-MM-DD (instead of when)' }, dateTo: { type: 'string', description: 'YYYY-MM-DD' }, slicers: { type: 'array', description: 'other filters to set, e.g. shift DS: [{name:"กะ", values:["DS"]}]', items: { type: 'object', properties: { name: { type: 'string' }, values: { type: 'array', items: { type: 'string' } } }, required: ['name', 'values'] } } }, required: ['dashboardId'] } },
+    { name: 'show_chart', description: 'Draw a chart (or a small summary table) INSIDE THE CHAT for the user — use it when the user asks to see / summarise numbers as a chart, graph or table ("สรุปเป็นกราฟ", "ขอดูกราฟ", "สรุปเป็นตาราง"). It is NOT a dashboard widget. Same data parameters as aggregate. The result lists the numbers so you can comment on them in one or two sentences.', parameters: { type: 'object', properties: { ...dsParams.properties, chartType: { type: 'string', enum: ['bar', 'line', 'area', 'pie', 'doughnut', 'pareto', 'table'], description: 'bar for comparing categories, line / area for trends over time, pie / doughnut for shares, pareto for "what causes most", table for a small summary table' }, title: { type: 'string', description: 'Thai title above the chart' } }, required: ['sheetId', 'series', 'chartType', 'title'] } },
+    { name: 'export_data', description: 'Make a file for the user to download: a PDF or Excel of the rows of a sheet (optionally filtered / sorted / only some columns), or the Delay report forms of the Delay sheet. The browser creates and downloads it. Use when the user says "ส่งออก", "export", "ขอ PDF", "ขอ Excel", "พิมพ์เป็น PDF". Filters use the same shorthand as aggregate (a date range: op between + value + value2, yyyy-mm-dd). Never claim the file is ready before this tool answered ok.', parameters: { type: 'object', properties: {
+                sheetId: { type: 'string' },
+                format: { type: 'string', enum: ['pdf', 'xlsx', 'delay_pdf', 'delay_xlsx'], description: 'pdf / xlsx = table of the rows; delay_pdf / delay_xlsx = form F3PFPF67 (PDF) / F3PFPV04 (Excel) — only for the sheet "Delay" of รายงาน Delay F3PFPF67' },
+                template: { type: 'string', description: 'name (or part of the name) of a saved PDF layout of the file; omit for the standard report' },
+                title: { type: 'string', description: 'heading of the standard PDF report' },
+                columns: { type: 'array', items: { type: 'string' }, description: 'column ids or names to include (standard pdf / xlsx); omit for all' },
+                filters: dsParams.properties.filters, search: { type: 'string', description: 'text to search in the rows' },
+                sort: { type: 'object', properties: { columnId: { type: 'string' }, dir: { type: 'string', enum: ['asc', 'desc'] } } },
+            }, required: ['sheetId', 'format'] } },
     { name: 'create_dashboard', description: 'Create an empty dashboard in a file (needs manage permission). Returns dashboardId.', parameters: { type: 'object', properties: { fileId: { type: 'string' }, name: { type: 'string' } }, required: ['fileId', 'name'] } },
     {
         name: 'add_widgets', description: 'Add widgets (charts / KPI cards / tables / text) to a dashboard. They are laid out automatically in a grid. Widget types: bar, line, area, pie, doughnut, scatter, pareto, histogram, kpi, table, text. For kpi use no xColumnId and one series. For text put the text in "text".',
@@ -272,6 +282,48 @@ async function runTool(name, a, ctx) {
             await (0, permissions_1.requireSheet)(u, ds.sheetId, permissions_1.LV.read);
             const d = await (0, widgetData_1.computeWidgetData)(u, ds);
             return out({ totalRows: d.totalRows, categories: d.categories?.slice(0, 60), series: d.series?.map((s) => ({ name: s.name, values: s.values.slice(0, 60) })), points: d.points?.slice(0, 60) });
+        }
+        case 'show_chart': {
+            const ds = toDs(a);
+            await (0, permissions_1.requireSheet)(u, ds.sheetId, permissions_1.LV.read);
+            const type = ['bar', 'line', 'area', 'pie', 'doughnut', 'pareto', 'table'].find((t) => t === a.chartType) ?? 'bar';
+            const d = await (0, widgetData_1.computeWidgetData)(u, ds);
+            const categories = (d.categories ?? []).slice(0, 60).map((c) => String(c));
+            const series = (d.series ?? []).slice(0, 6).map((x) => ({ name: String(x.name ?? ''), values: x.values.slice(0, 60) }));
+            if (!categories.length || !series.length)
+                return out({ ok: false, error: 'no data for this chart — check the filters / columns' });
+            (ctx.charts ??= []).push({ type, title: String(a.title ?? '').slice(0, 200), categories, series, totalRows: d.totalRows });
+            return out({ ok: true, shown: type, note: 'the chart is now shown in the chat; do not repeat every number, give the key finding in one or two sentences', totalRows: d.totalRows, categories: categories.slice(0, 30), series: series.map((x) => ({ name: x.name, values: x.values.slice(0, 30) })) });
+        }
+        case 'export_data': {
+            const sheetId = needStr(a, 'sheetId');
+            const format = ['pdf', 'xlsx', 'delay_pdf', 'delay_xlsx'].find((f) => f === a.format);
+            if (!format)
+                throw (0, http_1.badRequest)('format ต้องเป็น pdf, xlsx, delay_pdf หรือ delay_xlsx');
+            const { sheet } = await (0, permissions_1.requireSheet)(u, sheetId, permissions_1.LV.read);
+            const cols = await (0, cellWriter_1.loadColumns)(sheetId);
+            if (format.startsWith('delay')) {
+                const names = new Set(cols.map((c) => c.column_name));
+                if (!['mapping_id', 'บรรจุเสร็จ (F)', 'ช่วงที่ 1', 'เตรียมเสร็จ (A)'].every((n) => names.has(n)))
+                    return out({ ok: false, error: 'this sheet is not the Delay report (F3PFPF67): use format pdf or xlsx' });
+            }
+            const filters = toFilters(a.filters);
+            const sorts = a.sort && a.sort.columnId && cols.some((c) => c.column_id === String(a.sort.columnId).toLowerCase()) ? [{ columnId: String(a.sort.columnId).toLowerCase(), dir: a.sort.dir === 'desc' ? 'desc' : 'asc' }] : undefined;
+            const search = a.search ? String(a.search).slice(0, 200) : undefined;
+            // columns by id or by name
+            let picked;
+            if (Array.isArray(a.columns) && a.columns.length) {
+                const found = a.columns.slice(0, 60).map((x) => { const t = String(x).toLowerCase(); return cols.find((c) => c.column_id === t) ?? cols.find((c) => String(c.column_name).toLowerCase() === t) ?? cols.find((c) => String(c.column_name).toLowerCase().includes(t)); }).filter(Boolean);
+                picked = [...new Set(found.map((c) => c.column_id))];
+                if (!picked.length)
+                    return out({ ok: false, error: 'no column matches the names given', columns: cols.map((c) => c.column_name) });
+            }
+            const r = await (0, rowQuery_1.queryRows)(sheetId, cols, { page: 1, pageSize: 1, filters, sorts, search });
+            if (!r.total)
+                return out({ ok: false, error: 'no rows match these filters — nothing to export' });
+            const label = format === 'delay_pdf' ? 'PDF F3PFPF67' : format === 'delay_xlsx' ? 'Excel F3PFPV04' : format === 'pdf' ? 'PDF' : 'Excel';
+            (ctx.actions ??= []).push({ type: 'export', format, fileId: sheet.file_id, fileName: sheet.file_name, sheetId, sheetName: sheet.sheet_name, label, template: a.template ? String(a.template).slice(0, 200) : undefined, title: a.title ? String(a.title).slice(0, 200) : undefined, columns: picked, filters, search, sorts, total: r.total });
+            return out({ ok: true, exporting: label, file: sheet.file_name, rows: r.total, note: 'the browser now builds the file and downloads it; tell the user the file is on its way (name, how many rows, which filter)' });
         }
         case 'find_items': return out(await findItems(u, needStr(a, 'query'), ['folder', 'file', 'dashboard'].includes(a.kind) ? a.kind : 'any'));
         case 'describe_item': return out(await describeItem(u, String(a.kind), needStr(a, 'id')));

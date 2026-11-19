@@ -36,3 +36,13 @@ test('slicerPlan: date slicer + shift slicer, and what cannot be matched', async
   assert.equal(withPlan(ws, p.filters, 'c', ws[2].dataSource).filters.length, 2);
   assert.deepEqual(slicerPlan([ws[2]], { from: '2026-11-17' }).unmatched, ['วันที่']);
 });
+
+test('export_data / show_chart tools are declared with the parameters the model needs', async () => {
+  const { TOOLS } = await import('./tools');
+  const ex = TOOLS.find((t) => t.name === 'export_data') as any;
+  const ch = TOOLS.find((t) => t.name === 'show_chart') as any;
+  assert.deepEqual(ex.parameters.required, ['sheetId', 'format']);
+  assert.ok(ex.parameters.properties.filters && ex.parameters.properties.columns);
+  assert.deepEqual(ch.parameters.required, ['sheetId', 'series', 'chartType', 'title']);
+  assert.ok(ch.parameters.properties.xColumnId && ch.parameters.properties.chartType.enum.includes('pareto'));
+});
