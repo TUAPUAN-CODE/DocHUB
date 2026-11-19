@@ -136,14 +136,17 @@ router.post('/ai/chat', (0, http_1.ah)(async (req, res) => {
  * The browser walks through the widgets and the cat says each line (voice or caption). Numbers come only from the widget data.
  */
 router.post('/ai/present', (0, http_1.ah)(async (req, res) => {
-    const b = (0, http_1.parse)(zod_1.z.object({ dashboardId: zod_1.z.string().uuid(), model: zod_1.z.string().trim().max(100).regex(/^[\w./:-]+$/).optional(), thinking: zod_1.z.enum(['low', 'medium', 'high']).optional() }), req.body);
+    const b = (0, http_1.parse)(zod_1.z.object({ dashboardId: zod_1.z.string().uuid(), model: zod_1.z.string().trim().max(100).regex(/^[\w./:-]+$/).optional(), thinking: zod_1.z.enum(['low', 'medium', 'high']).optional(), filters: zod_1.z.object({ from: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), to: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), label: zod_1.z.string().max(200).optional(), slicers: zod_1.z.array(zod_1.z.object({ name: zod_1.z.string().max(80), values: zod_1.z.array(zod_1.z.string().max(200)).max(50) })).max(5).optional() }).optional() }), req.body);
     const d = await (0, tools_1.describeItem)(req.user, 'dashboard', b.dashboardId);
     const row = await (0, db_1.q1)(`SELECT key_enc, model FROM AiKeys WHERE user_id = @u AND provider = N'gemini'`, { u: db_1.T.uuid(req.user.id) });
     const key = (0, secret_1.decryptJson)(row?.key_enc)?.key;
     if (!key)
         throw (0, http_1.badRequest)('ยังไม่ได้ตั้งค่า API key ของ Gemini');
     const rows = await (0, db_1.q)(`SELECT * FROM DashboardWidgets WHERE dashboard_id = @d ORDER BY pos_y, pos_x`, { d: db_1.T.uuid(b.dashboardId) });
-    const ws = rows.map(mappers_1.mapWidget).filter((w) => w.type !== 'shape' && w.type !== 'slicer' && !w.style?.hidden).sort((a, c) => Math.round(a.y / 60) - Math.round(c.y / 60) || a.x - c.x);
+    const all = rows.map(mappers_1.mapWidget);
+    const pf = b.filters ?? {};
+    const plan = (0, tools_1.slicerPlan)(all, pf).filters;
+    const ws = all.filter((w) => w.type !== 'shape' && w.type !== 'slicer' && !w.style?.hidden).sort((a, c) => Math.round(a.y / 60) - Math.round(c.y / 60) || a.x - c.x);
     const facts = [];
     for (const w of ws.slice(0, 30)) {
         const f = { widgetId: w.id, type: w.type, title: w.title };
@@ -151,7 +154,7 @@ router.post('/ai/present', (0, http_1.ah)(async (req, res) => {
             f.text = String(w.config?.text ?? '').slice(0, 300);
         else if (w.dataSource && ['kpi', 'bar', 'line', 'area', 'pie', 'donut', 'pareto', 'pct', 'table', 'histogram'].includes(w.type)) {
             try {
-                const dd = await (0, widgetData_1.computeWidgetData)(req.user, w.dataSource);
+                const dd = await (0, widgetData_1.computeWidgetData)(req.user, (0, tools_1.withPlan)(all, plan, w.id, w.dataSource));
                 f.data = { totalRows: dd.totalRows, categories: dd.categories?.slice(0, 12), series: dd.series?.map((s) => ({ name: s.name, values: s.values.slice(0, 12) })) };
                 // the arithmetic is done here, not by the model: total, biggest items and their share
                 const s0 = dd.series?.[0];
@@ -179,7 +182,7 @@ router.post('/ai/present', (0, http_1.ah)(async (req, res) => {
             return `${f.title} อยู่ที่ ${Number(sv).toLocaleString('th-TH')}`;
         return f.title ? `ส่วนนี้คือ ${f.title}` : '';
     };
-    const prompt = `คุณเป็นนักวิเคราะห์ที่ต้องสรุปแดชบอร์ด "${d.name}" ให้ผู้บริหารฟังแบบสั้น กระชับ ตรงประเด็น เป็นภาษาพูดไทยที่เป็นกลาง (ห้ามเดาเพศผู้ฟัง ห้ามใช้ ครับ/ค่ะ/คะ ลงท้ายด้วย "นะ" หรือ "เหมียว" ได้บ้าง)
+    const prompt = `คุณเป็นนักวิเคราะห์ที่ต้องสรุปแดชบอร์ด "${d.name}" ให้ผู้บริหารฟังแบบสั้น${plan.size ? ` เฉพาะข้อมูล ${pf.label ?? [pf.from, pf.to].filter(Boolean).join(' ถึง ')}${pf.slicers?.length ? ' ' + pf.slicers.map((s) => `${s.name}=${s.values.join(',')}`).join(' ') : ''} (ข้อมูลที่ให้ถูกกรองมาแล้ว ให้บอกช่วงนี้ตอนเปิดและตอนสรุป ห้ามเรียกว่า "วันนี้" ถ้าไม่ใช่วันนี้)` : ''} กระชับ ตรงประเด็น เป็นภาษาพูดไทยที่เป็นกลาง (ห้ามเดาเพศผู้ฟัง ห้ามใช้ ครับ/ค่ะ/คะ ลงท้ายด้วย "นะ" หรือ "เหมียว" ได้บ้าง)
 รูปแบบที่ต้องการ (ตัวอย่างน้ำเสียง): "วันนี้พบก้างรวม 40,620 ชิ้น จาก 14,179 แถว ส่วนใหญ่เป็นก้างข้างลำตัวถึง 62% ซึ่งสูงที่สุด ตามด้วย …"
 - intro: ประโยคเดียวที่บอกภาพรวมที่สำคัญที่สุดของวันนี้ (ตัวเลขหลัก)
 - script: ทีละวิดเจ็ตตามลำดับที่ให้ 1-2 ประโยค ไม่เกิน 220 ตัวอักษร เล่า "ตัวเลข → ข้อสังเกต" เช่น ค่าสูงสุด สัดส่วน (ใช้ค่า top/pct/total ที่ให้ไว้ ห้ามคำนวณเอง) ความต่างระหว่างกะหรือรายการ ถ้ามี ไม่ต้องบอกว่า "ส่วนนี้คือ …" ถ้าเป็นข้อความ/ปุ่มกรอง ให้บอกสั้นๆ ว่าใช้ทำอะไรหรืออ่านข้ามไปได้ (say เป็น "" เพื่อข้าม)

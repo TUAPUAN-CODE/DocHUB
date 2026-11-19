@@ -144,6 +144,21 @@ export default function DashboardPage() {
     if (!presentWanted || !meta || started.current === dashId) return;
     started.current = dashId;
     setEdit(false);
+    // the cat was asked for a period / filter ("เมื่อวาน", กะ DS): set the dashboard's slicers first so only that data is presented
+    try {
+      const pf = JSON.parse(sp.get('pf') || 'null') as { from?: string; to?: string; slicers?: { name: string; values: string[] }[] } | null;
+      if (pf) {
+        const next: Record<string, ColumnFilter | null> = {};
+        for (const s of widgets) {
+          if (s.type !== 'slicer' || s.style?.hidden || !s.dataSource?.xColumnId) continue;
+          const mode = s.config?.mode ?? 'dropdown_search', nm = String(s.config?.label || s.title || '').toLowerCase();
+          if ((pf.from || pf.to) && (mode === 'date' || mode === 'range')) next[s.id] = { columnId: s.dataSource.xColumnId, op: 'between', value: pf.from ?? pf.to, value2: pf.to ?? pf.from } as ColumnFilter;
+          const want = pf.slicers?.find((x) => nm && (nm.includes(x.name.toLowerCase()) || x.name.toLowerCase().includes(nm)));
+          if (want && !['date', 'range', 'search'].includes(mode)) next[s.id] = { columnId: s.dataSource.xColumnId, mode: 'include', values: want.values } as ColumnFilter;
+        }
+        setSlicers((cur) => ({ ...cur, ...next }));
+      }
+    } catch (e) { console.error('present filters error:', e); }
     void (async () => {
       let real = false;
       try { await page.current?.requestFullscreen(); real = document.fullscreenElement === page.current; } catch { real = false; }
