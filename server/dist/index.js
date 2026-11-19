@@ -166,7 +166,8 @@ const server = http_1.default.createServer(app);
     (0, leader_1.leaderTask)('trash-purge', () => { void (0, purge_1.purgeExpiredTrash)(); const t = setInterval(() => void (0, purge_1.purgeExpiredTrash)(), 6 * 3600_000); return () => clearInterval(t); });
     (0, leader_1.leaderTask)('line-alerts', module_24.startLineWorker);
     // DelayHUB → รายงาน Delay F3PFPF67: connector from .env (DELAYHUB_URL / DELAYHUB_EXPORT_KEY), before the scheduler starts
-    (0, leader_1.leaderTask)('connectors', () => { void (0, module_17.ensureDelayConnector)().catch((e) => logger_1.logger.warn(`DelayHUB connector: ${e.message}`)); return (0, module_16.startConnectorScheduler)(); });
+    (0, leader_1.leaderTask)('connectors', () => { void (0, module_17.ensureDelayConnector)().then((id) => { if (id)
+        void (0, module_17.runDelayBackfill)(id).catch((e) => logger_1.logger.warn(`DelayHUB back-fill: ${e.message}`)); }).catch((e) => logger_1.logger.warn(`DelayHUB connector: ${e.message}`)); return (0, module_16.startConnectorScheduler)(); });
     (0, leader_1.leaderTask)('rfid-gateway', module_23.startGateway);
     (0, leader_1.leaderTask)('inkcode-plan-folder', module_14.startPlanFolderWatcher);
     for (const sig of ['SIGINT', 'SIGTERM'])
