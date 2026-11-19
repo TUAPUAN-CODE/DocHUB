@@ -19,7 +19,8 @@ export interface RunResult { read: number; created: number; updated: number; ski
 const scalar = (v: unknown): unknown => (v instanceof Date ? v.toISOString() : v === undefined ? null : v);
 
 /** Pulls the source and writes it into the target sheet as the connector's owner (same validation / permissions as typing in the grid) */
-export async function runConnector(id: string, opts: { userId?: string } = {}): Promise<RunResult> {
+/** `url` replaces the saved link for this run only (e.g. the DelayHUB back-fill pulls week by week: modules/delayReport/bootstrap.ts) */
+export async function runConnector(id: string, opts: { userId?: string; url?: string } = {}): Promise<RunResult> {
   const c = await q1(`SELECT * FROM Connectors WHERE connector_id = @i AND is_deleted = 0`, { i: T.uuid(id) });
   if (!c) throw new Error('ไม่พบ connector');
   if (!c.target_sheet_id) throw new Error('ยังไม่ได้เลือกตารางปลายทาง');
@@ -34,7 +35,8 @@ export async function runConnector(id: string, opts: { userId?: string } = {}): 
     if (!user) throw new Error('เจ้าของ connector ถูกปิดการใช้งาน');
     const sheetId: string = c.target_sheet_id;
     const { sheet } = await requireSheet(user, sheetId, LV.write);
-    const cfg = safeJson<HttpConfig>(c.config_json, { url: '', format: 'auto' });
+    const saved = safeJson<HttpConfig>(c.config_json, { url: '', format: 'auto' });
+    const cfg: HttpConfig = opts.url ? { ...saved, url: opts.url } : saved;
     const mapping = safeJson<Mapping[]>(c.mapping_json, []).filter((m) => m.source && m.columnId);
     if (!mapping.length) throw new Error('ยังไม่ได้กำหนดการจับคู่ข้อมูลกับคอลัมน์');
     const records: Rec[] = await loadRecords(c.kind, cfg, c.secret_enc, async (enc) => { await q(`UPDATE Connectors SET secret_enc = @s WHERE connector_id = @i`, { s: T.text(enc), i: T.uuid(id) }); });

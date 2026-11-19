@@ -5,6 +5,7 @@ import { env } from '../../config/env';
 import { logger } from '../../shared/logger';
 import { encryptJson } from '../connectors/secret';
 import { safeFetch } from '../connectors/safeFetch';
+import { runConnector } from '../connectors/runner';
 import { DELAY_COLS, DELAY_CONNECTOR_NAME, DELAY_NAMES } from './columns';
 
 /**
@@ -69,5 +70,57 @@ export async function delayTemplate(): Promise<Buffer> {
   } catch (e) {
     if (st) { logger.warn(`DelayHUB template: ${(e as Error).message} — ใช้สำเนาเดิม`); return fs.readFileSync(file); }
     throw new Error(`ดึงแบบฟอร์ม Excel จาก DelayHUB ไม่สำเร็จ: ${(e as Error).message}`);
+  }
+}
+
+/**
+ * One-time back-fill: DELAYHUB_BACKFILL_FROM=2026-01-01 pulls every finished row from that day up to today, 7 days at a time (light for
+ * DelayHUB, under the per-run limits). Progress is kept in SystemSettings (`delayhub.backfill`): a restart carries on where it stopped,
+ * and once it reaches today it is not done again (change the date to do it again). The daily 05:00 pull of the last 3 days goes on as usual.
+ */
+const BF_KEY = 'delayhub.backfill';
+const CHUNK_DAYS = 7;
+const ymd = (d: Date) => d.toISOString().slice(0, 10);
+const addDays = (s: string, n: number) => { const d = new Date(`${s}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return ymd(d); };
+const thaiToday = () => ymd(new Date(Date.now() + env.tzOffsetMinutes * 60_000));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+let backfilling = false;
+
+export async function runDelayBackfill(connectorId: string): Promise<void> {
+  const from = String(process.env.DELAYHUB_BACKFILL_FROM ?? '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || backfilling) return;
+  backfilling = true;
+  try {
+    const stored = await q1(`SELECT setting_value FROM SystemSettings WHERE setting_key = @k`, { k: BF_KEY });
+    let st: { from: string; next: string; done?: boolean } = (() => { try { return JSON.parse(stored?.setting_value ?? ''); } catch { return null; } })() ?? { from, next: from };
+    if (st.from !== from) st = { from, next: from };       // a new start date = start again
+    if (st.done) return;
+    const save = () => q(`MERGE SystemSettings AS t USING (SELECT @k AS setting_key) AS s ON t.setting_key = s.setting_key
+                          WHEN MATCHED THEN UPDATE SET setting_value = @v, updated_at = SYSUTCDATETIME()
+                          WHEN NOT MATCHED THEN INSERT (setting_key, setting_value) VALUES (@k, @v);`, { k: BF_KEY, v: T.text(JSON.stringify(st)) });
+    logger.info(`DelayHUB back-fill: ${st.next} → ${thaiToday()} (ทีละ ${CHUNK_DAYS} วัน)`);
+    let fails = 0;
+    while (st.next <= thaiToday()) {
+      const to = [addDays(st.next, CHUNK_DAYS - 1), thaiToday()].sort()[0];
+      const url = `${base()}/api/export/f3pfpf67?date_from=${st.next}&date_to=${to}`;
+      try {
+        const r = await runConnector(connectorId, { url });
+        logger.info(`DelayHUB back-fill ${st.next} – ${to}: อ่าน ${r.read} · เพิ่ม ${r.created} · อัปเดต ${r.updated}${r.skipped ? ` · ข้าม ${r.skipped}` : ''}`);
+        st.next = addDays(to, 1);
+        fails = 0;
+        await save();
+        await sleep(20_000); // breathe between weeks (DelayHUB runs the same query as its Done page)
+      } catch (e) {
+        const msg = (e as Error).message;
+        if (++fails >= 15) { logger.warn(`DelayHUB back-fill หยุดที่ ${st.next}: ${msg} — แก้แล้ว restart เพื่อทำต่อ`); return; }
+        logger.warn(`DelayHUB back-fill ${st.next} – ${to}: ${msg} — ลองใหม่ใน 2 นาที`);
+        await sleep(120_000); // the daily pull is running, DelayHUB is busy / down …: try the same week again
+      }
+    }
+    st.done = true;
+    await save();
+    logger.info(`DelayHUB back-fill เสร็จ (${from} → ${thaiToday()})`);
+  } finally {
+    backfilling = false;
   }
 }

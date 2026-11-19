@@ -55,7 +55,7 @@ import approvalsModule from './modules/approvals/module';
 import inkcodeModule, { startPlanFolderWatcher } from './modules/inkcode/module';
 import aiModule from './modules/ai/module';
 import connectorsModule, { startConnectorScheduler } from './modules/connectors/module';
-import delayReportModule, { ensureDelayConnector } from './modules/delayReport/module';
+import delayReportModule, { ensureDelayConnector, runDelayBackfill } from './modules/delayReport/module';
 import './modules/alerts/module';
 import scanModule from './modules/scan/module';
 import mixModule from './modules/mix/module';
@@ -133,7 +133,7 @@ getPool()
     leaderTask('trash-purge', () => { void purgeExpiredTrash(); const t = setInterval(() => void purgeExpiredTrash(), 6 * 3600_000); return () => clearInterval(t); });
     leaderTask('line-alerts', startLineWorker);
     // DelayHUB → รายงาน Delay F3PFPF67: connector from .env (DELAYHUB_URL / DELAYHUB_EXPORT_KEY), before the scheduler starts
-    leaderTask('connectors', () => { void ensureDelayConnector().catch((e) => logger.warn(`DelayHUB connector: ${(e as Error).message}`)); return startConnectorScheduler(); });
+    leaderTask('connectors', () => { void ensureDelayConnector().then((id) => { if (id) void runDelayBackfill(id).catch((e) => logger.warn(`DelayHUB back-fill: ${(e as Error).message}`)); }).catch((e) => logger.warn(`DelayHUB connector: ${(e as Error).message}`)); return startConnectorScheduler(); });
     leaderTask('rfid-gateway', startGateway);
     leaderTask('inkcode-plan-folder', startPlanFolderWatcher);
     for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => void releaseLeases().finally(() => process.exit(0)));

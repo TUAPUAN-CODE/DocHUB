@@ -18,6 +18,7 @@ const source_1 = require("./source");
 exports.MAX_ROWS = Number(process.env.CONNECTOR_MAX_ROWS) || 50_000;
 const scalar = (v) => (v instanceof Date ? v.toISOString() : v === undefined ? null : v);
 /** Pulls the source and writes it into the target sheet as the connector's owner (same validation / permissions as typing in the grid) */
+/** `url` replaces the saved link for this run only (e.g. the DelayHUB back-fill pulls week by week: modules/delayReport/bootstrap.ts) */
 async function runConnector(id, opts = {}) {
     const c = await (0, db_1.q1)(`SELECT * FROM Connectors WHERE connector_id = @i AND is_deleted = 0`, { i: db_1.T.uuid(id) });
     if (!c)
@@ -37,7 +38,8 @@ async function runConnector(id, opts = {}) {
             throw new Error('เจ้าของ connector ถูกปิดการใช้งาน');
         const sheetId = c.target_sheet_id;
         const { sheet } = await (0, permissions_1.requireSheet)(user, sheetId, permissions_1.LV.write);
-        const cfg = (0, http_1.safeJson)(c.config_json, { url: '', format: 'auto' });
+        const saved = (0, http_1.safeJson)(c.config_json, { url: '', format: 'auto' });
+        const cfg = opts.url ? { ...saved, url: opts.url } : saved;
         const mapping = (0, http_1.safeJson)(c.mapping_json, []).filter((m) => m.source && m.columnId);
         if (!mapping.length)
             throw new Error('ยังไม่ได้กำหนดการจับคู่ข้อมูลกับคอลัมน์');
