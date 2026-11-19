@@ -1,13 +1,15 @@
 import { Component, ReactNode, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eraser, FileText, Folder, LayoutDashboard, Mic, Send, Settings2, Square, X } from 'lucide-react';
+import { Eraser, FileText, Folder, LayoutDashboard, Maximize2, Mic, Minimize2, Send, Settings2, Square, X } from 'lucide-react';
 import { apiError } from '@/api/client';
 import { Button, IconButton } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Inputs';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
-import { useUi } from '@/store/ui';
-import { aiApi, CatAction, ChatMsg } from './api';
+import { toast, useUi } from '@/store/ui';
+import { aiApi, CatAction, ChatChartData, ChatMsg } from './api';
+import { ChatChart, RichText } from './ChatParts';
+import { runAiExport } from './exportData';
 import { runPresentation } from './present';
 import type { CatEmotion } from './CatScene';
 import { AI_DASH_EVENT, useAiPanel } from './useAiPanel';
@@ -87,6 +89,8 @@ export function CatAssistant() {
   const [thinking, setThinking] = useState(() => localStorage.getItem('cat:thinking') || 'low');
   const [live, setLive] = useState<'off' | 'connecting' | 'listening' | 'speaking'>('off');
   const [liveErr, setLiveErr] = useState('');
+  const [big, setBig] = useState(false);
+  const pendingCharts = useRef<ChatChartData[]>([]);
   const [scale, setScale] = useState(() => { const v = Number(localStorage.getItem('cat:scale')); return v >= 0.6 && v <= 2.2 ? v : 1; });
   const changeScale = (v: number) => { const n = Math.min(2.2, Math.max(0.6, Math.round(v * 10) / 10)); setScale(n); try { localStorage.setItem('cat:scale', String(n)); } catch { /* private mode */ } };
   const session = useRef<Awaited<ReturnType<typeof startLive>> | null>(null);
@@ -148,7 +152,7 @@ export function CatAssistant() {
     try {
       const r = await aiApi.chat('gemini', next.slice(-20), ctx, { model: model.id, thinking: thinking as 'low' | 'medium' | 'high', attachments: items });
       const reply = r.reply || '(ไม่มีข้อความตอบกลับ)';
-      setMsgs([...next, { role: 'assistant', content: reply, steps: r.steps }]);
+      setMsgs([...next, { role: 'assistant', content: reply, steps: r.steps, charts: r.charts?.length ? r.charts : undefined, files: (r.actions ?? []).filter((a) => a.type === 'export').map((a) => ({ label: (a as { label: string }).label, rows: (a as { total: number }).total })) }]);
       for (const id of r.changedDashboards) window.dispatchEvent(new CustomEvent(AI_DASH_EVENT, { detail: { dashboardId: id } }));
       for (const a of r.actions ?? []) doAction(a);
       const allFailed = r.steps.length > 0 && r.steps.every((s) => !s.ok);
@@ -171,6 +175,13 @@ export function CatAssistant() {
   /** things the AI asked the browser to do: open a page, present a dashboard */
   const doAction = useCallback((a: CatAction) => {
     if (a.type === 'open') { nav(a.to); feel('happy', `เปิด “${a.label}” ให้แล้วนะ`); return; }
+    if (a.type === 'export') {
+      feel('excited', `กำลังทำ ${a.label} ให้นะ`);
+      toast.info(`กำลังสร้าง ${a.label}…`, `${a.total.toLocaleString()} แถว`);
+      void runAiExport(a, user?.displayName ?? '').then((d) => { toast.success('ไฟล์พร้อมแล้ว', d); feel('happy', 'ส่งไฟล์ให้แล้วนะ'); })
+        .catch((e) => { toast.error(apiError(e).message || (e as Error).message); feel('sad', 'ทำไฟล์ไม่สำเร็จ'); });
+      return;
+    }
     if (a.type !== 'present') return;
     stopPresent();
     const ac = new AbortController(); presentAbort.current = ac; presentingRef.current = true; setPresenting(a.label); feel('excited', `เริ่มนำเสนอ “${a.label}” นะ`);
@@ -200,7 +211,7 @@ export function CatAssistant() {
     void runPresentation({ fileId: a.fileId, dashboardId: a.dashboardId, filters: a.filters, model: m.id, thinking: thinking as 'low' | 'medium' | 'high', navigate: nav, speak, signal: ac.signal })
       .catch((e) => { feel('sad', apiError(e).message.slice(0, 160)); setMsgs((cur) => [...cur, { role: 'assistant', content: `⚠ นำเสนอไม่สำเร็จ: ${apiError(e).message}` }]); })
       .finally(() => { if (presentAbort.current === ac) { presentAbort.current = null; presentingRef.current = false; setPresenting(null); feel('happy'); } });
-  }, [feel, models, modelKey, nav, stopPresent, thinking]);
+  }, [feel, models, modelKey, nav, stopPresent, thinking, user?.displayName]);
 
   const stopLive = useCallback(() => { session.current?.stop(); session.current = null; setLive('off'); setEmotion((e) => (e === 'talking' || e === 'thinking' ? 'happy' : e)); }, []);
   useEffect(() => () => session.current?.stop(), []);
@@ -215,7 +226,8 @@ export function CatAssistant() {
         onUserText: (t) => { turn.current.user = t; feel('thinking', t.slice(0, 160)); },
         onCatText: (t) => { turn.current.cat = t; setSaid(t.slice(-160)); },
         onAction: (a) => doAction(a as CatAction),
-        onTurn: () => { const { user, cat } = turn.current; turn.current = { user: '', cat: '' }; turnWaiter.current?.(); if (presentingRef.current) return; if (user || cat) setMsgs((cur) => [...cur, ...(user ? [{ role: 'user' as const, content: user }] : []), ...(cat ? [{ role: 'assistant' as const, content: cat }] : [])]); },
+        onChart: (c) => { pendingCharts.current.push(c as ChatChartData); },
+        onTurn: () => { const { user, cat } = turn.current; turn.current = { user: '', cat: '' }; turnWaiter.current?.(); if (presentingRef.current) return; const charts = pendingCharts.current; pendingCharts.current = []; if (user || cat || charts.length) setMsgs((cur) => [...cur, ...(user ? [{ role: 'user' as const, content: user }] : []), ...(cat || charts.length ? [{ role: 'assistant' as const, content: cat, charts: charts.length ? charts : undefined }] : [])]); },
         onError: (m) => { setLiveErr(m); feel('sad', m.slice(0, 160)); },
       }, { model: liveId, voice, thinking });
       // what is already attached / the page the user is on is told to the voice session
@@ -245,7 +257,7 @@ export function CatAssistant() {
   return (
     <div className="fixed bottom-2 right-2 z-[60] flex flex-col items-end gap-2 print:hidden sm:bottom-4 sm:right-4" {...dropProps}>
       {open && (
-        <section className="cat-chat flex max-h-[min(70vh,560px)] w-[min(390px,calc(100vw-1rem))] flex-col overflow-hidden" aria-label="แชตกับน้องแมว AI">
+        <section className={cn('cat-chat flex flex-col overflow-hidden', big ? 'fixed inset-2 z-[70] mx-auto max-w-4xl sm:inset-6' : 'max-h-[min(70vh,560px)] w-[min(390px,calc(100vw-1rem))]')} aria-label="แชตกับน้องแมว AI">
           <header className="flex shrink-0 items-center gap-1.5 border-b border-line px-3 py-2">
             <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: DOT[emotion], boxShadow: `0 0 8px ${DOT[emotion]}` }} />
             <select value={modelKey} onChange={(e) => { setModelKey(e.target.value as ModelDef['key']); localStorage.setItem('cat:model', e.target.value); }}
@@ -255,7 +267,8 @@ export function CatAssistant() {
             <IconButton label={live === 'off' ? 'คุยด้วยเสียง' : 'หยุดคุยด้วยเสียง'} onClick={() => void toggleLive()}>{live === 'off' ? <Mic className="h-4 w-4" /> : <Square className="h-4 w-4 text-danger" />}</IconButton>
             <IconButton label="ตั้งค่าโมเดลและ API key" onClick={() => setCfg((v) => !v)}><Settings2 className="h-4 w-4" /></IconButton>
             <IconButton label="ล้างแชต" onClick={() => setMsgs([])}><Eraser className="h-4 w-4" /></IconButton>
-            <IconButton label="ปิดแชต" onClick={() => setOpen(false)}><X className="h-4 w-4" /></IconButton>
+            <IconButton label={big ? 'ย่อกลับ' : 'ขยายเต็มจอ'} onClick={() => setBig((v) => !v)}>{big ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</IconButton>
+            <IconButton label="ปิดแชต" onClick={() => { setOpen(false); setBig(false); }}><X className="h-4 w-4" /></IconButton>
           </header>
           {cfg && (
             <div className="space-y-2 border-b border-line bg-ink/[.03] p-3 text-xs">
@@ -282,7 +295,13 @@ export function CatAssistant() {
             {hasKey === false && <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">ยังไม่ได้ตั้งค่า API key ของ Gemini — <button type="button" className="font-medium underline" onClick={() => setPanel(true)}>ตั้งค่าที่นี่</button></p>}
             {!msgs.length && <p className="text-xs text-muted">ถามเรื่องข้อมูลได้เลย หรือ <b>ลากไฟล์ / โฟลเดอร์ / แดชบอร์ด</b> จากหน้าเว็บมาวางที่ตัวน้องแมว แล้วถามเกี่ยวกับสิ่งนั้น — น้องแมวอ่านด้วยสิทธิ์ของคุณเท่านั้น</p>}
             {msgs.map((m, i) => (
-              <div key={i} className={cn('max-w-[92%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm', m.role === 'user' ? 'ml-auto bg-primary text-white' : 'bg-ink/[.06]')}>{m.content}</div>
+              m.role === 'user'
+                ? <div key={i} className="ml-auto max-w-[92%] whitespace-pre-wrap rounded-2xl bg-primary px-3 py-2 text-sm text-white">{m.content}</div>
+                : <div key={i} className="max-w-full rounded-2xl bg-ink/[.06] px-3 py-2 text-sm">
+                    {m.content && <RichText text={m.content} />}
+                    {m.charts?.map((c, k) => <ChatChart key={k} c={c} tall={big} />)}
+                    {m.files?.map((f, k) => <p key={k} className="mt-1.5 text-xs font-medium text-primary">📄 {f.label} · {f.rows.toLocaleString()} แถว — ดาวน์โหลดอัตโนมัติ</p>)}
+                  </div>
             ))}
             {busy && <div className="w-fit rounded-2xl bg-ink/[.06] px-3 py-2 text-sm text-muted">กำลังคิด / ทำงาน…</div>}
             <div ref={end} />

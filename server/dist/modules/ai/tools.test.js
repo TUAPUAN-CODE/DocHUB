@@ -71,4 +71,13 @@ const tools_1 = require("./tools");
     strict_1.default.equal(withPlan(ws, p.filters, 'c', ws[2].dataSource).filters.length, 2);
     strict_1.default.deepEqual(slicerPlan([ws[2]], { from: '2026-11-17' }).unmatched, ['วันที่']);
 });
+(0, node_test_1.default)('export_data / show_chart tools are declared with the parameters the model needs', async () => {
+    const { TOOLS } = await Promise.resolve().then(() => __importStar(require('./tools')));
+    const ex = TOOLS.find((t) => t.name === 'export_data');
+    const ch = TOOLS.find((t) => t.name === 'show_chart');
+    strict_1.default.deepEqual(ex.parameters.required, ['sheetId', 'format']);
+    strict_1.default.ok(ex.parameters.properties.filters && ex.parameters.properties.columns);
+    strict_1.default.deepEqual(ch.parameters.required, ['sheetId', 'series', 'chartType', 'title']);
+    strict_1.default.ok(ch.parameters.properties.xColumnId && ch.parameters.properties.chartType.enum.includes('pareto'));
+});
 //# sourceMappingURL=tools.test.js.map

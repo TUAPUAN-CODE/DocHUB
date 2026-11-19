@@ -10,6 +10,7 @@ export interface LiveHandlers {
   onCatText: (t: string) => void;        // what the cat says (transcript, grows)
   onTurn: () => void;                    // the cat finished a turn
   onError: (m: string) => void;
+  onChart?: (c: unknown) => void;        // the model drew a chart for the chat (tool show_chart)
   onAction?: (a: unknown) => void;       // the model asked the browser to do something (open a page / present a dashboard)
   onLevel?: (v: number) => void;         // output loudness 0..1 (mouth)
 }
@@ -68,6 +69,7 @@ export async function startLive(h: LiveHandlers, opt: LiveOptions = {}) {
     let m: any; try { m = JSON.parse(String(ev.data)); } catch { return; }
     if (m.proxyError) { h.onError(m.proxyError); stop(); return; }
     if (m.action) { h.onAction?.(m.action); return; }
+    if (m.chart) { h.onChart?.(m.chart); return; }
     if (m.tool) return;
     if (m.setupComplete) { ready = true; h.onState('listening'); return; }
     const sc = m.serverContent; if (!sc) return;
