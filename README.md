@@ -187,6 +187,7 @@ Put it behind **HTTPS**, for example with IIS ARR, nginx or Caddy, and enable We
 Quality Highlight (Note การผลิต from the QUALITY HIGHLIGHT Excel, with sheet revisions, auto-filled update date/name and a lookup dashboard): [`docs/QUALITY_HIGHLIGHT.md`](docs/QUALITY_HIGHLIGHT.md) (Thai). Its REV.9 data ships in `database/seed` and is inserted once per database at start-up.
 
 Metal Detector form F3QCPF06 with the program / sensitivity tables of both plants (data shipped in `database/seed`): [`docs/METAL_DETECTOR.md`](docs/METAL_DETECTOR.md) (Thai). Admin Monitor page and Cloudflare limits: [`docs/MONITOR.md`](docs/MONITOR.md) (Thai). Menu Search finds a word in every sheet you can open.
+DelayHUB's Delay report F3PFPF67 copied every day at 05:00 (connector from `.env`), dashboard and PDF / Excel exports like DelayHUB: [`docs/DELAY_REPORT.md`](docs/DELAY_REPORT.md) (Thai).
 
 In-app manual (menu คู่มือ): step-by-step guides with annotated screenshots of the real app, printable as PDF — [`docs/GUIDE.md`](docs/GUIDE.md) (Thai).
 

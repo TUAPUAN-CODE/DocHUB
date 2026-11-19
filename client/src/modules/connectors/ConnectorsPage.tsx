@@ -45,7 +45,7 @@ export default function ConnectorsPage() {
                 <p className="truncate text-xs text-muted">{c.config.url}</p>
                 <p className={`text-xs ${c.lastStatus === 'ok' ? 'text-emerald-600' : c.lastStatus ? 'text-danger' : 'text-muted'}`}>{c.lastStatus ? `${fmtDateTime(c.lastRunAt!)} — ${c.lastMessage ?? ''}` : 'ยังไม่เคยดึง'}</p>
               </button>
-              <span className="text-xs text-muted">{SCHEDULES.find((s) => s.v === c.scheduleMin)?.t ?? `ทุก ${c.scheduleMin} นาที`}</span>
+              <span className="text-xs text-muted">{c.scheduleMin === 1440 && c.runAt ? `ทุกวัน ${c.runAt} น.` : SCHEDULES.find((s) => s.v === c.scheduleMin)?.t ?? `ทุก ${c.scheduleMin} นาที`}</span>
               <IconButton label="ดึงข้อมูลตอนนี้" onClick={() => void runNow(c)}><Play className="h-4 w-4" /></IconButton>
               <IconButton label="ลบ" onClick={() => void remove(c)}><Trash2 className="h-4 w-4" /></IconButton>
             </li>
@@ -165,7 +165,8 @@ function Editor({ initial, msReady, onClose, onSaved }: { initial: Connector; ms
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Field label="คอลัมน์คีย์ (ถ้ามีแถวเดิมที่คีย์ตรงกัน → อัปเดต, ไม่ตรง → เพิ่มใหม่)"><Select value={c.keyColumnId ?? ''} onChange={(e) => setC({ ...c, keyColumnId: e.target.value || null })}><option value="">ไม่ใช้ — เพิ่มแถวใหม่ทุกครั้ง</option>{keyOptions.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select></Field>
-                <Field label="ดึงอัตโนมัติ"><Select value={String(c.scheduleMin)} onChange={(e) => setC({ ...c, scheduleMin: Number(e.target.value) })}>{SCHEDULES.map((s) => <option key={s.v} value={s.v}>{s.t}</option>)}</Select></Field>
+                <Field label="ดึงอัตโนมัติ"><div className="flex gap-2"><Select value={String(c.scheduleMin)} onChange={(e) => setC({ ...c, scheduleMin: Number(e.target.value) })}>{SCHEDULES.map((s) => <option key={s.v} value={s.v}>{s.t}</option>)}</Select>
+                  {c.scheduleMin === 1440 && <TextInput type="time" className="w-32 shrink-0" value={c.runAt ?? ''} onChange={(e) => setC({ ...c, runAt: e.target.value || null })} title="เวลาที่ดึงทุกวัน (เว้นว่าง = 24 ชม. นับจากครั้งล่าสุด)" />}</div></Field>
               </div>
               {!c.keyColumnId && c.scheduleMin > 0 && <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">ตั้งเวลาดึงอัตโนมัติโดยไม่มีคอลัมน์คีย์ → ทุกรอบจะเพิ่มแถวซ้ำ แนะนำให้เลือกคอลัมน์คีย์</p>}
             </>

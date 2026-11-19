@@ -2,7 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MAX_ROWS = void 0;
 exports.runConnector = runConnector;
+exports.dailyDue = dailyDue;
 exports.startConnectorScheduler = startConnectorScheduler;
+const env_1 = require("../../config/env");
 const db_1 = require("../../config/db");
 const auth_1 = require("../../middleware/auth");
 const cellWriter_1 = require("../../services/cellWriter");
@@ -108,11 +110,28 @@ async function runConnector(id, opts = {}) {
         throw e;
     }
 }
+/** A daily connector (run_at 'HH:mm' in the app's time zone, APP_TZ_OFFSET_MINUTES = Thailand by default) is due once today's time has passed and it has not run since */
+function dailyDue(runAt, lastRunAt, now = new Date(), tzOffsetMin = env_1.env.tzOffsetMinutes) {
+    const m = /^(\d{2}):(\d{2})$/.exec(String(runAt ?? ''));
+    if (!m)
+        return false;
+    const local = new Date(now.getTime() + tzOffsetMin * 60_000); // the wall clock of the app's zone, read with getUTC*
+    const at = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), Number(m[1]), Number(m[2])) - tzOffsetMin * 60_000);
+    if (now < at)
+        return false;
+    return !lastRunAt || new Date(lastRunAt) < at;
+}
 /** Scheduler (runs on one server only, see services/leader.ts): every minute start the connectors that are due */
 function startConnectorScheduler() {
     const tick = async () => {
         try {
-            const due = await (0, db_1.q)(`SELECT connector_id FROM Connectors WHERE is_deleted = 0 AND schedule_min > 0 AND target_sheet_id IS NOT NULL AND (last_run_at IS NULL OR DATEADD(MINUTE, schedule_min, last_run_at) <= SYSUTCDATETIME()) AND (running_since IS NULL OR running_since < DATEADD(MINUTE, -30, SYSUTCDATETIME()))`);
+            // every N minutes (no clock time)
+            const due = await (0, db_1.q)(`SELECT connector_id FROM Connectors WHERE is_deleted = 0 AND schedule_min > 0 AND run_at IS NULL AND target_sheet_id IS NOT NULL AND (last_run_at IS NULL OR DATEADD(MINUTE, schedule_min, last_run_at) <= SYSUTCDATETIME()) AND (running_since IS NULL OR running_since < DATEADD(MINUTE, -30, SYSUTCDATETIME()))`);
+            // every day at a clock time (server local time, e.g. 05:00)
+            const daily = await (0, db_1.q)(`SELECT connector_id, run_at, last_run_at FROM Connectors WHERE is_deleted = 0 AND schedule_min > 0 AND run_at IS NOT NULL AND target_sheet_id IS NOT NULL AND (running_since IS NULL OR running_since < DATEADD(MINUTE, -30, SYSUTCDATETIME()))`);
+            for (const d of daily)
+                if (dailyDue(d.run_at, d.last_run_at))
+                    due.push(d);
             for (const d of due)
                 await runConnector(d.connector_id).catch((e) => logger_1.logger.warn(`connector ${d.connector_id}: ${e.message}`));
         }

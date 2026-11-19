@@ -4,7 +4,7 @@ export type Kind = 'http' | 'sharepoint';
 export interface SourceConfig { url: string; method: 'GET' | 'POST'; headers: Record<string, string>; body?: string; format: 'auto' | 'json' | 'csv' | 'xlsx'; jsonPath?: string; sheetName?: string; headerRow?: number }
 export interface Mapping { source: string; columnId: string }
 export interface Connector {
-  id?: string; name: string; kind: Kind; config: SourceConfig; targetSheetId: string | null; mapping: Mapping[]; keyColumnId: string | null; scheduleMin: number;
+  id?: string; name: string; kind: Kind; config: SourceConfig; targetSheetId: string | null; mapping: Mapping[]; keyColumnId: string | null; scheduleMin: number; /** 'HH:mm' with scheduleMin 1440 = every day at that time */ runAt?: string | null;
   lastRunAt?: string | null; lastStatus?: 'ok' | 'error' | 'needs_auth' | null; lastMessage?: string | null; running?: boolean; hasCredentials?: boolean;
 }
 export interface Credentials { type: 'none' | 'basic' | 'bearer' | 'header'; username?: string; password?: string; token?: string; headerName?: string }
@@ -23,7 +23,7 @@ export const connectorsApi = {
   run: (id: string) => post<RunResult>(`/connectors/${id}/run`),
   msStart: (id: string) => get<{ url: string }>(`/connectors/${id}/ms/start`),
 };
-const body = (c: Connector) => ({ name: c.name, kind: c.kind, config: c.config, targetSheetId: c.targetSheetId, mapping: c.mapping, keyColumnId: c.keyColumnId, scheduleMin: c.scheduleMin });
+const body = (c: Connector) => ({ name: c.name, kind: c.kind, config: c.config, targetSheetId: c.targetSheetId, mapping: c.mapping, keyColumnId: c.keyColumnId, scheduleMin: c.scheduleMin, runAt: c.scheduleMin === 1440 ? c.runAt || null : null });
 
 /** True when the server said the source needs a login */
 export const needsAuth = (e: unknown) => (e as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code === 'NEEDS_AUTH';

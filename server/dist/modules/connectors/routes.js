@@ -37,10 +37,11 @@ const mappingSchema = zod_1.z.array(zod_1.z.object({ source: zod_1.z.string().mi
 const bodySchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(1).max(200), kind: zod_1.z.enum(['http', 'sharepoint']), config: cfgSchema,
     targetSheetId: http_1.zId.nullish(), mapping: mappingSchema.default([]), keyColumnId: http_1.zId.nullish(), scheduleMin: zod_1.z.number().int().min(0).max(10080).default(0),
+    runAt: zod_1.z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullish(),
 });
 const map = (r) => ({
     id: r.connector_id, name: r.name, kind: r.kind, config: (0, http_1.safeJson)(r.config_json, {}), targetSheetId: r.target_sheet_id, mapping: (0, http_1.safeJson)(r.mapping_json, []), keyColumnId: r.key_column_id,
-    scheduleMin: r.schedule_min, lastRunAt: r.last_run_at, lastStatus: r.last_status, lastMessage: r.last_message, running: !!r.running_since, createdBy: r.created_by,
+    scheduleMin: r.schedule_min, runAt: r.run_at ?? null, lastRunAt: r.last_run_at, lastStatus: r.last_status, lastMessage: r.last_message, running: !!r.running_since, createdBy: r.created_by,
     hasCredentials: !!(0, secret_1.decryptJson)(r.secret_enc) && (r.kind === 'sharepoint' ? !!(0, secret_1.decryptJson)(r.secret_enc)?.msRefresh : (0, secret_1.decryptJson)(r.secret_enc)?.type !== 'none'),
 });
 async function owned(req) {
@@ -60,8 +61,8 @@ router.post('/connectors', manage, (0, http_1.ah)(async (req, res) => {
     const b = (0, http_1.parse)(bodySchema, req.body);
     if (b.targetSheetId)
         await (0, permissions_1.requireSheet)(req.user, b.targetSheetId, permissions_1.LV.write);
-    const r = await (0, db_1.q1)(`INSERT INTO Connectors (name, kind, config_json, target_sheet_id, mapping_json, key_column_id, schedule_min, created_by)
-     OUTPUT inserted.connector_id VALUES (@n, @k, @c, @t, @m, @kc, @s, @u)`, { n: b.name, k: b.kind, c: db_1.T.text(JSON.stringify(b.config)), t: db_1.T.uuid(b.targetSheetId ?? null), m: db_1.T.text(JSON.stringify(b.mapping)), kc: db_1.T.uuid(b.keyColumnId ?? null), s: db_1.T.int(b.scheduleMin), u: db_1.T.uuid(req.user.id) });
+    const r = await (0, db_1.q1)(`INSERT INTO Connectors (name, kind, config_json, target_sheet_id, mapping_json, key_column_id, schedule_min, run_at, created_by)
+     OUTPUT inserted.connector_id VALUES (@n, @k, @c, @t, @m, @kc, @s, @ra, @u)`, { n: b.name, k: b.kind, c: db_1.T.text(JSON.stringify(b.config)), t: db_1.T.uuid(b.targetSheetId ?? null), m: db_1.T.text(JSON.stringify(b.mapping)), kc: db_1.T.uuid(b.keyColumnId ?? null), s: db_1.T.int(b.scheduleMin), ra: b.scheduleMin === 1440 ? (b.runAt ?? null) : null, u: db_1.T.uuid(req.user.id) });
     await (0, audit_1.audit)({ userId: req.user.id, action: 'connector_create', entityType: 'connector', entityId: r.connector_id, newValue: { name: b.name, kind: b.kind, host: safeHost(b.config.url) } }, req);
     (0, http_1.ok)(res, { id: r.connector_id }, 201);
 }));
@@ -71,8 +72,8 @@ router.put('/connectors/:id', manage, (0, http_1.ah)(async (req, res) => {
     if (b.targetSheetId)
         await (0, permissions_1.requireSheet)(req.user, b.targetSheetId, permissions_1.LV.write);
     const urlChanged = (0, http_1.safeJson)(cur.config_json, { url: '' }).url !== b.config.url;
-    await (0, db_1.q)(`UPDATE Connectors SET name = @n, kind = @k, config_json = @c, target_sheet_id = @t, mapping_json = @m, key_column_id = @kc, schedule_min = @s,
-           secret_enc = CASE WHEN @reset = 1 THEN NULL ELSE secret_enc END WHERE connector_id = @i`, { n: b.name, k: b.kind, c: db_1.T.text(JSON.stringify(b.config)), t: db_1.T.uuid(b.targetSheetId ?? null), m: db_1.T.text(JSON.stringify(b.mapping)), kc: db_1.T.uuid(b.keyColumnId ?? null), s: db_1.T.int(b.scheduleMin), reset: db_1.T.int(urlChanged || cur.kind !== b.kind ? 1 : 0), i: db_1.T.uuid(cur.connector_id) });
+    await (0, db_1.q)(`UPDATE Connectors SET name = @n, kind = @k, config_json = @c, target_sheet_id = @t, mapping_json = @m, key_column_id = @kc, schedule_min = @s, run_at = @ra,
+           secret_enc = CASE WHEN @reset = 1 THEN NULL ELSE secret_enc END WHERE connector_id = @i`, { n: b.name, k: b.kind, c: db_1.T.text(JSON.stringify(b.config)), t: db_1.T.uuid(b.targetSheetId ?? null), m: db_1.T.text(JSON.stringify(b.mapping)), kc: db_1.T.uuid(b.keyColumnId ?? null), s: db_1.T.int(b.scheduleMin), ra: b.scheduleMin === 1440 ? (b.runAt ?? null) : null, reset: db_1.T.int(urlChanged || cur.kind !== b.kind ? 1 : 0), i: db_1.T.uuid(cur.connector_id) });
     await (0, audit_1.audit)({ userId: req.user.id, action: 'connector_update', entityType: 'connector', entityId: cur.connector_id, newValue: { name: b.name } }, req);
     (0, http_1.ok)(res, { saved: true, credentialsReset: urlChanged });
 }));

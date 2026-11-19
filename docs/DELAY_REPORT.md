@@ -1,0 +1,48 @@
+# รายงาน Delay F3PFPF67 (ข้อมูลจาก DelayHUB)
+
+ไฟล์ **Delay HUB / รายงาน Delay F3PFPF67** เก็บแถวที่ "บรรจุเสร็จ" ของ DelayHUB (หน้าดำเนินการเสร็จสิ้น) ทุกวันอัตโนมัติ —
+ดูข้อมูล / กรอง / แดชบอร์ด / ออก PDF F3PFPF67 และ Excel F3PFPV04 ได้จาก DocHUB โดยไม่ต้อง query หนักบน DelayHUB
+
+## ตั้งค่า (ครั้งเดียว)
+
+1. DelayHUB `backend/.env`: `EXPORT_API_KEY=<กุญแจยาว ≥ 16 ตัว>` → `pm2 reload PFCMv2-backend` (ดู DelayHUB `docs/EXPORT_DOCHUB.md`)
+2. DocHUB `server/.env`:
+   ```
+   DELAYHUB_URL=http://<ip ของ DelayHUB>:<port>      # วง LAN เดียวกัน
+   DELAYHUB_EXPORT_KEY=<กุญแจเดียวกับ EXPORT_API_KEY>
+   # DELAYHUB_RUN_AT=05:00     เวลาที่ดึงทุกวัน (เวลาไทย)
+   # DELAYHUB_DAYS=3           ดึงย้อนหลังกี่วัน (แถวที่แก้ทีหลังใน 3 วันจะอัปเดตตาม)
+   ```
+   → `git pull` + `pm2 restart dochub`
+
+ตอน start server สร้าง connector **"DelayHUB → รายงาน Delay F3PFPF67"** ให้เอง (เจ้าของ = admin คนแรก, กุญแจเก็บแบบเข้ารหัส) —
+ดู / กด "ดึงข้อมูลตอนนี้" ได้ที่หน้า Connectors · เปลี่ยนค่าใน .env แล้ว restart = connector อัปเดตตาม
+
+## ทำงานอย่างไร
+
+- ทุกวัน 05:00 (เวลาไทย, `APP_TZ_OFFSET_MINUTES`) connector อ่าน `GET {DELAYHUB_URL}/api/export/f3pfpf67?days=3` (header `x-export-key`)
+- แถวที่ `mapping_id` ตรงกับแถวเดิม = อัปเดต (ค่าที่ไม่เปลี่ยนไม่เขียนซ้ำ ไม่เกิดประวัติ), ไม่ตรง = เพิ่มใหม่
+- ค่าทุกช่องคำนวณที่ DelayHUB ด้วยสูตรเดียวกับหน้าเว็บของ DelayHUB (ช่วงที่ 1–4, เกินมาตรฐาน, Remark, กะ, วันทำงาน)
+- connector ทั่วไปก็ตั้ง "ทุกวัน" + เวลาได้แล้ว (ช่องเวลาข้าง "ดึงอัตโนมัติ"; เว้นว่าง = 24 ชม. นับจากครั้งล่าสุด) — คอลัมน์ `Connectors.run_at` (`database/32_connector_run_at.sql`)
+
+## คอลัมน์
+
+`mapping_id` (คีย์) · วันที่ (วันทำงาน) · กะ · ไลน์ · Code · โค้ด (Product Code) · วัตถุดิบ (Raw Mat.) · Mat · Batch · น้ำหนัก (kgs.) · ชุดที่ ·
+วันที่-เวลาเตรียม · Hist./Viscosity/Temp · สี / กลิ่น / เนื้อสัมผัส · เตรียมเสร็จ (A) · เข้า/ออกห้องเย็น 1 (B/C) · เข้า/ออกห้องเย็น 2 (D/E) · บรรจุเสร็จ (F) ·
+ช่วงที่ 1–4 (ข้อความแบบ PDF) · ช่วงที่ 1–4 (ชม.) · มาตรฐานช่วงที่ 1–4 (ชม.) · เกินมาตรฐานช่วงที่ 1–4 · เกินมาตรฐาน · กลุ่มพิเศษ · หมายเหตุ (Remark)
+(รายการเดียวกันใน `server/src/modules/delayReport/columns.ts` และ `client/src/modules/delayReport/lines.ts` — ชื่อคอลัมน์ห้ามเปลี่ยน)
+
+## ออกรายงาน
+
+ปุ่มส่งออก (ไอคอนดาวน์โหลด) ของชีตที่มีคอลัมน์ชุดนี้มีเมนูเพิ่ม:
+- **PDF — F3PFPF67 รายงาน Delay (แบบ DelayHUB)** · **Excel — F3PFPV04 รายงาน Delay (แบบ DelayHUB)**
+- ใช้แถวที่ตารางแสดงอยู่ (ตัวกรอง / ค้นหา) หรือเฉพาะแถวที่เลือก · หน้าต่างถาม Date / Shift / Line / Plant / เรียงตาม / ผู้ลงชื่อ เหมือน DelayHUB
+- วาดด้วยโค้ดเดียวกับ DelayHUB (`client/src/modules/delayReport/pdf.ts`, `excel.ts` — แก้ที่ DelayHUB แล้วต้องตามมาแก้ที่นี่)
+- แบบฟอร์ม Excel ต้นฉบับ F3PFPV04 ดึงจาก DelayHUB (`/api/delay-report/template.xlsx` เก็บสำเนาใน `UPLOAD_DIR/delayhub` วันละครั้ง)
+
+## แดชบอร์ด "Delay F3PFPF67"
+
+ตัวกรอง วันที่ · กะ · ไลน์ · Code · วัตถุดิบ · KPI จำนวนรายการ / เกินมาตรฐาน / น้ำหนักรวม / เวลาเฉลี่ยเตรียม–บรรจุ · Pareto วัตถุดิบที่เกินมาตรฐาน ·
+สัดส่วนไลน์ · จำนวนต่อวัน (เกิน / ไม่เกิน) · เวลาเฉลี่ยแต่ละช่วงตามวัตถุดิบ · เกินมาตรฐานตาม Code · รายการทั้งหมด (ค้นหาได้)
+
+ไฟล์ + แดชบอร์ดมากับ seed `database/seed/delay_report_f3pfpf67.sql` (โครงสร้างอย่างเดียว ไม่มีข้อมูล) สร้างจาก `server/scripts/buildDelayReport.ts`
