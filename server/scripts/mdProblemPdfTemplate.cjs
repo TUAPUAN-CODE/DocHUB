@@ -1,6 +1,6 @@
 /**
  * The PDF layout of "บันทึกการแก้ไขเครื่อง Metal Detector (F3QCPP28)" in the formal style of F3QCPF06: company name + address, title, document
- * number, a table with merged group headings and empty lines to write on, signatures and the document box (number / revision / page) in the footer.
+ * number, a table with merged group headings and empty lines to write on, and signatures.
  * A4 landscape, a table report of the sheet "บันทึกปัญหา" (respects the filters the user has set).
  *   node scripts/mdProblemPdfTemplate.cjs > ../database/seed/zz_md_problem_pdf.sql        (seed: adds the layout to the file once)
  *   node scripts/mdProblemPdfTemplate.cjs --json                                            (the layout only, for the designer / tests)
@@ -15,7 +15,6 @@ const COL = {
 };
 const TPL_ID = 'md-problem-f3qcpp28';
 const text = (id, t, style, mb = 1) => ({ id, type: 'text', text: t, style: { align: 'left', ...style }, marginBottom: mb });
-const box = (id, t) => ({ ...text(id, t, { fontSize: 7, lineHeight: 1.25 }, 0), border: { color: '#111827', width: 0.6, padding: 0.9 } });
 const info = (id, items, extra = {}) => ({
   id, type: 'infoRow', underline: true, gapMm: 6, lineColor: '#374151', marginBottom: 1.6,
   labelStyle: { fontSize: 8 }, valueStyle: { fontSize: 8.5, bold: true },
@@ -29,25 +28,15 @@ const T = [
 ];
 const template = {
   id: TPL_ID, name: 'F3QCPP28 บันทึกการแก้ไขเครื่อง Metal Detector (แบบฟอร์มทางการ A4 แนวนอน)', mode: 'table',
-  page: { size: 'A4', orientation: 'landscape', margins: { top: 7, right: 8, bottom: 38, left: 8 } },
+  page: { size: 'A4', orientation: 'landscape', margins: { top: 7, right: 8, bottom: 10, left: 8 } },
   base: { font: 'Sarabun', fontSize: 8.5, color: '#111827' },
   header: { enabled: false, blocks: [] },
-  footer: { enabled: true, blocks: [
-    { id: 'dc', type: 'columns', gap: 0, marginBottom: 0.6, cols: [
-      { widthPct: 34, blocks: [] },
-      { widthPct: 22, blocks: [box('d1', 'ผู้จัดทำ: \nผู้อนุมัติ: \nวันที่อนุมัติ:   19/09/26')] },
-      { widthPct: 22, blocks: [box('d2', 'หมายเลขเอกสาร: F3QCPP28\nแก้ไขครั้งที่:   0\nวันที่เริ่มใช้:   19/09/26')] },
-      { widthPct: 12, blocks: [box('d3', ' \nหน้าที่: {{page}}/{{pages}}\n ')] },
-      { widthPct: 10, blocks: [] },
-    ] },
-    text('ft', 'F3QCPP28 · พิมพ์ {{date}} {{time}} โดย {{user}}', { fontSize: 6.5, color: '#6B7280', align: 'right' }, 0),
-  ] },
+  footer: { enabled: false, blocks: [] },
   blocks: [
     { ...text('no', 'เลขที่เอกสาร: F3QCPP28', { fontSize: 8, bold: true, align: 'right' }, 0), position: { x: 235, y: 6 } },
     text('c1', 'i-Tail Corporation Public Company Limited', { fontSize: 13, bold: true, align: 'center' }, 0),
     text('c2', '333 Moo 2, Karnjanavanich Road,  Pavong Sub-district, Mueang Songkhla District, Songkhla 90100, Thailand ; TEL: 66 (0) 7430 0700 - 8  FAX: 66(0) 7430 0709', { fontSize: 7, bold: true, align: 'center' }, 0),
     text('c3', 'บันทึกการแก้ไขเครื่อง METAL DETECTOR', { fontSize: 11, bold: true, align: 'center' }, 2.5),
-    info('i1', [['วันที่พิมพ์ (Date):', '{{date}}', 20], ['จำนวนรายการ:', '{{rows}}', 15], ['ผู้พิมพ์:', '{{user}}', 30], ['ช่วงข้อมูล:', 'ตามตัวกรองที่เลือกในหน้าตาราง', 35]]),
     {
       id: 'tb', type: 'table', sheetId: SHEET.id, sheetName: SHEET.name,
       columns: T.map(([columnId, header, widthMm, align]) => ({ columnId, columnName: header, header, ...(widthMm ? { widthMm } : {}), align })),
