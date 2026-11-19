@@ -84,19 +84,28 @@ const fillSheet = (xml, rows, meta, page, pages) => {
  * rows: แถวที่จะออกรายงาน (เรียงตามต้องการแล้ว) · meta: { exportDate, exportShift, exportLine, exportPlant, recordedBy, reviewedBy, qcManager }
  * ดาวน์โหลดไฟล์ .xlsx ทันที
  */
-export const exportDelayReportExcel = async (rows: DelayLine[], meta: Record<string, string> = {}) => {
+export const exportDelayReportExcel = (rows: DelayLine[], meta: Record<string, string> = {}) => exportDelayReportExcelGroups([{ rows, meta }]);
+
+/** one workbook with several headers (e.g. one per shift / plant): every group has its own pages (17 lines each) with its own Date / Shift / Line / Plant */
+export const exportDelayReportExcelGroups = async (groups: { rows: DelayLine[]; meta: Record<string, string> }[]) => {
+  const meta = groups[0]?.meta ?? {};
+  // every page of every group: its lines, its header, "Page n / of the group"
+  const pagesAll = groups.flatMap((g) => {
+    const n = Math.max(1, Math.ceil(g.rows.length / ROWS_PER_PAGE));
+    return Array.from({ length: n }, (_, i) => ({ rows: g.rows.slice(i * ROWS_PER_PAGE, (i + 1) * ROWS_PER_PAGE), meta: g.meta, page: i + 1, pages: n }));
+  });
   const buf = new Uint8Array(await http.get('/delay-report/template.xlsx', { responseType: 'arraybuffer' }).then((r) => r.data as ArrayBuffer));
   const files = unzipSync(buf);
   const read = (p) => strFromU8(files[p]);
   const write = (p, t) => { files[p] = strToU8(t); };
 
-  const pages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+  const pages = pagesAll.length;
   const baseSheet = read('xl/worksheets/sheet1.xml');
   const baseSheetRels = read('xl/worksheets/_rels/sheet1.xml.rels');
   const baseDrawing = files['xl/drawings/drawing1.xml'];
   const baseDrawingRels = files['xl/drawings/_rels/drawing1.xml.rels'];
 
-  write('xl/worksheets/sheet1.xml', fillSheet(baseSheet, rows.slice(0, ROWS_PER_PAGE), meta, 1, pages));
+  write('xl/worksheets/sheet1.xml', fillSheet(baseSheet, pagesAll[0].rows, pagesAll[0].meta, pagesAll[0].page, pagesAll[0].pages));
 
   let workbook = read('xl/workbook.xml');
   let wbRels = read('xl/_rels/workbook.xml.rels');
@@ -108,7 +117,7 @@ export const exportDelayReportExcel = async (rows: DelayLine[], meta: Record<str
     const sheetFile = `sheet${100 + p}.xml`;
     const drawingFile = `drawing${100 + p}.xml`;
     const rid = `rIdP${p}`;
-    write(`xl/worksheets/${sheetFile}`, fillSheet(baseSheet, rows.slice((p - 1) * ROWS_PER_PAGE, p * ROWS_PER_PAGE), meta, p, pages));
+    write(`xl/worksheets/${sheetFile}`, fillSheet(baseSheet, pagesAll[p - 1].rows, pagesAll[p - 1].meta, pagesAll[p - 1].page, pagesAll[p - 1].pages));
     write(`xl/worksheets/_rels/${sheetFile}.rels`, baseSheetRels.replace('../drawings/drawing1.xml', `../drawings/${drawingFile}`));
     files[`xl/drawings/${drawingFile}`] = baseDrawing;
     files[`xl/drawings/_rels/${drawingFile}.rels`] = baseDrawingRels;
