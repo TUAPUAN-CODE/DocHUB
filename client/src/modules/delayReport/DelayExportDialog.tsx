@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { toast } from '@/store/ui';
 import { loadFontB64 } from '@/lib/pdf/fonts';
 import { DelayLine, sortLines } from './lines';
+import { plantOf } from './plants';
 
 const p2 = (n: number) => String(n).padStart(2, '0');
 const thaiDate = (ymd: string) => { if (!ymd) return ''; const [y, m, d] = ymd.split('-'); return `${d}/${m}/${Number(y) + 543}`; };
@@ -74,7 +75,7 @@ export function DelayExportDialog({ open, kind, user, loadLines, onClose }: {
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Date"><TextInput type="date" value={f.date ?? ''} onChange={set('date')} /></Field>
             <Field label="Shift (กรองแถวตามกะ)"><Select value={f.shift ?? ''} onChange={set('shift')}>{['', 'DS', 'NS'].map((s) => <option key={s} value={s}>{s || 'ทุกกะ'}</option>)}</Select></Field>
-            <Field label="Line (กรองแถวตามไลน์)"><Select value={f.line ?? ''} onChange={set('line')}><option value="">ทุกไลน์</option>{lineNames.map((l) => <option key={l} value={l}>{l}</option>)}</Select></Field>
+            <Field label="Line (กรองแถวตามไลน์)"><Select value={f.line ?? ''} onChange={(e) => { set('line')(e); const pl = plantOf(e.target.value); if (pl) setF((v) => ({ ...v, plant: pl })); }}><option value="">ทุกไลน์</option>{lineNames.map((l) => <option key={l} value={l}>{l}</option>)}</Select></Field>
             <Field label="Plant"><TextInput value={f.plant ?? ''} onChange={set('plant')} /></Field>
             <Field label="เรียงตาม"><Select value={f.sortBy ?? 'time'} onChange={set('sortBy')}><option value="time">เวลาบรรจุเสร็จ</option><option value="code">Code</option></Select></Field>
             <Field label="Recorded by"><TextInput value={f.recordedBy ?? ''} onChange={set('recordedBy')} /></Field>

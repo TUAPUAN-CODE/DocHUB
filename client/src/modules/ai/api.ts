@@ -12,7 +12,7 @@ export interface PresentFilters { from?: string; to?: string; label?: string; sl
 /** a file the browser makes for the user (tool export_data): PDF / Excel of a sheet, or the Delay report forms */
 export interface ExportAction {
   type: 'export'; format: 'pdf' | 'xlsx' | 'delay_pdf' | 'delay_xlsx'; fileId: string; fileName: string; sheetId: string; sheetName: string; label: string;
-  template?: string; title?: string; columns?: string[]; filters: ColumnFilter[]; search?: string; sorts?: { columnId: string; dir: 'asc' | 'desc' }[]; total: number;
+  template?: string; title?: string; columns?: string[]; split?: 'plant' | 'line'; filters: ColumnFilter[]; search?: string; sorts?: { columnId: string; dir: 'asc' | 'desc' }[]; total: number;
 }
 export type CatAction = { type: 'open'; to: string; label: string } | { type: 'present'; fileId: string; dashboardId: string; fullscreen: boolean; label: string; filters?: PresentFilters } | ExportAction;
 export interface PresentScript { name: string; intro: string; outro: string; script: { widgetId: string; say: string }[] }

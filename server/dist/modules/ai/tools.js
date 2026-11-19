@@ -51,6 +51,7 @@ exports.TOOLS = [
                 format: { type: 'string', enum: ['pdf', 'xlsx', 'delay_pdf', 'delay_xlsx'], description: 'pdf / xlsx = table of the rows; delay_pdf / delay_xlsx = form F3PFPF67 (PDF) / F3PFPV04 (Excel) — only for the sheet "Delay" of รายงาน Delay F3PFPF67' },
                 template: { type: 'string', description: 'name (or part of the name) of a saved PDF layout of the file; omit for the standard report' },
                 title: { type: 'string', description: 'heading of the standard PDF report' },
+                split: { type: 'string', enum: ['plant', 'line'], description: 'delay_pdf / delay_xlsx only: the form is made per day x shift x plant (default; Plant and Shift are filled in automatically, never ask the user for them); use line when the user asks for one form per line ("แยกตามไลน์")' },
                 columns: { type: 'array', items: { type: 'string' }, description: 'column ids or names to include (standard pdf / xlsx); omit for all' },
                 filters: dsParams.properties.filters, search: { type: 'string', description: 'text to search in the rows' },
                 sort: { type: 'object', properties: { columnId: { type: 'string' }, dir: { type: 'string', enum: ['asc', 'desc'] } } },
@@ -322,7 +323,7 @@ async function runTool(name, a, ctx) {
             if (!r.total)
                 return out({ ok: false, error: 'no rows match these filters — nothing to export' });
             const label = format === 'delay_pdf' ? 'PDF F3PFPF67' : format === 'delay_xlsx' ? 'Excel F3PFPV04' : format === 'pdf' ? 'PDF' : 'Excel';
-            (ctx.actions ??= []).push({ type: 'export', format, fileId: sheet.file_id, fileName: sheet.file_name, sheetId, sheetName: sheet.sheet_name, label, template: a.template ? String(a.template).slice(0, 200) : undefined, title: a.title ? String(a.title).slice(0, 200) : undefined, columns: picked, filters, search, sorts, total: r.total });
+            (ctx.actions ??= []).push({ type: 'export', format, fileId: sheet.file_id, fileName: sheet.file_name, sheetId, sheetName: sheet.sheet_name, label, template: a.template ? String(a.template).slice(0, 200) : undefined, title: a.title ? String(a.title).slice(0, 200) : undefined, columns: picked, split: a.split === 'line' ? 'line' : undefined, filters, search, sorts, total: r.total });
             return out({ ok: true, exporting: label, file: sheet.file_name, rows: r.total, note: 'the browser now builds the file and downloads it; tell the user the file is on its way (name, how many rows, which filter)' });
         }
         case 'find_items': return out(await findItems(u, needStr(a, 'query'), ['folder', 'file', 'dashboard'].includes(a.kind) ? a.kind : 'any'));

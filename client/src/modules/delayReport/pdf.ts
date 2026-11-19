@@ -26,17 +26,20 @@ export const formatDateTimeForPDF = (dateTimeStr) => {
  *           เวลา History, rm_group_id, DBS1-4, remark_dalay) · sigData: { recordedBy, reviewedBy, qcManager }
  * meta: { exportDate, exportShift, exportLine, exportPlant } → คืน jsPDF (ยังไม่บันทึก)
  */
-export const buildDelayReportPdf = (dataRows: DelayLine[], sigData: Record<string, string> = {}, meta: Record<string, string> = {}, fonts: { regular: string; bold: string }) => {
+export const buildDelayReportPdf = (dataRows: DelayLine[], sigData: Record<string, string> = {}, meta: Record<string, string> = {}, fonts: { regular: string; bold: string }, into: jsPDF | null = null) => {
   const { exportDate = '', exportShift = '', exportLine = '', exportPlant = '' } = meta;
-  const doc = new jsPDF('l', 'mm', 'a4');
+  // `into` = a document that already has pages (the next group of a report with several headers): its pages are added after them
+  const doc = into ?? new jsPDF('l', 'mm', 'a4');
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 5;
 
-  doc.addFileToVFS('Sarabun-Regular.ttf', fonts.regular);
-  doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
-  doc.addFileToVFS('Sarabun-Bold.ttf', fonts.bold);
-  doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
+  if (!into) {
+    doc.addFileToVFS('Sarabun-Regular.ttf', fonts.regular);
+    doc.addFont('Sarabun-Regular.ttf', 'Sarabun', 'normal');
+    doc.addFileToVFS('Sarabun-Bold.ttf', fonts.bold);
+    doc.addFont('Sarabun-Bold.ttf', 'Sarabun', 'bold');
+  }
   doc.setFont('Sarabun', 'normal');
   doc.setLanguage('th');
   doc.setLineWidth(0.05);
@@ -255,7 +258,7 @@ export const buildDelayReportPdf = (dataRows: DelayLine[], sigData: Record<strin
   const totalPages = Math.ceil(dataRows.length / minRows);
 
   for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-    if (pageNum > 1) doc.addPage();
+    if (pageNum > 1 || into) doc.addPage();
     drawPageHeader(pageNum, totalPages);
     drawTableHeader();
 

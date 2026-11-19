@@ -18,7 +18,7 @@ export interface PresentFilters { from?: string; to?: string; label?: string; sl
 /** a file the browser makes for the user: PDF / Excel of a sheet (the rows the AI described), or the Delay report forms F3PFPF67 / F3PFPV04 */
 export interface ExportAction {
   type: 'export'; format: 'pdf' | 'xlsx' | 'delay_pdf' | 'delay_xlsx'; fileId: string; fileName: string; sheetId: string; sheetName: string; label: string;
-  template?: string; title?: string; columns?: string[]; filters: unknown[]; search?: string; sorts?: { columnId: string; dir: 'asc' | 'desc' }[]; total: number;
+  template?: string; title?: string; columns?: string[]; split?: 'plant' | 'line'; filters: unknown[]; search?: string; sorts?: { columnId: string; dir: 'asc' | 'desc' }[]; total: number;
 }
 export type CatAction = { type: 'open'; to: string; label: string } | { type: 'present'; fileId: string; dashboardId: string; fullscreen: boolean; label: string; filters?: PresentFilters } | ExportAction;
 /** a chart (or small table) shown inside the chat — not a dashboard widget */
@@ -56,6 +56,7 @@ export const TOOLS: ToolDef[] = [
     format: { type: 'string', enum: ['pdf', 'xlsx', 'delay_pdf', 'delay_xlsx'], description: 'pdf / xlsx = table of the rows; delay_pdf / delay_xlsx = form F3PFPF67 (PDF) / F3PFPV04 (Excel) — only for the sheet "Delay" of รายงาน Delay F3PFPF67' },
     template: { type: 'string', description: 'name (or part of the name) of a saved PDF layout of the file; omit for the standard report' },
     title: { type: 'string', description: 'heading of the standard PDF report' },
+    split: { type: 'string', enum: ['plant', 'line'], description: 'delay_pdf / delay_xlsx only: the form is made per day x shift x plant (default; Plant and Shift are filled in automatically, never ask the user for them); use line when the user asks for one form per line ("แยกตามไลน์")' },
     columns: { type: 'array', items: { type: 'string' }, description: 'column ids or names to include (standard pdf / xlsx); omit for all' },
     filters: dsParams.properties.filters, search: { type: 'string', description: 'text to search in the rows' },
     sort: { type: 'object', properties: { columnId: { type: 'string' }, dir: { type: 'string', enum: ['asc', 'desc'] } } },
@@ -273,7 +274,7 @@ export async function runTool(name: string, a: Record<string, any>, ctx: Ctx): P
       const r = await queryRows(sheetId, cols, { page: 1, pageSize: 1, filters, sorts, search });
       if (!r.total) return out({ ok: false, error: 'no rows match these filters — nothing to export' });
       const label = format === 'delay_pdf' ? 'PDF F3PFPF67' : format === 'delay_xlsx' ? 'Excel F3PFPV04' : format === 'pdf' ? 'PDF' : 'Excel';
-      (ctx.actions ??= []).push({ type: 'export', format, fileId: sheet.file_id, fileName: sheet.file_name, sheetId, sheetName: sheet.sheet_name, label, template: a.template ? String(a.template).slice(0, 200) : undefined, title: a.title ? String(a.title).slice(0, 200) : undefined, columns: picked, filters, search, sorts, total: r.total });
+      (ctx.actions ??= []).push({ type: 'export', format, fileId: sheet.file_id, fileName: sheet.file_name, sheetId, sheetName: sheet.sheet_name, label, template: a.template ? String(a.template).slice(0, 200) : undefined, title: a.title ? String(a.title).slice(0, 200) : undefined, columns: picked, split: a.split === 'line' ? 'line' as const : undefined, filters, search, sorts, total: r.total });
       return out({ ok: true, exporting: label, file: sheet.file_name, rows: r.total, note: 'the browser now builds the file and downloads it; tell the user the file is on its way (name, how many rows, which filter)' });
     }
     case 'find_items': return out(await findItems(u, needStr(a, 'query'), ['folder', 'file', 'dashboard'].includes(a.kind) ? a.kind : 'any'));

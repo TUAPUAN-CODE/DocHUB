@@ -4,6 +4,7 @@ import { loadFontB64 } from '@/lib/pdf/fonts';
 import { defaultExportValues } from '@/lib/pdf/exportValues';
 import { defaultTemplate, type PdfTemplate } from '@/lib/pdf/types';
 import { isDelaySheet, sortLines, toDelayLines } from '@/modules/delayReport/lines';
+import { groupDelayLines } from '@/modules/delayReport/plants';
 import type { Row } from '@/types';
 import type { ExportAction } from './api';
 
@@ -39,19 +40,25 @@ export async function runAiExport(a: ExportAction, user: string, onStatus?: (m: 
     onStatus?.('กำลังอ่านแถว…');
     const lines = sortLines(toDelayLines(await loadRows(a), columns), 'time');
     if (!lines.length) throw new Error('ไม่มีแถวที่จะออกรายงาน');
-    const days = [...new Set(lines.map((l) => l.work_day).filter(Boolean))];
-    const ymd = days.length === 1 ? String(days[0]).slice(0, 10) : new Date().toISOString().slice(0, 10);
-    const [y, m, d] = ymd.split('-');
-    const meta = { exportDate: `${d}/${m}/${Number(y) + 543}`, exportShift: '', exportLine: [...new Set(lines.map((l) => l.line).filter(Boolean))].join(', '), exportPlant: '' };
+    // no questions asked: Plant comes from the line, Shift from the packed time (modules/delayReport/plants.ts); one block (own header + pages)
+    // for every day × shift × plant (× line when asked "แยกตามไลน์")
+    const groups = groupDelayLines(lines, a.split === 'line' ? 'line' : 'plant');
+    const thai = (ymd: string) => { if (!ymd) return ''; const [y, m, d] = ymd.split('-'); return `${d}/${m}/${Number(y) + 543}`; };
+    const metaOf = (g: (typeof groups)[number]) => ({ exportDate: thai(g.day), exportShift: g.shift, exportLine: g.line, exportPlant: g.plant });
     const sig = { recordedBy: user, reviewedBy: '', qcManager: '' };
+    const days = groups.map((g) => g.day).filter(Boolean);
+    const span = days.length ? (days[0] === days[days.length - 1] ? days[0] : `${days[0]}_${days[days.length - 1]}`) : new Date().toISOString().slice(0, 10);
+    const about = `${lines.length.toLocaleString()} แถว · ${groups.length} ชุด (วัน × กะ × โรงงาน${a.split === 'line' ? ' × ไลน์' : ''})`;
     if (a.format === 'delay_xlsx') {
-      const { exportDelayReportExcel } = await import('@/modules/delayReport/excel');
-      await exportDelayReportExcel(lines, { ...meta, ...sig });
-      return `Excel F3PFPV04 · ${lines.length.toLocaleString()} แถว`;
+      const { exportDelayReportExcelGroups } = await import('@/modules/delayReport/excel');
+      await exportDelayReportExcelGroups(groups.map((g) => ({ rows: g.rows, meta: { ...metaOf(g), ...sig } })));
+      return `Excel F3PFPV04 · ${about}`;
     }
     const [{ buildDelayReportPdf }, regular, bold] = await Promise.all([import('@/modules/delayReport/pdf'), loadFontB64('Sarabun-Regular.ttf'), loadFontB64('Sarabun-Bold.ttf')]);
-    buildDelayReportPdf(lines, sig, meta, { regular, bold }).save(`F3PFPF67_${ymd}.pdf`);
-    return `PDF F3PFPF67 · ${lines.length.toLocaleString()} แถว`;
+    let doc: Awaited<ReturnType<typeof buildDelayReportPdf>> | null = null;
+    for (const g of groups) doc = buildDelayReportPdf(g.rows, sig, metaOf(g), { regular, bold }, doc);
+    doc!.save(`F3PFPF67_${span}.pdf`);
+    return `PDF F3PFPF67 · ${about}`;
   }
 
   // the columns the AI picked (all when none)
