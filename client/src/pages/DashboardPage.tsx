@@ -1,4 +1,5 @@
 import { DragEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { todaySlicers } from '@/lib/today';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Rnd } from 'react-rnd';
 import { createPortal } from 'react-dom';
@@ -86,12 +87,20 @@ export default function DashboardPage() {
   const viewport = useRef<HTMLDivElement>(null);
   const canManage = (data?.level ?? 0) >= LV.manage;
 
+  // the dashboard we already put the "today" date filters on (not again after a reload of the same dashboard: keep what the user chose)
+  const defaulted = useRef('');
   useEffect(() => {
     if (!data) return;
     setMeta(data.dashboard);
     setWidgets(data.widgets);
     setEdit(sp.get('edit') === '1' && data.level >= LV.manage);
     setDirty(false);
+    // opening a dashboard reads only today's data: the date filters (slicers in "date" mode) start at today, set in the same render as the widgets
+    // so the first query is already the small one. A presentation asked for by the AI keeps its own period (pf) or all data.
+    if (defaulted.current !== data.dashboard.id) {
+      defaulted.current = data.dashboard.id;
+      if (sp.get('present') !== '1') setSlicers(todaySlicers(data.widgets));
+    }
   }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // the AI assistant (right bar) added widgets: reload, unless there are unsaved edits that would be lost

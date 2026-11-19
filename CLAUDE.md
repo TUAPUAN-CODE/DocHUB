@@ -60,4 +60,5 @@ DelayHUB through the connector set up from `.env`, docs/DELAY_REPORT.md). Do not
 - E-mail is optional (`Users.email` may be NULL): never assume it is there.
 - Files have a document type (`Files.doc_type`: master_data | record | NULL). Revisions also freeze the sheet's format; a `record` (form)
   issues format-only revisions. A typed file gets a first Rev automatically. See docs/NEWS_TAGS_ROOT.md → ประเภทเอกสารและ Rev.
+- A dashboard opens with its date filters (slicers in "date" mode) set to today (`lib/today.ts`, applied in the same render as the widgets so the first query is already the small one) — never load a whole history on open. A slicer opts out with `config.defaultToday = false`; a presentation (`?present=1`) keeps all data or its own `pf` period.
 - The dashboard on phones (stacked layout) brings font sizes down (`phoneSized`); keep inputs at 16 px or iPhone zooms in.

@@ -343,6 +343,7 @@ function StyleTab({ w, set }: { w: Widget; set: (p: Partial<Widget>) => void }) 
           <Field label="ชื่อที่แสดง"><TextInput value={c.label ?? ''} onChange={(e) => setC({ label: e.target.value })} placeholder="ตามชื่อคอลัมน์" /></Field>
           <Field label="ข้อความก่อนเลือก"><TextInput value={c.placeholder ?? ''} onChange={(e) => setC({ placeholder: e.target.value })} placeholder="เลือก…" /></Field>
           <Toggle checked={c.showLabel !== false} onChange={(v) => setC({ showLabel: v })} label="แสดงชื่อตัวกรอง" />
+          {(c.mode ?? 'dropdown_search') === 'date' && <Toggle checked={c.defaultToday !== false} onChange={(v) => setC({ defaultToday: v })} label="เปิดแดชบอร์ดมาแล้วตั้งเป็นวันนี้ (ดึงเฉพาะข้อมูลวันนี้ เร็วขึ้น)" />}
           <div className="space-y-2 rounded-xl border border-line p-2.5">
             <p className="text-[13px] font-medium">ตัวอักษร / สี</p>
             <div className="grid grid-cols-2 gap-2">
