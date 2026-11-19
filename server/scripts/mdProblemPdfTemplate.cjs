@@ -1,6 +1,6 @@
 /**
  * The PDF layout of "บันทึกการแก้ไขเครื่อง Metal Detector (F3QCPP28)" in the formal style of F3QCPF06: company name + address, title, document
- * number, a table with merged group headings and empty lines to write on, and signatures.
+ * number, a table with merged group headings and empty lines to write on.
  * A4 landscape, a table report of the sheet "บันทึกปัญหา" (respects the filters the user has set).
  *   node scripts/mdProblemPdfTemplate.cjs > ../database/seed/zz_md_problem_pdf.sql        (seed: adds the layout to the file once)
  *   node scripts/mdProblemPdfTemplate.cjs --json                                            (the layout only, for the designer / tests)
@@ -49,8 +49,7 @@ const template = {
       showRowNumber: true, rowNumberHeader: 'ลำดับ', repeatHeader: true, useCurrentFilters: true, imageSizeMm: 10, maxImagesPerCell: 1,
       summary: [], summaryLabel: '', marginBottom: 2,
     },
-    text('r1', 'หมายเหตุ: กรณีเครื่อง Metal Detector ไม่ detect Test piece หรือพบปัญหาที่กระทบการตรวจจับ ให้แจ้ง QC Section Manager และบันทึกการแก้ไขพร้อมผลการทดสอบ Sensitivity ซ้ำหลังแก้ไขทุกครั้ง', { fontSize: 7, lineHeight: 1.2 }, 2),
-    info('sg', [['ผู้บันทึก (Recorded By):', '', 34], ['ผู้ตรวจสอบ (Checked By):', '', 33], ['ผู้อนุมัติ (Reviewed By):', '', 33]], { gapMm: 10, marginBottom: 0 }),
+    text('r1', 'หมายเหตุ: กรณีเครื่อง Metal Detector ไม่ detect Test piece หรือพบปัญหาที่กระทบการตรวจจับ ให้แจ้ง QC Section Manager และบันทึกการแก้ไขพร้อมผลการทดสอบ Sensitivity ซ้ำหลังแก้ไขทุกครั้ง', { fontSize: 7, lineHeight: 1.2 }, 0),
   ],
   watermark: { enabled: false, text: '', color: '#9CA3AF', opacity: 0.15, size: 90, angle: -35 },
   lockEditing: false,
