@@ -8,6 +8,8 @@ import net from 'net';
  */
 const blockPrivate = ['1', 'true', 'yes'].includes(String(process.env.CONNECTOR_BLOCK_PRIVATE ?? '').toLowerCase());
 const MAX_BYTES = (Number(process.env.CONNECTOR_MAX_MB) || 50) * 1024 * 1024;
+/** how long to wait for the other system's answer (a big first pull, e.g. 62 days of DelayHUB, can take minutes) */
+const TIMEOUT_MS = (Number(process.env.CONNECTOR_TIMEOUT_SEC) || 300) * 1000;
 
 function badAddress(ip: string): boolean {
   if (net.isIPv4(ip)) {
@@ -34,12 +36,12 @@ export async function assertAllowedUrl(raw: string): Promise<URL> {
 
 export interface FetchedBody { status: number; headers: Headers; body: Buffer; finalUrl: string }
 
-/** Follows up to 5 redirects, re-checking every hop; aborts after 60 s or MAX_BYTES */
+/** Follows up to 5 redirects, re-checking every hop; aborts after CONNECTOR_TIMEOUT_SEC (300 s) or MAX_BYTES */
 export async function safeFetch(url: string, init: { method?: string; headers?: Record<string, string>; body?: string } = {}): Promise<FetchedBody> {
   let cur = url;
   for (let hop = 0; hop < 6; hop++) {
     const u = await assertAllowedUrl(cur);
-    const r = await fetch(u, { method: init.method ?? 'GET', headers: init.headers, body: hop === 0 ? init.body : undefined, redirect: 'manual', signal: AbortSignal.timeout(60_000) });
+    const r = await fetch(u, { method: init.method ?? 'GET', headers: init.headers, body: hop === 0 ? init.body : undefined, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS) });
     if (r.status >= 300 && r.status < 400 && r.headers.get('location')) {
       cur = new URL(r.headers.get('location')!, u).toString();
       // never forward credentials to another host
