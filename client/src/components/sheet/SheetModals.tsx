@@ -143,7 +143,7 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
           )}
           <div className="grid max-h-[58vh] gap-4 overflow-y-auto pr-1" style={{ gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))` }}>
             {fields.map(({ col: c, span }, i) => {
-              const scannable = canWrite && !isReadOnlyCol(c) && SCANNABLE.has(c.dataType);
+              const scannable = canWrite && !isReadOnlyCol(c) && SCANNABLE.has(c.dataType) && c.validation?.inputAs !== 'time';
               const group = c.dataType === 'select' && canWrite ? c.validation?.formGroup?.trim() : '';
               const members = group ? fields.filter((f) => f.col.dataType === 'select' && f.col.validation?.formGroup?.trim() === group).map((f) => f.col) : [];
               const first = members.length > 1 && members[0].id === c.id;

@@ -20,6 +20,11 @@ export function FieldInput({ col, value, onChange, invalid, autoFocus, rowValues
   const options = lk.isLookup ? (lk.options ?? []).map((v) => ({ value: v, label: v, color: null as string | null })) : col.options ?? [];
   const showEmpty = !col.isRequired && col.validation?.allowEmpty !== false;
   const emptyHint = lk.isLookup ? (lk.loading ? 'กำลังโหลดตัวเลือก…' : lk.needsParent ? 'เลือกคอลัมน์ที่เชื่อมโยงก่อน' : !options.length ? 'ไม่มีตัวเลือกในตารางต้นทาง' : null) : null;
+  if (col.dataType === 'varchar' && col.validation?.inputAs === 'time') {
+    // time picker (HH:mm); the cell keeps the factory's way of writing it: 19.50
+    const shown = String(value ?? '').replace('.', ':').replace(/^(\d):/, '0$1:');
+    return <TextInput type="time" step={60} value={/^\d{2}:\d{2}$/.test(shown) ? shown : ''} onChange={(e) => onChange(e.target.value ? e.target.value.replace(':', '.') : null)} invalid={invalid} autoFocus={autoFocus} />;
+  }
   switch (col.dataType) {
     case 'text':
       return <TextArea rows={3} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={ph} invalid={invalid} autoFocus={autoFocus} maxLength={col.validation?.maxLength ?? undefined} />;

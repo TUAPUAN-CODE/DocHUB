@@ -183,6 +183,10 @@ function ColumnDetails({ c, set, siblings, fileId, fileName, sheetId, onAddDraft
           </Field>
         );
       })()}
+      {c.dataType === 'varchar' && !v.formula && (
+        <Toggle checked={v.inputAs === 'time'} onChange={(x) => setV({ inputAs: x ? 'time' : null })}
+          label={<span>ช่องเวลา — เลือกชั่วโมง:นาทีจากตัวเลือกเวลา <span className="text-xs text-muted">(เก็บเป็น 19.50)</span></span>} />
+      )}
       {c.dataType === 'select' && !v.lookup && (
         <Field label="กลุ่มตั้งพร้อมกันในฟอร์ม (ไม่บังคับ)" hint="คอลัมน์ dropdown ที่ตั้งชื่อกลุ่มเหมือนกัน จะมีแถบ “ตั้งทุกช่องพร้อมกัน” ในฟอร์มเพิ่มแถว — แก้แต่ละช่องทีหลังได้">
           <TextInput value={v.formGroup ?? ''} onChange={(e) => setV({ formGroup: e.target.value || null })} placeholder="เช่น ผลการตรวจ" />
