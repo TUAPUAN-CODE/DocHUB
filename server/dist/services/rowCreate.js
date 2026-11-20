@@ -9,6 +9,7 @@ const cellWriter_1 = require("./cellWriter");
 const docNumber_1 = require("./docNumber");
 const hooks_1 = require("./hooks");
 const lookup_1 = require("./lookup");
+const sheetSettings_1 = require("./sheetSettings");
 void cellValue_1.normalizeValue;
 void lookup_1.getLookup;
 /**
@@ -51,6 +52,7 @@ async function createRowTx(tx, user, sheet, sheetId, values, source, req) {
     if (Object.keys(fieldErrors).length)
         throw (0, http_1.badRequest)(Object.values(fieldErrors)[0], { fields: fieldErrors });
     const o = await (0, db_1.q1)(`SELECT ISNULL(MAX(row_order), 0) + 1 AS o FROM Rows WITH (UPDLOCK, HOLDLOCK) WHERE sheet_id = @s`, { s: db_1.T.uuid(sheetId) }, tx);
+    await (0, sheetSettings_1.assertRowRoom)(sheetId, 1, tx);
     const r = await (0, db_1.q1)(`INSERT INTO Rows (sheet_id, row_order, created_by, updated_by) OUTPUT inserted.row_id VALUES (@s, @o, @u, @u)`, { s: db_1.T.uuid(sheetId), o: db_1.T.int(o.o), u: db_1.T.uuid(user.id) }, tx);
     for (const g of docGen) {
         const [num] = await (0, docNumber_1.nextDocNumbers)(tx, sheetId, g.def, g.cfg, [{ prefix: g.prefix, date: g.date }]);

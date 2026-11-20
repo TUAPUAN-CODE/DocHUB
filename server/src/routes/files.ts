@@ -4,7 +4,7 @@ import { isBasicRole } from '../middleware/auth';
 import { z } from 'zod';
 import { q, q1, T, withTx, Tx } from '../config/db';
 import { audit } from '../shared/audit';
-import { ah, AppError, badRequest, forbidden, likeEscape, notFound, ok, parse, pid, zColor, zId } from '../shared/http';
+import { ah, AppError, badRequest, forbidden, likeEscape, notFound, ok, parse, pid, safeJson, zColor, zId } from '../shared/http';
 import { mapFile, mapSheet } from '../shared/mappers';
 import { LV, PermCtx, requireFile, requireFolder } from '../shared/permissions';
 import { sheetInput } from '../shared/schemas';
@@ -202,6 +202,10 @@ async function copySheetFull(tx: Tx, oldSheetId: string, newFileId: string, orde
     { old: T.uuid(oldSheetId), new: T.uuid(newSheetId), u: T.uuid(userId) },
     tx,
   );
+  // settings that belong to the sheet itself (the modules' copy hooks below re-point their column ids to the copy's columns): scan formats,
+  // form layout, "one row only", and the columns hidden from the grid. Others (time links, lines…) point to other sheets and are handled elsewhere.
+  const srcSettings = safeJson<Record<string, unknown>>(s!.settings_json, {}) ?? {};
+  for (const k of ['scanProfiles', 'formLayout', 'singleRow', 'hiddenColumnIds']) if (srcSettings[k] !== undefined) await writeSettingsKey(newSheetId, k, srcSettings[k], tx);
   await runAfterSheetCopied({ tx, oldSheetId, newSheetId, columnMap: colMap as { old_id: string; new_id: string }[] });
   let rowMap: { old_id: string; new_id: string }[] = [];
   if (includeData) {

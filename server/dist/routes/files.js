@@ -151,6 +151,12 @@ async function copySheetFull(tx, oldSheetId, newFileId, order, userId, includeDa
      VALUES (@new, src.column_name, src.data_type, src.display_order, src.width, src.is_required, src.default_value, src.placeholder,
        src.validation_rule, src.select_options, src.description, @u)
      OUTPUT src.column_id AS old_id, inserted.column_id AS new_id;`, { old: db_1.T.uuid(oldSheetId), new: db_1.T.uuid(newSheetId), u: db_1.T.uuid(userId) }, tx);
+    // settings that belong to the sheet itself (the modules' copy hooks below re-point their column ids to the copy's columns): scan formats,
+    // form layout, "one row only", and the columns hidden from the grid. Others (time links, lines…) point to other sheets and are handled elsewhere.
+    const srcSettings = (0, http_1.safeJson)(s.settings_json, {}) ?? {};
+    for (const k of ['scanProfiles', 'formLayout', 'singleRow', 'hiddenColumnIds'])
+        if (srcSettings[k] !== undefined)
+            await (0, sheetSettings_1.writeSettingsKey)(newSheetId, k, srcSettings[k], tx);
     await (0, hooks_1.runAfterSheetCopied)({ tx, oldSheetId, newSheetId, columnMap: colMap });
     let rowMap = [];
     if (includeData) {

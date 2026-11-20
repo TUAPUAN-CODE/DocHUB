@@ -8,6 +8,7 @@ import { DocNumberCfg, docDate, docPrefixes, getDocCfg, interpretDocRaw, nextDoc
 import { columnWriteBlockedReason, runAfterCellsWritten } from './hooks';
 import { getLookup, lookupResolver, normalizeWithLookup, parentValueOf } from './lookup';
 import type { Request } from 'express';
+import { assertRowRoom } from './sheetSettings';
 
 void normalizeValue; void getLookup;
 
@@ -42,6 +43,7 @@ export async function createRowTx(tx: Tx, user: AuthUser, sheet: { file_id: stri
   if (Object.keys(fieldErrors).length) throw badRequest(Object.values(fieldErrors)[0], { fields: fieldErrors });
 
   const o = await q1(`SELECT ISNULL(MAX(row_order), 0) + 1 AS o FROM Rows WITH (UPDLOCK, HOLDLOCK) WHERE sheet_id = @s`, { s: T.uuid(sheetId) }, tx);
+  await assertRowRoom(sheetId, 1, tx);
   const r = await q1(`INSERT INTO Rows (sheet_id, row_order, created_by, updated_by) OUTPUT inserted.row_id VALUES (@s, @o, @u, @u)`,
     { s: T.uuid(sheetId), o: T.int(o!.o), u: T.uuid(user.id) }, tx);
   for (const g of docGen) {

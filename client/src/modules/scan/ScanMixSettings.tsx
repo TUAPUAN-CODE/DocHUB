@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Segmented, Select, TextInput, Toggle } from '@/components/ui/Inputs';
 import { Modal } from '@/components/ui/Modal';
 import { linesApi, scanApi, splitScan } from './api';
+import { sheetsApi } from '@/api/endpoints';
 
 const newProfile = (): ScanProfile => ({ id: Math.random().toString(36).slice(2, 10), name: 'รูปแบบใหม่', delimiter: '|', match: null, fields: [], action: 'create', keyColumnId: null, onMiss: 'reject' });
 const num = (c: Column) => c.dataType === 'int' || c.dataType === 'float';
@@ -25,11 +26,13 @@ export function ScanMixSettings({ open, onClose, sheetId, columns, settings, onS
   const [profiles, setProfiles] = useState<ScanProfile[]>([]);
   const [mix, setMix] = useState<MixCfg | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) { setProfiles(structuredClone(settings?.scanProfiles ?? [])); setMix(settings?.mix ? structuredClone(settings.mix) : null); setLines(settings?.lines ? structuredClone(settings.lines) : null); setTimeLinks(structuredClone(settings?.timeLinks ?? [])); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [single, setSingle] = useState(false);
+  useEffect(() => { if (open) { setSingle(!!settings?.singleRow); setProfiles(structuredClone(settings?.scanProfiles ?? [])); setMix(settings?.mix ? structuredClone(settings.mix) : null); setLines(settings?.lines ? structuredClone(settings.lines) : null); setTimeLinks(structuredClone(settings?.timeLinks ?? [])); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async () => {
     setBusy(true);
     try {
+      if (single !== !!settings?.singleRow) await sheetsApi.saveSettings(sheetId, { singleRow: single });
       await scanApi.saveProfiles(sheetId, profiles);
       await scanApi.saveMix(sheetId, mix?.deductColumnId ? mix : null);
       await linesApi.save(sheetId, lines?.lineSheetId ? lines : null);
@@ -41,6 +44,7 @@ export function ScanMixSettings({ open, onClose, sheetId, columns, settings, onS
     <Modal open={open} onClose={onClose} size="xl" icon={<ScanLine className="h-5 w-5" />} title="ตั้งค่าสแกน QR / การผสม ของชีตนี้"
       footer={<><Button variant="secondary" onClick={onClose}>ยกเลิก</Button><Button onClick={save} loading={busy}>บันทึก</Button></>}>
       <div className="space-y-4">
+        <Toggle checked={single} onChange={setSingle} label={<span><b>ชีตนี้เก็บได้แถวเดียว</b> (1 ไฟล์ = 1 เอกสาร) <span className="text-xs text-muted">— เพิ่มแถวที่ 2 ไม่ได้ ถ้าจะทำเอกสารใหม่ให้ทำสำเนาไฟล์</span></span>} />
         <Segmented value={tab} onChange={setTab} options={[{ value: 'scan', label: 'รูปแบบ QR' }, { value: 'mix', label: 'การผสม / ตัดน้ำหนัก' }, { value: 'lines', label: 'รายการในแถว (รถเข็น)' }, { value: 'time', label: 'เชื่อมตามเวลา (ย้อนรอย)' }]} />
         {tab === 'scan' ? (
           <div className="space-y-3">
