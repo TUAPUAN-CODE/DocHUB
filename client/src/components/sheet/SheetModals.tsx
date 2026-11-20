@@ -22,6 +22,7 @@ import { DateTimeInput } from '../ui/DateTimeInput';
 import { FieldInput } from './FieldInput';
 import { ImageGallery, toUrls } from './ImageCell';
 import { dependentsOf } from '@/lib/lookup';
+import { autoFillValue } from '@/lib/autoFill';
 
 const SOURCE: Record<string, string> = { edit: 'แก้ไข', create: 'สร้าง', paste: 'วาง', rollback: 'ย้อนค่า', type_change: 'แปลงชนิด', undo: 'ย้อนกลับ', fill: 'เติม' };
 
@@ -46,7 +47,7 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
   const hasScan = !!settings?.scanProfiles?.length && canWrite;
   const init = () => {
     const v: Record<string, CellValue> = {};
-    columns.forEach((c) => { v[c.id] = row ? row.values[c.id] ?? null : initial?.[c.id] ?? c.defaultValue ?? null; });
+    columns.forEach((c) => { v[c.id] = row ? row.values[c.id] ?? null : initial?.[c.id] ?? c.defaultValue ?? autoFillValue(c); });
     setValues(v);
     setErrors({});
     setScanField(null);
