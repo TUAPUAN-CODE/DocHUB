@@ -33,7 +33,7 @@ const T = [
   ['45baa0b4-2dba-4194-9ea7-68ccc1249731', 'SUS', 'SUS', 6], ['245e1376-26f6-40fd-b877-68207302d02b', 'Large test piece', 'Large test piece', 8],
   ['99d0f90a-abe2-4760-a916-bb3eb0575bd3', 'ความถี่ (F)', '(F)', 9, true],
   ['10e43d48-a512-443f-834d-559e489283b1', 'โปรแกรม / Sensitivity', '/ Sensitivity', 24],
-  ['51a77598-947c-4ce9-b3ac-fd9345854f1d', 'Code / วัตถุดิบ / Batch no.', 'Code / วัตถุดิบ / Batch no.', 20],
+  ['51a77598-947c-4ce9-b3ac-fd9345854f1d', 'Code / วัตถุดิบ / Batch no.', 'Code / วัตถุดิบ / Batch no.', 20], // split into 5 columns later by seed zz_md_f3qcpf06_split_code.sql — do not regenerate the older seeds
   ['40dceddf-59dc-409a-bb32-45d7e1f5f8db', 'Result (Detect / Not detect)', 'Result (Detect / Not detect)', 11],
   ['f198dabd-17f8-4859-a3dd-06df2bedade6', 'รอบ A ครั้งที่ 1', 'ครั้งที่ 1', 6.5], ['1752a73d-a950-4e0d-87e8-c1260e8b87ef', 'รอบ A ครั้งที่ 2', 'ครั้งที่ 2', 6.5],
   ['9912e4a5-056e-4645-a662-e5df32138022', 'Object', 'Object', 9.5],

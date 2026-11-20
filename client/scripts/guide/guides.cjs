@@ -1147,7 +1147,8 @@ module.exports = [
           const prog = p.getByText('038 Chunk PET-01 (Fe 3.5 / SUS 6.0)', { exact: true }).last();
           await r.shot({ title: 'เลือกโปรแกรม / Sensitivity', text: 'รายการแสดง**เฉพาะโปรแกรมของเครื่องที่เลือก** พร้อมค่าที่ควบคุม (Fe / SUS หรือ ML1-ML4) มาจากตาราง Program และค่า Sensitivity', marks: [{ el: prog, label: 'โปรแกรม + ค่า Fe / SUS', place: 'right' }] });
           await prog.click(); await r.settle(300);
-          await ctl(fld(f, 'Code / วัตถุดิบ / Batch no.')).fill('Chunk C11201G9JN');
+          await ctl(fld(f, 'Code')).fill('C11201G9JN');
+          await ctl(fld(f, 'วัตถุดิบ')).fill('Chunk');
           await ctl(fld(f, 'Checked By')).scrollIntoViewIfNeeded();
           await choose(r, ctl(fld(f, 'Checked By')), 'สมหญิง ขยันงาน');
           const saveLine = role(f, 'button', 'เพิ่มแถว');

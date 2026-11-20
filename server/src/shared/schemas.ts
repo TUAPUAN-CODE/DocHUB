@@ -23,6 +23,8 @@ export const validationSchema = z
     allowEmpty: z.boolean().nullish(),
     /** filled by the server whenever the row changes: today's date (date columns) / the editor's name (text columns) */
     autoStamp: z.enum(['updatedAt', 'updatedBy']).nullish(),
+    /** a new row's form starts with today's date / the time now (HH.mm) / the shift of the time now (D/S · N/S options) — the user may change it */
+    autoFill: z.enum(['today', 'now', 'shift']).nullish(),
     formula: z.object({ expr: z.string().trim().min(1).max(2000), sources: z.array(z.object({ alias: z.string().trim().min(1).max(40), sheetId: z.string().max(60) })).max(10).optional() }).nullish(),
     alert: z
       .object({
@@ -127,6 +129,10 @@ export function checkColumnInput(input: ColumnInput) {
   if (validation.autoStamp) {
     const ok = validation.autoStamp === 'updatedAt' ? ['date', 'datetime'].includes(input.dataType) : ['varchar', 'text'].includes(input.dataType);
     if (!ok) throw badRequest(validation.autoStamp === 'updatedAt' ? `"${input.name}": เติมวันที่อัตโนมัติได้เฉพาะคอลัมน์วันที่` : `"${input.name}": เติมชื่อผู้แก้ไขอัตโนมัติได้เฉพาะคอลัมน์ข้อความ`);
+  }
+  if (validation.autoFill) {
+    const ok = validation.autoFill === 'shift' ? input.dataType === 'select' : validation.autoFill === 'today' ? input.dataType === 'date' : ['varchar', 'datetime'].includes(input.dataType);
+    if (!ok) throw badRequest(`"${input.name}": เติมค่าเริ่มต้นอัตโนมัติ (${validation.autoFill}) ใช้กับชนิดคอลัมน์นี้ไม่ได้`);
   }
   if (validation.pattern) {
     try {

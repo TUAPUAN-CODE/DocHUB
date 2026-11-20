@@ -172,6 +172,17 @@ function ColumnDetails({ c, set, siblings, fileId, fileName, sheetId, onAddDraft
           <FieldInput col={{ ...c, placeholder: 'ไม่มี', options: c.options ?? [], validation: v } as any} value={c.defaultValue ?? null} onChange={(d) => set({ defaultValue: d })} />
         </Field>
       )}
+      {(c.dataType === 'date' || c.dataType === 'datetime' || c.dataType === 'varchar' || c.dataType === 'select') && !v.formula && !v.lookup && !v.autoStamp && (() => {
+        // what the form of a NEW row starts with (the user may change it): date → today · date-time / text → the time now · select → the shift of the time now
+        const opts: [string, string][] = c.dataType === 'date' ? [['today', 'วันที่วันนี้']] : c.dataType === 'select' ? [['shift', 'กะตามเวลาปัจจุบัน (06:00–17:30 = ตัวเลือกขึ้นต้น D · นอกนั้น N)']] : [['now', c.dataType === 'datetime' ? 'วันที่และเวลาปัจจุบัน' : 'เวลาปัจจุบัน (รูปแบบ 19.50)']];
+        return (
+          <Field label="เติมให้อัตโนมัติเมื่อเพิ่มแถวใหม่" hint="ช่องเริ่มต้นด้วยค่านี้ ผู้ใช้แก้เองได้ — ใช้แทนค่าเริ่มต้นแบบตายตัวด้านบน">
+            <Select value={v.autoFill ?? ''} onChange={(e) => setV({ autoFill: (e.target.value || null) as any })}>
+              <option value="">ไม่เติม</option>{opts.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </Select>
+          </Field>
+        );
+      })()}
       <Field label="ความกว้างเริ่มต้น (px)"><TextInput inputMode="numeric" value={c.width} onChange={(e) => set({ width: Math.max(40, Math.min(1200, Number(e.target.value) || 40)) })} /></Field>
     </div>
   );
