@@ -157,11 +157,11 @@ async function main() {
   const lines = ff.sheets.find((s: any) => s.name === 'รายการตรวจ');
   const ld = await call('GET', `/sheets/${lines.id}`);
   const lid = (n: string) => ld.columns.find((c: any) => c.name === n).id;
-  // program drop-down: only the programs of the line's machine
+  // program drop-down: every program of every machine (seed zz_md_f3qcpf06_program_all.sql dropped the filter by the line's machine)
   const prog = await call('POST', `/sheets/${lines.id}/columns`, {
     name: LABEL, dataType: 'select', width: 260, insertAt: 9,
-    description: 'ตัวเลือกจากตาราง Program และค่า Sensitivity (เฉพาะเครื่องที่เลือก)',
-    validation: { lookup: { sheetId: union.id, columnId: uid(LABEL), parent: { localColumnId: lid('หมายเลขเครื่อง'), foreignColumnId: uid('หมายเลขเครื่อง') } } },
+    description: 'ตัวเลือกจากตาราง Program และค่า Sensitivity (ทุกโปรแกรม)',
+    validation: { lookup: { sheetId: union.id, columnId: uid(LABEL), parent: null } },
   });
   const show = ['เวลา', 'Fe', 'Non Fe', 'SUS', 'Large test piece', 'ความถี่ (F)', LABEL, 'Code', 'วัตถุดิบ', 'วัตถุดิบ 2X', 'Batch', 'Batch 2X', 'Result (Detect / Not detect)', 'สรุปผล', 'MD Detect (NG)', 'Checked By'];
   const ld2 = await call('GET', `/sheets/${lines.id}`);
