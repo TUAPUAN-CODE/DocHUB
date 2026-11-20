@@ -259,7 +259,8 @@ export function useSheetView(sheetId: string | null) {
     };
   }, [sheetId, patchRows, loadDetail]);
 
-  const columns: Column[] = useMemo(() => (detail?.columns ?? []).filter((c) => !prefs.hiddenCols.includes(c.id)), [detail, prefs.hiddenCols]);
+  const sheetHidden = detail?.settings?.hiddenColumnIds;
+  const columns: Column[] = useMemo(() => (detail?.columns ?? []).filter((c) => !prefs.hiddenCols.includes(c.id) && !sheetHidden?.includes(c.id)), [detail, prefs.hiddenCols, sheetHidden]);
   const rows: Row[] = page?.rows ?? [];
 
   return {

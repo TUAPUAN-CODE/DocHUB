@@ -66,7 +66,9 @@ export interface TimeLinkCfg {
   bStartColumnId: string; bEndColumnId?: string | null; bKeyColumnId?: string | null;
   toleranceMin?: number | null; windowHours?: number | null;
 }
-export interface SheetSettings { timeLinks?: TimeLinkCfg[]; filterColumns?: string[] | null; scanProfiles?: ScanProfile[]; mix?: MixCfg; lines?: LinesCfg; formLayout?: FormLayout }
+export interface SheetSettings { timeLinks?: TimeLinkCfg[]; filterColumns?: string[] | null; scanProfiles?: ScanProfile[]; mix?: MixCfg; lines?: LinesCfg; formLayout?: FormLayout;
+  /** columns every viewer's grid leaves out (they stay in the data and in forms' initial values), e.g. the line sheet's date / machine that the document header already has */
+  hiddenColumnIds?: string[] }
 export interface SheetDetail {
   union?: UnionStatus | null;
   settings?: SheetSettings;
