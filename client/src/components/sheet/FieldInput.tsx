@@ -2,7 +2,7 @@ import { Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { fromLocalInput, toLocalInput } from '@/lib/format';
 import type { CellValue, Column } from '@/types';
-import { TextArea, TextInput, Toggle } from '../ui/Inputs';
+import { Select, TextArea, TextInput, Toggle } from '../ui/Inputs';
 import { DateTimeInput } from '../ui/DateTimeInput';
 import { SearchSelect } from '../ui/SearchSelect';
 import { searchLookupOptions, useLookupOptions, parentValueFor } from '@/lib/lookup';
@@ -20,11 +20,7 @@ export function FieldInput({ col, value, onChange, invalid, autoFocus, rowValues
   const options = lk.isLookup ? (lk.options ?? []).map((v) => ({ value: v, label: v, color: null as string | null })) : col.options ?? [];
   const showEmpty = !col.isRequired && col.validation?.allowEmpty !== false;
   const emptyHint = lk.isLookup ? (lk.loading ? 'กำลังโหลดตัวเลือก…' : lk.needsParent ? 'เลือกคอลัมน์ที่เชื่อมโยงก่อน' : !options.length ? 'ไม่มีตัวเลือกในตารางต้นทาง' : null) : null;
-  if (col.dataType === 'varchar' && col.validation?.inputAs === 'time') {
-    // time picker (HH:mm); the cell keeps the factory's way of writing it: 19.50
-    const shown = String(value ?? '').replace('.', ':').replace(/^(\d):/, '0$1:');
-    return <TextInput type="time" step={60} value={/^\d{2}:\d{2}$/.test(shown) ? shown : ''} onChange={(e) => onChange(e.target.value ? e.target.value.replace(':', '.') : null)} invalid={invalid} autoFocus={autoFocus} />;
-  }
+  if (col.dataType === 'varchar' && col.validation?.inputAs === 'time') return <Time24 value={value} onChange={onChange} invalid={invalid} autoFocus={autoFocus} />;
   switch (col.dataType) {
     case 'text':
       return <TextArea rows={3} value={(value as string) ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={ph} invalid={invalid} autoFocus={autoFocus} maxLength={col.validation?.maxLength ?? undefined} />;
@@ -81,4 +77,24 @@ export function FieldInput({ col, value, onChange, invalid, autoFocus, rowValues
       return <TextInput type={col.dataType === 'email' ? 'email' : col.dataType === 'url' ? 'url' : 'text'} value={(value as string) ?? ''} placeholder={ph}
         onChange={(e) => onChange(e.target.value)} invalid={invalid} autoFocus={autoFocus} maxLength={col.validation?.maxLength ?? undefined} />;
   }
+}
+
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+/** 24-hour time (00–23 : 00–59), never AM / PM whatever the computer's language; the cell keeps the factory's way of writing it: 19.50 */
+function Time24({ value, onChange, invalid, autoFocus }: { value: CellValue | undefined; onChange: (v: CellValue) => void; invalid?: boolean; autoFocus?: boolean }) {
+  const m = /^(\d{1,2})[.:](\d{2})$/.exec(String(value ?? '').trim());
+  const hh = m ? m[1].padStart(2, '0') : '', mm = m ? m[2] : '';
+  const set = (h: string, n: string) => onChange(h || n ? `${h || '00'}.${n || '00'}` : null);
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={hh} onChange={(e) => set(e.target.value, mm)} className={invalid ? '!border-danger' : ''} autoFocus={autoFocus} aria-label="ชั่วโมง">
+        <option value="">ชม.</option>{HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+      </Select>
+      <span className="font-semibold">:</span>
+      <Select value={mm} onChange={(e) => set(hh, e.target.value)} className={invalid ? '!border-danger' : ''} aria-label="นาที">
+        <option value="">นาที</option>{MINUTES.map((n) => <option key={n} value={n}>{n}</option>)}
+      </Select>
+    </div>
+  );
 }

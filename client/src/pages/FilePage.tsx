@@ -116,12 +116,13 @@ export default function FilePage() {
     if (!draftHeader) return null;
     const byName = new Map(draftHeader.cols.map((c) => [c.name.trim().toLowerCase(), c]));
     const values: Record<string, CellValue> = {};
-    for (const c of view.columns) {
+    for (const c of view.allColumns) { // also the columns the sheet hides (date / shift / machine come from the document)
       const h = byName.get(c.name.trim().toLowerCase());
       if (h && h.dataType === c.dataType && !isReadOnlyCol(c)) values[c.id] = (draftHeader.row.values[h.id] ?? null) as CellValue;
     }
     return { key: `${draftHeader.row.id}:${draftSaved}`, values };
-  }, [draftHeader, draftSaved, view.columns]);
+  }, [draftHeader, draftSaved, view.allColumns]);
+  const [formAfterPick, setFormAfterPick] = useState(false);
   const addLine = async (values: Record<string, CellValue>) => {
     if (!headerSheet || !draftHeader || !sheetId) return null;
     const r = await view.addRow(values);
@@ -397,7 +398,7 @@ export default function FilePage() {
             {/* phones: one row that scrolls sideways (labels shortened to icons) instead of three rows over the data */}
             <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line px-2 py-1.5 sm:flex-wrap sm:gap-2 sm:overflow-visible sm:px-3 sm:py-2 [&>*]:shrink-0">
               <TextInput icon={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาในชีต…" className="!h-9 w-40 sm:w-64" />
-              {canWrite && <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setRowForm({ row: null })}>เพิ่มแถว</Button>}
+              {canWrite && <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => { if (headerSheet && !draftHeader) { setFormAfterPick(true); setPickHeader(true); } else setRowForm({ row: null }); }}>เพิ่มแถว</Button>}
               {canWrite && isInkWorksheet && <Button size="sm" variant="secondary" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => setPlanOpen(true)}>นำเข้าแผนผลิต (Excel)</Button>}
               {canWrite && selRows.length > 0 && <Button size="sm" variant="secondary" className="!text-danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => void deleteRows(selRows)}>{selRows.length > 1 ? `ลบ ${selRows.length} แถวที่เลือก` : 'ลบแถวที่เลือก'}</Button>}
               {canWrite && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} aria-label="นำเข้า" title="นำเข้า" onClick={() => setModal('import')}><Lbl>นำเข้า</Lbl></Button>}
@@ -498,17 +499,18 @@ export default function FilePage() {
             onApply={(flt) => filterCol && view.setQuery({ filters: [...view.query.filters.filter((x) => x.columnId !== filterCol.id), ...(flt ? [flt] : [])] })}
             onSort={(sorts) => view.setQuery({ sorts })} />
           <RowFormModal open={!!rowForm} onClose={() => setRowForm(null)} columns={view.allColumns} row={rowForm?.row ?? null} users={view.users} canWrite={canWrite}
+            initial={!rowForm?.row && headerSheet && draftHeader ? draftPrefill?.values : undefined} hiddenIds={view.detail.settings?.hiddenColumnIds}
             sheetId={sheetId} settings={view.detail.settings} canManage={canManage && !union} onLayoutSaved={() => void view.loadDetail()}
             onCreate={async (values) => {
-              const r = await view.addRow(values);
+              const r = headerSheet && draftHeader ? await addLine(values) : await view.addRow(values);
               if (r && linesCfg?.entry === 'form') openLines(r); // a document: go on with its lines
-              else if (r && headerSheet) setLinkFor(r); // a line typed in the line sheet: which document is it of?
+              else if (r && headerSheet && !draftHeader) setLinkFor(r); // a line typed in the line sheet: which document is it of?
               return r;
             }}
             onSave={(changes) => view.commit(changes.map((c) => ({ ...c, rowId: rowForm!.row!.id })), { partial: true })} />
           {headerSheet && <LinkHeaderDialog line={linkFor} header={headerSheet} onClose={() => setLinkFor(null)} onLinked={loadLinks} />}
-          {headerSheet && <LinkHeaderDialog line={null} open={pickHeader} header={headerSheet} onClose={() => setPickHeader(false)} onLinked={() => undefined}
-            onPick={(row, label, cols) => setDraftHeader({ row, label, cols })} />}
+          {headerSheet && <LinkHeaderDialog line={null} open={pickHeader} header={headerSheet} onClose={() => { setPickHeader(false); setFormAfterPick(false); }} onLinked={() => undefined}
+            onPick={(row, label, cols) => { setDraftHeader({ row, label, cols }); if (formAfterPick) { setFormAfterPick(false); setRowForm({ row: null }); } }} />}
           <RowViewModal row={rowView} rows={view.rows} columns={view.columns} users={view.users} onClose={() => setRowView(null)} onNavigate={setRowView} formRev={formRevOf}
             onEdit={canWrite ? (r) => { setRowView(null); setRowForm({ row: r }); } : undefined}
             onLines={linesCfg ? openLines : undefined} />
