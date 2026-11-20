@@ -48,6 +48,7 @@ import { isTyping, useDebounce, useLoad } from '@/hooks';
 import { cn } from '@/lib/cn';
 import { downloadCsv, downloadXlsx } from '@/lib/csv';
 import { displayValue, fmtDateTime, levelToPerm } from '@/lib/format';
+import { loadCols } from '@/lib/dashCols';
 import { useAuth } from '@/store/auth';
 import { useData } from '@/store/data';
 import { confirmDialog, toast, useUi } from '@/store/ui';
@@ -123,6 +124,19 @@ export default function FilePage() {
     return { key: `${draftHeader.row.id}:${draftSaved}`, values };
   }, [draftHeader, draftSaved, view.allColumns]);
   const [formAfterPick, setFormAfterPick] = useState(false);
+  // a header sheet with ONE row (one file = one document): no need to pick it every time — the lines go to that row
+  useEffect(() => {
+    if (!headerSheet) return;
+    let live = true;
+    void (async () => {
+      const r = await rowsApi.query(headerSheet.sheetId, { page: 1, pageSize: 2, sorts: [], filters: [] });
+      if (!live || r.total !== 1 || !r.rows[0]) return;
+      const cols = (await loadCols(headerSheet.sheetId)).filter((x) => !x.isDeleted);
+      const first = cols[0];
+      if (live) setDraftHeader((cur) => cur ?? { row: r.rows[0], label: first ? displayValue(first, r.rows[0].values[first.id] ?? null) || `แถว ${r.rows[0].order}` : `แถว ${r.rows[0].order}`, cols });
+    })().catch(() => undefined);
+    return () => { live = false; };
+  }, [headerSheet?.sheetId, sheetId]); // eslint-disable-line react-hooks/exhaustive-deps
   const addLine = async (values: Record<string, CellValue>) => {
     if (!headerSheet || !draftHeader || !sheetId) return null;
     const r = await view.addRow(values);
