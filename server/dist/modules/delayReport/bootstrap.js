@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.delayHubConfigured = void 0;
+exports.delayHubUrl = exports.delayHubConfigured = void 0;
 exports.delaySheetId = delaySheetId;
 exports.ensureDelayConnector = ensureDelayConnector;
 exports.delayTemplate = delayTemplate;
@@ -25,6 +25,8 @@ const columns_1 = require("./columns");
  */
 const delayHubConfigured = () => !!(process.env.DELAYHUB_URL && process.env.DELAYHUB_EXPORT_KEY);
 exports.delayHubConfigured = delayHubConfigured;
+const delayHubUrl = () => base();
+exports.delayHubUrl = delayHubUrl;
 const base = () => String(process.env.DELAYHUB_URL ?? '').replace(/\/+$/, '').replace(/\/api$/, '');
 const key = () => String(process.env.DELAYHUB_EXPORT_KEY ?? '');
 async function delaySheetId() {

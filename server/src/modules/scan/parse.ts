@@ -14,6 +14,20 @@ export interface ScanVerify {
   onMiss: 'reject' | 'allow';
 }
 
+/**
+ * Fill columns from another SYSTEM by a number in the scanned text: DelayHUB's slip QR ("14L… | MAT | MAT | 826982 | 180 | kg | PFCM") carries the
+ * mapping_id (piece 4); DelayHUB answers (GET /api/export/mapping/:id) with its code / mat / mat 2X / batch / batch 2X. Needs DELAYHUB_URL + DELAYHUB_EXPORT_KEY.
+ */
+export const EXTERNAL_FIELDS = ['code', 'mat', 'mat_name', 'mat_2x', 'batch', 'batch_2x'] as const;
+export interface ScanExternal {
+  source: 'delayhub_mapping';
+  /** piece number (1 = first) that holds the mapping_id */
+  pieceIndex: number;
+  fill: { field: (typeof EXTERNAL_FIELDS)[number]; toColumnId: string }[];
+  /** the number is not known to the other system / it cannot be reached: refuse / keep what the QR carried */
+  onMiss: 'reject' | 'allow';
+}
+
 export interface ScanProfile {
   id: string; name: string;
   /** separator between the pieces, e.g. "|" — "\t" means a tab; empty = the whole text is one piece */
@@ -32,6 +46,7 @@ export interface ScanProfile {
    */
   stamps?: string[] | null;
   verify?: ScanVerify | null;
+  external?: ScanExternal | null;
   /** every stamp column is already filled: do nothing / refuse / start a new row (a new round of the same card) */
   onFull?: 'ignore' | 'reject' | 'new_row' | null;
 }

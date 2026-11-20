@@ -1,10 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.splitScan = exports.firstEmptyStamp = void 0;
+exports.splitScan = exports.firstEmptyStamp = exports.EXTERNAL_FIELDS = void 0;
 exports.matchScore = matchScore;
 exports.detectProfile = detectProfile;
 exports.parseScan = parseScan;
 exports.mergeFill = mergeFill;
+/**
+ * Fill columns from another SYSTEM by a number in the scanned text: DelayHUB's slip QR ("14L… | MAT | MAT | 826982 | 180 | kg | PFCM") carries the
+ * mapping_id (piece 4); DelayHUB answers (GET /api/export/mapping/:id) with its code / mat / mat 2X / batch / batch 2X. Needs DELAYHUB_URL + DELAYHUB_EXPORT_KEY.
+ */
+exports.EXTERNAL_FIELDS = ['code', 'mat', 'mat_name', 'mat_2x', 'batch', 'batch_2x'];
 /** index of the first empty stamp column, or -1 when all are filled */
 const firstEmptyStamp = (filled) => filled.findIndex((f) => !f);
 exports.firstEmptyStamp = firstEmptyStamp;

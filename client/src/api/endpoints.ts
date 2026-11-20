@@ -53,6 +53,8 @@ export interface ScanProfile {
   action: 'create' | 'update'; keyColumnId?: string | null; onMiss?: 'create' | 'reject' | null;
   stamps?: string[] | null; onFull?: 'ignore' | 'reject' | 'new_row' | null;
   verify?: ScanVerify | null;
+  /** fill columns from DelayHUB by the mapping_id in the text (server: modules/scan/external.ts) */
+  external?: { source: 'delayhub_mapping'; pieceIndex: number; fill: { field: string; toColumnId: string }[]; onMiss: 'reject' | 'allow' } | null;
 }
 export interface ScanVerify { sheetId: string; refKeyColumnId: string; checkColumnId?: string | null; fill?: { fromColumnId: string; toColumnId: string }[] | null; onMiss: 'reject' | 'allow' }
 export interface MixCfg { deductColumnId: string; keyColumnId?: string | null; inheritColumnIds?: string[] | null; sameColumnIds?: string[] | null }
