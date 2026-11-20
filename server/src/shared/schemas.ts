@@ -25,6 +25,8 @@ export const validationSchema = z
     autoStamp: z.enum(['updatedAt', 'updatedBy']).nullish(),
     /** a new row's form starts with today's date / the time now (HH.mm) / the shift of the time now (D/S · N/S options) — the user may change it */
     autoFill: z.enum(['today', 'now', 'shift']).nullish(),
+    /** select columns of one group get a "set all" bar in the row form (each column can still be changed on its own); the text is the bar's label */
+    formGroup: z.string().trim().max(60).nullish(),
     formula: z.object({ expr: z.string().trim().min(1).max(2000), sources: z.array(z.object({ alias: z.string().trim().min(1).max(40), sheetId: z.string().max(60) })).max(10).optional() }).nullish(),
     alert: z
       .object({

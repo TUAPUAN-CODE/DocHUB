@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Camera, History, LayoutGrid, RotateCcw, Rows3, Trash2, Undo2 } from 'lucide-react';
 import { apiError } from '@/api/client';
 import { CellVersion, cellsApi, rowsApi, SheetSettings } from '@/api/endpoints';
@@ -27,7 +27,7 @@ import { autoFillValue } from '@/lib/autoFill';
 const SOURCE: Record<string, string> = { edit: 'แก้ไข', create: 'สร้าง', paste: 'วาง', rollback: 'ย้อนค่า', type_change: 'แปลงชนิด', undo: 'ย้อนกลับ', fill: 'เติม' };
 
 /* ---------------- Row form (add / edit) ---------------- */
-const SCANNABLE = new Set(['varchar', 'text', 'int', 'float', 'url', 'email', 'select', 'date', 'datetime', 'boolean']);
+const SCANNABLE = new Set(['varchar', 'text', 'int', 'float', 'url', 'email']);
 
 export function RowFormModal({ open, onClose, columns, row, users, canWrite, onCreate, onSave, sheetId, settings, canManage, onLayoutSaved, initial, title, hiddenIds }: {
   open: boolean; onClose: () => void; columns: Column[]; row: Row | null; users: Record<string, { name: string }>; canWrite: boolean;
@@ -144,8 +144,25 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
           <div className="grid max-h-[58vh] gap-4 overflow-y-auto pr-1" style={{ gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))` }}>
             {fields.map(({ col: c, span }, i) => {
               const scannable = canWrite && !isReadOnlyCol(c) && SCANNABLE.has(c.dataType);
+              const group = c.dataType === 'select' && canWrite ? c.validation?.formGroup?.trim() : '';
+              const members = group ? fields.filter((f) => f.col.dataType === 'select' && f.col.validation?.formGroup?.trim() === group).map((f) => f.col) : [];
+              const first = members.length > 1 && members[0].id === c.id;
               return (
-                <div key={c.id} style={{ gridColumn: `span ${span} / span ${span}` }} className="min-w-0">
+                <Fragment key={c.id}>
+                {first && (
+                  <div style={{ gridColumn: '1 / -1' }} className="flex flex-wrap items-center gap-2 rounded-xl border border-line/70 bg-ink/[.03] px-3 py-2">
+                    <span className="text-sm font-semibold">{group}</span>
+                    <span className="text-xs text-muted">ตั้งทุกช่อง ({members.length}) พร้อมกัน — แก้แต่ละช่องทีหลังได้</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(c.options ?? []).map((o) => {
+                        const all = members.every((m) => values[m.id] === o.value);
+                        return <button key={o.value} type="button" onClick={() => setValues((v) => { const n = { ...v }; for (const m of members) n[m.id] = o.value; return n; })}
+                          className={cn('min-w-9 rounded-lg border px-2.5 py-1 text-sm font-semibold', all ? 'border-primary bg-primary text-white' : 'border-line bg-white hover:border-primary dark:bg-white/5')}>{o.label}</button>;
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div style={{ gridColumn: `span ${span} / span ${span}` }} className="min-w-0">
                   <Field label={<span className="flex items-center justify-between gap-2"><span>{c.name}</span>{scannable && <button type="button" onClick={() => setScanField((f) => (f === c.id ? null : c.id))} title="สแกนใส่ช่องนี้" aria-label={`สแกนใส่ ${c.name}`}
                     className={cn('rounded-md p-0.5', scanField === c.id ? 'bg-primary/15 text-primary' : 'text-muted hover:text-primary')}><Camera className="h-4 w-4" /></button>}</span>}
                     required={c.isRequired} error={errors[c.id]}
@@ -156,6 +173,7 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
                   </Field>
                   {scanField === c.id && <div className="mt-1.5"><CameraScanner onText={(t) => scanInto(c, t)} onClose={() => setScanField(null)} /></div>}
                 </div>
+                </Fragment>
               );
             })}
           </div>
