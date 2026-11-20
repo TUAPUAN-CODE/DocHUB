@@ -29,10 +29,12 @@ const SOURCE: Record<string, string> = { edit: 'แก้ไข', create: 'ส�
 /* ---------------- Row form (add / edit) ---------------- */
 const SCANNABLE = new Set(['varchar', 'text', 'int', 'float', 'url', 'email', 'select', 'date', 'datetime', 'boolean']);
 
-export function RowFormModal({ open, onClose, columns, row, users, canWrite, onCreate, onSave, sheetId, settings, canManage, onLayoutSaved, initial, title }: {
+export function RowFormModal({ open, onClose, columns, row, users, canWrite, onCreate, onSave, sheetId, settings, canManage, onLayoutSaved, initial, title, hiddenIds }: {
   open: boolean; onClose: () => void; columns: Column[]; row: Row | null; users: Record<string, { name: string }>; canWrite: boolean;
   /** values a new row starts with (e.g. a document's line copies the header's machine / date) */
   initial?: Record<string, CellValue>; title?: string;
+  /** columns kept in the row but not shown in the form (their values come from `initial`, e.g. the document header's date / machine) */
+  hiddenIds?: string[];
   onCreate: (values: Record<string, CellValue>) => Promise<unknown>; onSave: (changes: { columnId: string; value: CellValue }[]) => Promise<unknown>;
   sheetId: string; settings?: SheetSettings; canManage: boolean; onLayoutSaved: () => void;
 }) {
@@ -43,7 +45,9 @@ export function RowFormModal({ open, onClose, columns, row, users, canWrite, onC
   const [designing, setDesigning] = useState(false);
   const [scanField, setScanField] = useState<string | null>(null);
   const narrow = useNarrow();
-  const { fields, perRow } = useMemo(() => buildFormFields(columns, settings?.formLayout, narrow), [columns, settings?.formLayout, narrow]);
+  const built = useMemo(() => buildFormFields(columns, settings?.formLayout, narrow), [columns, settings?.formLayout, narrow]);
+  const perRow = built.perRow;
+  const fields = useMemo(() => (hiddenIds?.length ? built.fields.filter((f) => !hiddenIds.includes(f.col.id)) : built.fields), [built, hiddenIds]);
   const hasScan = !!settings?.scanProfiles?.length && canWrite;
   const init = () => {
     const v: Record<string, CellValue> = {};

@@ -61,6 +61,8 @@ export function LinesDialog({ open, onClose, sheetId, headerRow, headerLabel, cf
     }
     return out;
   };
+  /** the form leaves out what the document header already says (same column name with a value: date, shift, machine…) */
+  const hiddenIds = formMode && headerRow ? Object.keys(initial()) : undefined;
   const createLine = async (values: Record<string, CellValue>) => {
     if (!headerRow) return;
     const r = await rowsApi.create(cfg.lineSheetId, values);
@@ -121,7 +123,7 @@ export function LinesDialog({ open, onClose, sheetId, headerRow, headerLabel, cf
     </Modal>
     {formMode && (
       <RowFormModal open={!!form} onClose={() => setForm(null)} columns={cols} row={form?.row ?? null} users={users} canWrite={canWrite}
-        initial={form && !form.row ? initial() : undefined} title={form?.row ? `แก้ไขรายการ #${form.row.order}` : 'เพิ่มรายการ'}
+        initial={form && !form.row ? initial() : undefined} hiddenIds={hiddenIds} title={form?.row ? `แก้ไขรายการ #${form.row.order}` : 'เพิ่มรายการ'}
         onCreate={createLine} onSave={(changes) => saveLine(form!.row!, changes)}
         sheetId={cfg.lineSheetId} settings={lineSettings} canManage={false} onLayoutSaved={() => undefined} />
     )}
