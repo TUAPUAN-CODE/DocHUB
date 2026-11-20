@@ -66,6 +66,8 @@ export interface Validation {
   autoStamp?: 'updatedAt' | 'updatedBy' | null;
   /** a new row's form starts with today's date / the time now (HH.mm) / the shift of the time now — the user may change it */
   autoFill?: 'today' | 'now' | 'shift' | null;
+  /** select columns with the same text get a "set all" bar in the row form (each can still be set on its own); the text is the bar's label */
+  formGroup?: string | null;
 }
 /** other sheets a formula reads: alias used in the formula as @alias[Column]; names are only for display (filled in by the server for managers) */
 export interface FormulaSource { alias: string; sheetId: string; fileId?: string | null; fileName?: string | null; sheetName?: string | null }

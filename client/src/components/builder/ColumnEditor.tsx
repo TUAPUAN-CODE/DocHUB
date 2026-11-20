@@ -183,6 +183,11 @@ function ColumnDetails({ c, set, siblings, fileId, fileName, sheetId, onAddDraft
           </Field>
         );
       })()}
+      {c.dataType === 'select' && !v.lookup && (
+        <Field label="กลุ่มตั้งพร้อมกันในฟอร์ม (ไม่บังคับ)" hint="คอลัมน์ dropdown ที่ตั้งชื่อกลุ่มเหมือนกัน จะมีแถบ “ตั้งทุกช่องพร้อมกัน” ในฟอร์มเพิ่มแถว — แก้แต่ละช่องทีหลังได้">
+          <TextInput value={v.formGroup ?? ''} onChange={(e) => setV({ formGroup: e.target.value || null })} placeholder="เช่น ผลการตรวจ" />
+        </Field>
+      )}
       <Field label="ความกว้างเริ่มต้น (px)"><TextInput inputMode="numeric" value={c.width} onChange={(e) => set({ width: Math.max(40, Math.min(1200, Number(e.target.value) || 40)) })} /></Field>
     </div>
   );

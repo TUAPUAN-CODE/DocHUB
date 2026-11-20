@@ -27,6 +27,8 @@ exports.validationSchema = zod_1.z
     autoStamp: zod_1.z.enum(['updatedAt', 'updatedBy']).nullish(),
     /** a new row's form starts with today's date / the time now (HH.mm) / the shift of the time now (D/S · N/S options) — the user may change it */
     autoFill: zod_1.z.enum(['today', 'now', 'shift']).nullish(),
+    /** select columns of one group get a "set all" bar in the row form (each column can still be changed on its own); the text is the bar's label */
+    formGroup: zod_1.z.string().trim().max(60).nullish(),
     formula: zod_1.z.object({ expr: zod_1.z.string().trim().min(1).max(2000), sources: zod_1.z.array(zod_1.z.object({ alias: zod_1.z.string().trim().min(1).max(40), sheetId: zod_1.z.string().max(60) })).max(10).optional() }).nullish(),
     alert: zod_1.z
         .object({
