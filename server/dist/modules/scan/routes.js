@@ -14,6 +14,7 @@ const socket_1 = require("../../socket");
 const http_1 = require("../../shared/http");
 const permissions_1 = require("../../shared/permissions");
 const parse_1 = require("./parse");
+const external_1 = require("./external");
 const cellValue_1 = require("../../shared/cellValue");
 const router = (0, express_1.Router)();
 const profileSchema = zod_1.z.object({
@@ -27,6 +28,10 @@ const profileSchema = zod_1.z.object({
     onMiss: zod_1.z.enum(['create', 'reject']).nullish(),
     stamps: zod_1.z.array(http_1.zId).max(6).nullish(),
     onFull: zod_1.z.enum(['ignore', 'reject', 'new_row']).nullish(),
+    external: zod_1.z.object({
+        source: zod_1.z.literal('delayhub_mapping'), pieceIndex: zod_1.z.number().int().min(1).max(50),
+        fill: zod_1.z.array(zod_1.z.object({ field: zod_1.z.enum(parse_1.EXTERNAL_FIELDS), toColumnId: http_1.zId })).min(1).max(10), onMiss: zod_1.z.enum(['reject', 'allow']),
+    }).nullish(),
     verify: zod_1.z.object({
         sheetId: http_1.zId, refKeyColumnId: http_1.zId, checkColumnId: http_1.zId.nullish(),
         fill: zod_1.z.array(zod_1.z.object({ fromColumnId: http_1.zId, toColumnId: http_1.zId })).max(20).nullish(),
@@ -63,6 +68,9 @@ router.put('/sheets/:id/scan/profiles', (0, http_1.ah)(async (req, res) => {
                 if (!refCols.has(f.fromColumnId) || !cols.has(f.toColumnId))
                     throw (0, http_1.badRequest)(`รูปแบบ “${p.name}”: ไม่พบคอลัมน์ที่เลือกเติมค่า`);
         }
+        for (const f of p.external?.fill ?? [])
+            if (!cols.has(f.toColumnId))
+                throw (0, http_1.badRequest)(`รูปแบบ “${p.name}”: ไม่พบคอลัมน์ที่เลือกเติมค่าจาก DelayHUB`);
         for (const sc of p.stamps ?? [])
             if (!cols.has(sc))
                 throw (0, http_1.badRequest)(`รูปแบบ “${p.name}”: ไม่พบคอลัมน์เวลาที่เลือก (อาจถูกลบแล้ว)`);
@@ -104,6 +112,8 @@ async function resolveScan(sheetId, text, profileId) {
     const values = { ...scanned };
     if (profile.verify)
         Object.assign(values, await verifyAgainst(profile, scanned, await (0, cellWriter_1.loadColumns)(sheetId)));
+    if (profile.external)
+        Object.assign(values, await (0, external_1.externalValues)(profile, text, scanned));
     return { profile, values };
 }
 /** The other sheet: is the scanned value in it? Copies the wanted columns (as text; the normal checks of the column still apply when written) */
@@ -157,6 +167,8 @@ async function runScan(u, sheet, sheetId, text, profileId, req) {
     const values = { ...scanned };
     if (profile.verify)
         Object.assign(values, await verifyAgainst(profile, scanned, cols));
+    if (profile.external)
+        Object.assign(values, await (0, external_1.externalValues)(profile, text, scanned));
     const colName = (id) => cols.find((c) => c.column_id === id)?.column_name ?? '';
     const stamps = profile.stamps ?? [];
     const now = new Date().toISOString();

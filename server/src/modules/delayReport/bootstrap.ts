@@ -15,6 +15,7 @@ import { DELAY_COLS, DELAY_CONNECTOR_NAME, DELAY_NAMES } from './columns';
  * every day at DELAYHUB_RUN_AT it reads the finished rows of the last DELAYHUB_DAYS days and updates / adds them by mapping_id.
  */
 export const delayHubConfigured = () => !!(process.env.DELAYHUB_URL && process.env.DELAYHUB_EXPORT_KEY);
+export const delayHubUrl = () => base();
 const base = () => String(process.env.DELAYHUB_URL ?? '').replace(/\/+$/, '').replace(/\/api$/, '');
 const key = () => String(process.env.DELAYHUB_EXPORT_KEY ?? '');
 

@@ -10,7 +10,8 @@ import { readSettings, writeSettingsKey } from '../../services/sheetSettings';
 import { emitToSheet } from '../../socket';
 import { ah, badRequest, ok, parse, pid, reqMeta, zId } from '../../shared/http';
 import { LV, requireSheet } from '../../shared/permissions';
-import { detectProfile, firstEmptyStamp, mergeFill, parseScan, ScanProfile } from './parse';
+import { detectProfile, EXTERNAL_FIELDS, firstEmptyStamp, mergeFill, parseScan, ScanProfile } from './parse';
+import { externalValues } from './external';
 import { fromStorage } from '../../shared/cellValue';
 
 const router = Router();
@@ -26,6 +27,10 @@ const profileSchema = z.object({
   onMiss: z.enum(['create', 'reject']).nullish(),
   stamps: z.array(zId).max(6).nullish(),
   onFull: z.enum(['ignore', 'reject', 'new_row']).nullish(),
+  external: z.object({
+    source: z.literal('delayhub_mapping'), pieceIndex: z.number().int().min(1).max(50),
+    fill: z.array(z.object({ field: z.enum(EXTERNAL_FIELDS), toColumnId: zId })).min(1).max(10), onMiss: z.enum(['reject', 'allow']),
+  }).nullish(),
   verify: z.object({
     sheetId: zId, refKeyColumnId: zId, checkColumnId: zId.nullish(),
     fill: z.array(z.object({ fromColumnId: zId, toColumnId: zId })).max(20).nullish(),
@@ -55,6 +60,7 @@ router.put('/sheets/:id/scan/profiles', ah(async (req, res) => {
       if (!check || !p.fields.some((f) => f.columnId === check)) throw badRequest(`รูปแบบ “${p.name}”: ต้องเลือกว่าจะนำข้อมูลชุดไหนไปตรวจ (คอลัมน์นั้นต้องมีข้อมูลชุดที่ใส่ให้)`);
       for (const f of v.fill ?? []) if (!refCols.has(f.fromColumnId) || !cols.has(f.toColumnId)) throw badRequest(`รูปแบบ “${p.name}”: ไม่พบคอลัมน์ที่เลือกเติมค่า`);
     }
+    for (const f of p.external?.fill ?? []) if (!cols.has(f.toColumnId)) throw badRequest(`รูปแบบ “${p.name}”: ไม่พบคอลัมน์ที่เลือกเติมค่าจาก DelayHUB`);
     for (const sc of p.stamps ?? []) if (!cols.has(sc)) throw badRequest(`รูปแบบ “${p.name}”: ไม่พบคอลัมน์เวลาที่เลือก (อาจถูกลบแล้ว)`);
     if (p.stamps?.length && p.action !== 'update') throw badRequest(`รูปแบบ “${p.name}”: การลงเวลาตามลำดับใช้กับโหมด “อัปเดตแถวที่มีอยู่” เท่านั้น`);
     if (p.match?.regex) { try { new RegExp(p.match.regex); } catch { throw badRequest(`รูปแบบ “${p.name}”: เงื่อนไข regex ไม่ถูกต้อง`); } }
@@ -83,6 +89,7 @@ export async function resolveScan(sheetId: string, text: string, profileId?: str
   if (!Object.keys(scanned).length) throw badRequest(`รูปแบบ “${profile.name}”: ไม่พบข้อมูลในตำแหน่งที่กำหนด`);
   const values: Record<string, string> = { ...scanned };
   if (profile.verify) Object.assign(values, await verifyAgainst(profile, scanned, await loadColumns(sheetId)));
+  if (profile.external) Object.assign(values, await externalValues(profile, text, scanned));
   return { profile, values };
 }
 
@@ -139,6 +146,7 @@ export async function runScan(u: AuthUser, sheet: { file_id: string }, sheetId: 
   const cols = await loadColumns(sheetId);
   const values: Record<string, string> = { ...scanned };
   if (profile.verify) Object.assign(values, await verifyAgainst(profile, scanned, cols));
+  if (profile.external) Object.assign(values, await externalValues(profile, text, scanned));
   const colName = (id: string) => cols.find((c) => c.column_id === id)?.column_name ?? '';
   const stamps = profile.stamps ?? [];
   const now = new Date().toISOString();
