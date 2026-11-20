@@ -137,7 +137,11 @@ async function main() {
           sym('Fe'), sym('Non Fe'), sym('SUS'), sym('Large test piece', '-'),
           { name: 'ความถี่ (F)', dataType: 'multi_select', isRequired: true, width: 170, options: FREQ,
             description: 'F0 SENSITIVITY TEST · F1 MEMORY TEST · F2 เริ่มงาน · F3 ทดสอบทุกชั่วโมง (CONSECUTIVE TEST) · F4 หยุดเครื่องชั่วคราว · F5 เปลี่ยนโปรแกรม · F6 เครื่องเสีย · F7 เลิกงาน' },
-          { name: 'Code / วัตถุดิบ / Batch no.', dataType: 'varchar', width: 180 },
+          { name: 'Code', dataType: 'varchar', width: 90 },
+          { name: 'วัตถุดิบ', dataType: 'varchar', width: 150 },
+          { name: 'วัตถุดิบ 2X', dataType: 'varchar', width: 150 },
+          { name: 'Batch', dataType: 'varchar', width: 120 },
+          { name: 'Batch 2X', dataType: 'varchar', width: 120 },
           sym('Result (Detect / Not detect)', '-'), sym('รอบ A ครั้งที่ 1', '-'), sym('รอบ A ครั้งที่ 2', '-'), sym('Object', '-'),
           sym('รอบ B ครั้งที่ 1', '-'), sym('รอบ B ครั้งที่ 2', '-'), sym('รอบ B ครั้งที่ 3', '-'),
           { name: 'สรุปผล', dataType: 'select', width: 90, defaultValue: '-', options: [{ value: 'OK', label: 'OK', color: '#16A34A' }, { value: 'NK', label: 'NK (Not OK)', color: '#DC2626' }, { value: '-', label: '-', color: '#64748B' }] },
@@ -159,7 +163,7 @@ async function main() {
     description: 'ตัวเลือกจากตาราง Program และค่า Sensitivity (เฉพาะเครื่องที่เลือก)',
     validation: { lookup: { sheetId: union.id, columnId: uid(LABEL), parent: { localColumnId: lid('หมายเลขเครื่อง'), foreignColumnId: uid('หมายเลขเครื่อง') } } },
   });
-  const show = ['เวลา', 'Fe', 'Non Fe', 'SUS', 'Large test piece', 'ความถี่ (F)', LABEL, 'Code / วัตถุดิบ / Batch no.', 'Result (Detect / Not detect)', 'สรุปผล', 'MD Detect (NG)', 'Checked By'];
+  const show = ['เวลา', 'Fe', 'Non Fe', 'SUS', 'Large test piece', 'ความถี่ (F)', LABEL, 'Code', 'วัตถุดิบ', 'วัตถุดิบ 2X', 'Batch', 'Batch 2X', 'Result (Detect / Not detect)', 'สรุปผล', 'MD Detect (NG)', 'Checked By'];
   const ld2 = await call('GET', `/sheets/${lines.id}`);
   await call('PUT', `/sheets/${header.id}/lines/settings`, {
     lines: { lineSheetId: lines.id, entry: 'form', displayColumnIds: show.map((n) => ld2.columns.find((c: any) => c.name === n).id), actions: [] },
