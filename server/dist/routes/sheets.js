@@ -102,10 +102,18 @@ router.post('/files/:fileId/sheets', (0, http_1.ah)(async (req, res) => {
 router.put('/sheets/:id/settings', (0, http_1.ah)(async (req, res) => {
     const id = (0, http_1.pid)(req);
     const { sheet } = await (0, permissions_1.requireSheet)(req.user, id, permissions_1.LV.manage, undefined, true);
-    const body = (0, http_1.parse)(zod_1.z.object({ filterColumns: zod_1.z.array(http_1.zId).max(1000).nullable() }), req.body);
-    const settings = { ...((0, http_1.safeJson)(sheet.settings_json, {}) ?? {}), filterColumns: body.filterColumns };
+    const body = (0, http_1.parse)(zod_1.z.object({ filterColumns: zod_1.z.array(http_1.zId).max(1000).nullable().optional(), singleRow: zod_1.z.boolean().optional() }), req.body);
+    const settings = { ...((0, http_1.safeJson)(sheet.settings_json, {}) ?? {}) };
+    if (body.filterColumns !== undefined)
+        settings.filterColumns = body.filterColumns;
+    if (body.singleRow !== undefined) {
+        if (body.singleRow)
+            settings.singleRow = true;
+        else
+            delete settings.singleRow;
+    }
     await (0, db_1.q)(`UPDATE Sheets SET settings_json = @j, updated_at = SYSUTCDATETIME() WHERE sheet_id = @s`, { j: db_1.T.text(JSON.stringify(settings)), s: db_1.T.uuid(id) });
-    await (0, audit_1.audit)({ userId: req.user.id, action: 'sheet_update', entityType: 'sheet', entityId: id, fileId: sheet.file_id, sheetId: id, newValue: { filterColumns: body.filterColumns?.length ?? 'all' } }, req);
+    await (0, audit_1.audit)({ userId: req.user.id, action: 'sheet_update', entityType: 'sheet', entityId: id, fileId: sheet.file_id, sheetId: id, newValue: { filterColumns: body.filterColumns?.length ?? 'all', singleRow: !!settings.singleRow } }, req);
     (0, http_1.ok)(res, { saved: true, settings });
 }));
 router.put('/sheets/:id', (0, http_1.ah)(async (req, res) => {

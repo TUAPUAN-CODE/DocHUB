@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const sheetSettings_1 = require("../services/sheetSettings");
 const express_1 = require("express");
 const zod_1 = require("zod");
 const db_1 = require("../config/db");
@@ -90,6 +91,7 @@ router.post('/sheets/:id/rows', (0, http_1.ah)(async (req, res) => {
         throw (0, http_1.badRequest)(Object.values(fieldErrors)[0], { fields: fieldErrors });
     const rowId = await (0, db_1.withTx)(async (tx) => {
         const o = await (0, db_1.q1)(`SELECT ISNULL(MAX(row_order), 0) + 1 AS o FROM Rows WITH (UPDLOCK, HOLDLOCK) WHERE sheet_id = @s`, { s: db_1.T.uuid(sheetId) }, tx);
+        await (0, sheetSettings_1.assertRowRoom)(sheetId, 1, tx);
         const r = await (0, db_1.q1)(`INSERT INTO Rows (sheet_id, row_order, created_by, updated_by) OUTPUT inserted.row_id VALUES (@s, @o, @u, @u)`, { s: db_1.T.uuid(sheetId), o: db_1.T.int(o.o), u: db_1.T.uuid(u.id) }, tx);
         for (const g of docGen) {
             const [num] = await (0, docNumber_1.nextDocNumbers)(tx, sheetId, g.def, g.cfg, [{ prefix: g.prefix, date: g.date }]);
@@ -275,6 +277,7 @@ router.post('/sheets/:id/rows/import', (0, http_1.ah)(async (req, res) => {
                 histJson.push({ cell_id: cellId, row_id: rowId, column_id: c.def.column_id, nv: JSON.stringify(c.value) });
             }
         });
+        await (0, sheetSettings_1.assertRowRoom)(sheetId, valid.length, tx);
         await (0, db_1.q)(`INSERT INTO Rows (row_id, sheet_id, row_order, created_by, updated_by)
                SELECT row_id, @s, ord, @u, @u FROM OPENJSON(@j) WITH (row_id UNIQUEIDENTIFIER, ord INT)`, { s: db_1.T.uuid(sheetId), u: db_1.T.uuid(u.id), j: db_1.T.text(JSON.stringify(rowsJson)) }, tx);
         for (let i = 0; i < cellsJson.length; i += 2000) {

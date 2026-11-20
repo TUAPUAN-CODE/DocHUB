@@ -34,8 +34,11 @@ router.put('/sheets/:id/form-layout', ah(async (req, res) => {
 
 registerAfterSheetCopied(async ({ tx, newSheetId, columnMap }) => {
   const s = await readSettings(newSheetId, tx); // inside the copy's transaction (outside it, it would wait for itself)
+  const ids = new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]));
+  // columns the sheet hides from everybody's grid: the copy has its own column ids
+  if (Array.isArray(s.hiddenColumnIds)) await writeSettingsKey(newSheetId, 'hiddenColumnIds', remapIds(s.hiddenColumnIds, ids), tx);
   if (!s.formLayout) return;
-  await writeSettingsKey(newSheetId, 'formLayout', remapIds(s.formLayout, new Map(columnMap.map((m) => [m.old_id.toLowerCase(), m.new_id.toLowerCase()]))), tx);
+  await writeSettingsKey(newSheetId, 'formLayout', remapIds(s.formLayout, ids), tx);
 });
 
 export default { router };

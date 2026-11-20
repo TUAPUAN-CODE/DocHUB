@@ -120,10 +120,12 @@ router.put(
   ah(async (req, res) => {
     const id = pid(req);
     const { sheet } = await requireSheet(req.user!, id, LV.manage, undefined, true);
-    const body = parse(z.object({ filterColumns: z.array(zId).max(1000).nullable() }), req.body);
-    const settings = { ...(safeJson<Record<string, unknown>>(sheet.settings_json, {}) ?? {}), filterColumns: body.filterColumns };
+    const body = parse(z.object({ filterColumns: z.array(zId).max(1000).nullable().optional(), singleRow: z.boolean().optional() }), req.body);
+    const settings: Record<string, unknown> = { ...(safeJson<Record<string, unknown>>(sheet.settings_json, {}) ?? {}) };
+    if (body.filterColumns !== undefined) settings.filterColumns = body.filterColumns;
+    if (body.singleRow !== undefined) { if (body.singleRow) settings.singleRow = true; else delete settings.singleRow; }
     await q(`UPDATE Sheets SET settings_json = @j, updated_at = SYSUTCDATETIME() WHERE sheet_id = @s`, { j: T.text(JSON.stringify(settings)), s: T.uuid(id) });
-    await audit({ userId: req.user!.id, action: 'sheet_update', entityType: 'sheet', entityId: id, fileId: sheet.file_id, sheetId: id, newValue: { filterColumns: body.filterColumns?.length ?? 'all' } }, req);
+    await audit({ userId: req.user!.id, action: 'sheet_update', entityType: 'sheet', entityId: id, fileId: sheet.file_id, sheetId: id, newValue: { filterColumns: body.filterColumns?.length ?? 'all', singleRow: !!settings.singleRow } }, req);
     ok(res, { saved: true, settings });
   }),
 );

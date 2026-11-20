@@ -68,7 +68,9 @@ export interface TimeLinkCfg {
 }
 export interface SheetSettings { timeLinks?: TimeLinkCfg[]; filterColumns?: string[] | null; scanProfiles?: ScanProfile[]; mix?: MixCfg; lines?: LinesCfg; formLayout?: FormLayout;
   /** columns every viewer's grid leaves out (they stay in the data and in forms' initial values), e.g. the line sheet's date / machine that the document header already has */
-  hiddenColumnIds?: string[] }
+  hiddenColumnIds?: string[];
+  /** the sheet keeps ONE row (e.g. the header of a form file: 1 file = 1 document); more rows are refused by the server */
+  singleRow?: boolean }
 export interface SheetDetail {
   union?: UnionStatus | null;
   settings?: SheetSettings;
@@ -83,7 +85,7 @@ export const unionApi = {
 };
 export const sheetsApi = {
   get: (id: string) => get<SheetDetail>(`/sheets/${id}`),
-  saveSettings: (id: string, s: { filterColumns: string[] | null }) => put(`/sheets/${id}/settings`, s),
+  saveSettings: (id: string, s: { filterColumns?: string[] | null; singleRow?: boolean }) => put(`/sheets/${id}/settings`, s),
   savePrefs: (id: string, prefs: Partial<SheetPrefs>) => put<SheetPrefs>(`/sheets/${id}/prefs`, prefs),
   create: (fileId: string, b: { name: string; tabColor?: string | null; columns?: any[]; copyStructureFrom?: string | null }) =>
     post<Sheet>(`/files/${fileId}/sheets`, b),

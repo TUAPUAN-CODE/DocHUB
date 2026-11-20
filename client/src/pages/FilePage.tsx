@@ -124,6 +124,8 @@ export default function FilePage() {
     return { key: `${draftHeader.row.id}:${draftSaved}`, values };
   }, [draftHeader, draftSaved, view.allColumns]);
   const [formAfterPick, setFormAfterPick] = useState(false);
+  /** a one-row sheet that already has its row: no more rows can be added */
+  const singleFull = !!view.detail?.settings?.singleRow && view.total >= 1;
   // a header sheet with ONE row (one file = one document): no need to pick it every time — the lines go to that row
   useEffect(() => {
     if (!headerSheet) return;
@@ -412,10 +414,10 @@ export default function FilePage() {
             {/* phones: one row that scrolls sideways (labels shortened to icons) instead of three rows over the data */}
             <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line px-2 py-1.5 sm:flex-wrap sm:gap-2 sm:overflow-visible sm:px-3 sm:py-2 [&>*]:shrink-0">
               <TextInput icon={<Search />} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาในชีต…" className="!h-9 w-40 sm:w-64" />
-              {canWrite && <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => { if (headerSheet && !draftHeader) { setFormAfterPick(true); setPickHeader(true); } else setRowForm({ row: null }); }}>เพิ่มแถว</Button>}
+              {canWrite && !singleFull && <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => { if (headerSheet && !draftHeader) { setFormAfterPick(true); setPickHeader(true); } else setRowForm({ row: null }); }}>เพิ่มแถว</Button>}
               {canWrite && isInkWorksheet && <Button size="sm" variant="secondary" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => setPlanOpen(true)}>นำเข้าแผนผลิต (Excel)</Button>}
               {canWrite && selRows.length > 0 && <Button size="sm" variant="secondary" className="!text-danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => void deleteRows(selRows)}>{selRows.length > 1 ? `ลบ ${selRows.length} แถวที่เลือก` : 'ลบแถวที่เลือก'}</Button>}
-              {canWrite && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} aria-label="นำเข้า" title="นำเข้า" onClick={() => setModal('import')}><Lbl>นำเข้า</Lbl></Button>}
+              {canWrite && !singleFull && <Button size="sm" variant="secondary" icon={<Upload className="h-4 w-4" />} aria-label="นำเข้า" title="นำเข้า" onClick={() => setModal('import')}><Lbl>นำเข้า</Lbl></Button>}
               {canWrite && !!view.detail?.settings?.scanProfiles?.length && <Button size="sm" variant="secondary" icon={<ScanLine className="h-4 w-4" />} onClick={() => setModal('scan')}>สแกน</Button>}
               {canWrite && !!view.detail?.settings?.mix && <Button size="sm" variant="secondary" icon={<Merge className="h-4 w-4" />} onClick={() => setModal('mix')}>ผสม</Button>}
               {!!view.detail?.settings?.lines && selRows.length === 1 && <Button size="sm" variant="secondary" icon={<Boxes className="h-4 w-4" />} onClick={() => { setLinesRow(null); setModal('lines'); }}>รายการในแถว</Button>}
@@ -482,7 +484,7 @@ export default function FilePage() {
               ) : (
                 <SpreadsheetGrid view={view} canWrite={canWrite} canManage={canManage && !union} onOpenRow={(row) => setRowForm({ row })} onCellHistory={(row, col) => setCellHist({ row, col })}
                   onRowHistory={setRowHist} onFilterColumn={(colId, el) => setFilterFor({ colId, el })} onColumnSettings={() => setModal('columns')} onDeleteRows={deleteRows} onSelectRows={setSelRows} onViewRow={setRowView} rowLink={rowLink}
-                  onAddRow={canWrite && !union ? (headerSheet ? addLine : view.addRow) : undefined}
+                  onAddRow={canWrite && !union && !singleFull ? (headerSheet ? addLine : view.addRow) : undefined}
                   draftNeeds={headerSheet && !draftHeader ? `เลือกใบ (${headerSheet.sheetName}) ที่ช่อง “เลือกใบ…” ของแถว * ก่อน` : null}
                   draftPrefill={headerSheet ? draftPrefill : null}
                   draftLink={headerSheet && canWrite ? (

@@ -1,3 +1,4 @@
+import { assertRowRoom } from '../services/sheetSettings';
 import { Router } from 'express';
 import { z } from 'zod';
 import { idList, jsonParam, q, q1, T, withTx } from '../config/db';
@@ -93,6 +94,7 @@ router.post(
 
     const rowId = await withTx(async (tx) => {
       const o = await q1(`SELECT ISNULL(MAX(row_order), 0) + 1 AS o FROM Rows WITH (UPDLOCK, HOLDLOCK) WHERE sheet_id = @s`, { s: T.uuid(sheetId) }, tx);
+      await assertRowRoom(sheetId, 1, tx);
       const r = await q1(
         `INSERT INTO Rows (sheet_id, row_order, created_by, updated_by) OUTPUT inserted.row_id VALUES (@s, @o, @u, @u)`,
         { s: T.uuid(sheetId), o: T.int(o!.o), u: T.uuid(u.id) },
@@ -282,6 +284,7 @@ router.post(
           histJson.push({ cell_id: cellId, row_id: rowId, column_id: c.def.column_id, nv: JSON.stringify(c.value) });
         }
       });
+      await assertRowRoom(sheetId, valid.length, tx);
       await q(`INSERT INTO Rows (row_id, sheet_id, row_order, created_by, updated_by)
                SELECT row_id, @s, ord, @u, @u FROM OPENJSON(@j) WITH (row_id UNIQUEIDENTIFIER, ord INT)`,
         { s: T.uuid(sheetId), u: T.uuid(u.id), j: T.text(JSON.stringify(rowsJson)) }, tx);

@@ -1,3 +1,4 @@
+import { assertRowRoom } from './sheetSettings';
 import crypto from 'crypto';
 import { q, q1, T, Tx } from '../config/db';
 import type { AuthUser } from '../middleware/auth';
@@ -55,6 +56,7 @@ export async function bulkCreateRowsTx(tx: Tx, user: AuthUser, sheet: { file_id:
       histJson.push({ cell_id: cellId, row_id: rowId, column_id: c.def.column_id, nv: JSON.stringify(c.value) });
     }
   });
+  await assertRowRoom(sheetId, valid.length, tx);
   await q(`INSERT INTO Rows (row_id, sheet_id, row_order, created_by, updated_by)
            SELECT row_id, @s, ord, @u, @u FROM OPENJSON(@j) WITH (row_id UNIQUEIDENTIFIER, ord INT)`,
     { s: T.uuid(sheetId), u: T.uuid(user.id), j: T.text(JSON.stringify(rowsJson)) }, tx);

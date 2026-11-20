@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.readSettings = readSettings;
 exports.writeSettingsKey = writeSettingsKey;
 exports.remapIds = remapIds;
+exports.assertRowRoom = assertRowRoom;
 const db_1 = require("../config/db");
 const http_1 = require("../shared/http");
 /** Sheet settings JSON is shared by several modules: each reads / writes only its own key */
@@ -32,5 +33,17 @@ function remapIds(value, map) {
         return v;
     };
     return walk(value);
+}
+/**
+ * A sheet marked `singleRow` (settings) keeps ONE row — e.g. the header of a form file where 1 file = 1 document. Called before rows are added
+ * (`adding` = how many): refuses when the sheet would then have more than one live row. Deleted rows (trash) do not count.
+ */
+async function assertRowRoom(sheetId, adding, tx) {
+    const s = await readSettings(sheetId, tx);
+    if (!s.singleRow)
+        return;
+    const n = await (0, db_1.q1)(`SELECT COUNT(*) AS n FROM Rows WHERE sheet_id = @s AND is_deleted = 0`, { s: db_1.T.uuid(sheetId) }, tx);
+    if (Number(n?.n ?? 0) + adding > 1)
+        throw (0, http_1.badRequest)('ชีตนี้เก็บได้แถวเดียว (1 ไฟล์ = 1 เอกสาร) — ถ้าจะทำเอกสารใหม่ ให้ทำสำเนาไฟล์');
 }
 //# sourceMappingURL=sheetSettings.js.map

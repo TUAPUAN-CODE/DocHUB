@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bulkSupported = bulkSupported;
 exports.bulkCreateRowsTx = bulkCreateRowsTx;
+const sheetSettings_1 = require("./sheetSettings");
 const crypto_1 = __importDefault(require("crypto"));
 const db_1 = require("../config/db");
 const audit_1 = require("../shared/audit");
@@ -67,6 +68,7 @@ async function bulkCreateRowsTx(tx, user, sheet, sheetId, list, source) {
             histJson.push({ cell_id: cellId, row_id: rowId, column_id: c.def.column_id, nv: JSON.stringify(c.value) });
         }
     });
+    await (0, sheetSettings_1.assertRowRoom)(sheetId, valid.length, tx);
     await (0, db_1.q)(`INSERT INTO Rows (row_id, sheet_id, row_order, created_by, updated_by)
            SELECT row_id, @s, ord, @u, @u FROM OPENJSON(@j) WITH (row_id UNIQUEIDENTIFIER, ord INT)`, { s: db_1.T.uuid(sheetId), u: db_1.T.uuid(user.id), j: db_1.T.text(JSON.stringify(rowsJson)) }, tx);
     for (let i = 0; i < cellsJson.length; i += 2000) {
