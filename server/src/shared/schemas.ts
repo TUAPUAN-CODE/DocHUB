@@ -26,6 +26,8 @@ export const validationSchema = z
     /** a new row's form starts with today's date / the time now (HH.mm) / the shift of the time now (D/S · N/S options) — the user may change it */
     autoFill: z.enum(['today', 'now', 'shift']).nullish(),
     /** select columns of one group get a "set all" bar in the row form (each column can still be changed on its own); the text is the bar's label */
+    /** a text column typed with the browser's time picker (stored as HH.mm, e.g. 19.50) */
+    inputAs: z.enum(['time']).nullish(),
     formGroup: z.string().trim().max(60).nullish(),
     formula: z.object({ expr: z.string().trim().min(1).max(2000), sources: z.array(z.object({ alias: z.string().trim().min(1).max(40), sheetId: z.string().max(60) })).max(10).optional() }).nullish(),
     alert: z
@@ -132,6 +134,7 @@ export function checkColumnInput(input: ColumnInput) {
     const ok = validation.autoStamp === 'updatedAt' ? ['date', 'datetime'].includes(input.dataType) : ['varchar', 'text'].includes(input.dataType);
     if (!ok) throw badRequest(validation.autoStamp === 'updatedAt' ? `"${input.name}": เติมวันที่อัตโนมัติได้เฉพาะคอลัมน์วันที่` : `"${input.name}": เติมชื่อผู้แก้ไขอัตโนมัติได้เฉพาะคอลัมน์ข้อความ`);
   }
+  if (validation.inputAs && input.dataType !== 'varchar') throw badRequest(`"${input.name}": ช่องเวลาใช้ได้กับคอลัมน์ข้อความสั้นเท่านั้น`);
   if (validation.autoFill) {
     const ok = validation.autoFill === 'shift' ? input.dataType === 'select' : validation.autoFill === 'today' ? input.dataType === 'date' : ['varchar', 'datetime'].includes(input.dataType);
     if (!ok) throw badRequest(`"${input.name}": เติมค่าเริ่มต้นอัตโนมัติ (${validation.autoFill}) ใช้กับชนิดคอลัมน์นี้ไม่ได้`);

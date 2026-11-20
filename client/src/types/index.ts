@@ -68,6 +68,8 @@ export interface Validation {
   autoFill?: 'today' | 'now' | 'shift' | null;
   /** select columns with the same text get a "set all" bar in the row form (each can still be set on its own); the text is the bar's label */
   formGroup?: string | null;
+  /** a text column typed with the browser's time picker (stored as HH.mm, e.g. 19.50) */
+  inputAs?: 'time' | null;
 }
 /** other sheets a formula reads: alias used in the formula as @alias[Column]; names are only for display (filled in by the server for managers) */
 export interface FormulaSource { alias: string; sheetId: string; fileId?: string | null; fileName?: string | null; sheetName?: string | null }
